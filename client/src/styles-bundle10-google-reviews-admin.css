@@ -1,0 +1,207 @@
+/* Bundle 10: Google/Pinterest-style reviews, fixed upload UI, admin tabs */
+.upload-dropzone {
+  border: 1.5px dashed rgba(96, 165, 250, 0.6);
+  border-radius: 18px;
+  padding: 22px;
+  min-height: 110px;
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  text-align: center;
+  cursor: pointer;
+  background: rgba(15, 23, 42, 0.75);
+  transition: 0.25s ease;
+}
+.upload-dropzone:hover {
+  border-color: #60a5fa;
+  transform: translateY(-2px);
+  background: rgba(30, 41, 59, 0.9);
+}
+.upload-dropzone span { color: #94a3b8; font-size: 14px; }
+
+.google-review-form {
+  background: rgba(2, 8, 23, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 28px;
+  padding: 28px;
+  display: grid;
+  gap: 18px;
+}
+.review-form-head h3 { margin: 8px 0; font-size: 28px; }
+.star-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+}
+.star-btn {
+  border: 0;
+  background: transparent;
+  color: #475569;
+  font-size: 42px;
+  cursor: pointer;
+  line-height: 1;
+  transition: 0.18s ease;
+}
+.star-btn:hover,
+.star-btn.active {
+  color: #fbbc04;
+  transform: scale(1.08);
+}
+.star-rating-row strong { margin-left: 12px; color: #e2e8f0; }
+.google-review-textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 140px;
+  border-radius: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: #020817;
+  color: white;
+  padding: 18px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.google-photo-upload {
+  display: grid;
+  grid-template-columns: 1fr minmax(230px, 320px);
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(15, 23, 42, 0.7);
+}
+.review-photo-preview-grid,
+.google-review-photos,
+.admin-review-photos {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.review-photo-preview {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: 18px;
+  overflow: hidden;
+}
+.review-photo-preview img,
+.google-review-photos img,
+.admin-review-photos img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+.review-photo-preview button {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  border: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.72);
+  color: white;
+  cursor: pointer;
+}
+.wide { width: 100%; }
+
+.google-review-empty {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 24px;
+  padding: 36px;
+  background: rgba(15, 23, 42, 0.55);
+}
+.google-review-list { display: grid; gap: 18px; }
+.google-review-card {
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  gap: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 24px;
+  padding: 22px;
+  background: rgba(15, 23, 42, 0.68);
+}
+.reviewer-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  color: white;
+  font-weight: 900;
+  font-size: 22px;
+}
+.review-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.review-topline h4,
+.review-topline h3 { margin: 0 0 4px; }
+.review-topline p,
+.review-topline small { color: #94a3b8; }
+.review-rating-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 12px;
+}
+.review-stars span { color: #475569; font-size: 18px; }
+.review-stars span.active { color: #fbbc04; }
+.review-comment { color: #dbeafe; line-height: 1.7; }
+.verified-pill {
+  background: rgba(34, 197, 94, 0.14);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: #86efac;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 0 8% 24px;
+}
+.admin-tabs button {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.85);
+  color: #cbd5e1;
+  padding: 13px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 800;
+}
+.admin-tabs button.active,
+.admin-tabs button:hover {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+.admin-review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+}
+.admin-review-card {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 22px;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.72);
+  display: grid;
+  gap: 14px;
+}
+
+@media (max-width: 760px) {
+  .google-photo-upload { grid-template-columns: 1fr; }
+  .google-review-card { grid-template-columns: 1fr; }
+  .admin-tabs { padding: 0 20px 24px; }
+}

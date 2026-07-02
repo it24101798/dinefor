@@ -1,0 +1,84 @@
+const mongoose = require("mongoose");
+
+const hotelSchema = new mongoose.Schema(
+  {
+    owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+
+    hotelName: { type: String, required: true, trim: true },
+    location: { type: String, required: true, trim: true },
+    address: { type: String, default: "" },
+    city: { type: String, default: "", trim: true },
+    district: { type: String, default: "", trim: true },
+    province: { type: String, default: "", trim: true },
+    country: { type: String, default: "Sri Lanka", trim: true },
+    description: { type: String, default: "" },
+    contactNumber: { type: String, default: "" },
+    email: { type: String, default: "" },
+
+    images: { type: [String], default: [] },
+    galleryImages: { type: [String], default: [] },
+    videos: { type: [String], default: [] },
+    amenities: { type: [String], default: [] },
+    diningHighlights: { type: [String], default: [] },
+    logo: { type: String, default: "" },
+    coverMediaUrl: { type: String, default: "" },
+    coverMediaType: { type: String, enum: ["image", "video"], default: "image" },
+
+    mapLocation: {
+      latitude: { type: Number, default: null },
+      longitude: { type: Number, default: null },
+      googleMapUrl: { type: String, default: "" },
+    },
+
+    application: {
+      applicationNumber: { type: String, default: "" },
+      legalBusinessName: { type: String, default: "" },
+      businessRegistrationNumber: { type: String, default: "" },
+      taxNumber: { type: String, default: "" },
+      hotelCategory: { type: String, default: "Hotel" },
+      starRating: { type: String, default: "" },
+      cuisineTypes: { type: [String], default: [] },
+      mealServices: { type: [String], default: [] },
+      buffetCapacity: { type: Number, default: 0 },
+      averageBuffetPrice: { type: Number, default: 0 },
+      managerName: { type: String, default: "" },
+      managerPhone: { type: String, default: "" },
+      managerEmail: { type: String, default: "" },
+      financeContactName: { type: String, default: "" },
+      financeContactPhone: { type: String, default: "" },
+      bankName: { type: String, default: "" },
+      accountNumber: { type: String, default: "" },
+      accountHolderName: { type: String, default: "" },
+      bankBranch: { type: String, default: "" },
+      refundPolicy: { type: String, default: "" },
+      cancellationPolicy: { type: String, default: "" },
+      termsAccepted: { type: Boolean, default: false },
+      applicantNote: { type: String, default: "" },
+      documents: { type: [String], default: [] },
+      submittedAt: { type: Date, default: null },
+      reviewedAt: { type: Date, default: null },
+      reviewNote: { type: String, default: "" },
+      history: [
+        {
+          status: { type: String, default: "pending" },
+          note: { type: String, default: "" },
+          by: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+          at: { type: Date, default: Date.now },
+        },
+      ],
+    },
+
+    isApproved: { type: Boolean, default: false },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected", "suspended", "need_more_info", "hold"],
+      default: "pending",
+    },
+    featured: { type: Boolean, default: false },
+    averageRating: { type: Number, default: 0 },
+    totalReviews: { type: Number, default: 0 },
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("Hotel", hotelSchema);

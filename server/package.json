@@ -1,0 +1,23 @@
+{
+  "name": "dinefor-server",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "server": "nodemon server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "latest",
+    "cors": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "jsonwebtoken": "latest",
+    "mongoose": "latest",
+    "morgan": "latest",
+    "multer": "latest"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

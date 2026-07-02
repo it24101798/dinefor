@@ -1,0 +1,240 @@
+.map-page,
+.profile-page {
+  min-height: 100vh;
+  background: #020817;
+  color: white;
+}
+
+.map-hero {
+  padding: 70px 60px 35px;
+  background: linear-gradient(135deg, #020817 0%, #14213d 55%, #1d4ed8 130%);
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 30px;
+  align-items: end;
+}
+
+.map-eyebrow,
+.profile-badge {
+  display: inline-block;
+  background: #f59e0b;
+  color: #020817;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 800;
+  margin-bottom: 15px;
+}
+
+.map-hero h1 {
+  font-size: 54px;
+  margin-bottom: 14px;
+}
+
+.map-hero p {
+  color: #cbd5e1;
+  line-height: 1.7;
+}
+
+.map-search-card {
+  background: rgba(15, 23, 42, .82);
+  border: 1px solid #334155;
+  border-radius: 22px;
+  padding: 22px;
+  display: grid;
+  gap: 12px;
+}
+
+.map-search-card input,
+.map-search-card button {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #334155;
+}
+
+.map-search-card input {
+  background: #020617;
+  color: white;
+}
+
+.map-search-card button {
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.map-layout {
+  display: grid;
+  grid-template-columns: minmax(360px, 42%) 1fr;
+  gap: 24px;
+  padding: 30px 60px 60px;
+}
+
+.map-results,
+.map-panel,
+.profile-section {
+  background: #14213d;
+  border: 1px solid #334155;
+  border-radius: 24px;
+  padding: 24px;
+}
+
+.map-card-list {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.map-buffet-card {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 15px;
+  background: #020617;
+  border: 1px solid #334155;
+  border-radius: 18px;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.map-buffet-card img {
+  width: 130px;
+  height: 130px;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.hotel-link,
+.map-actions a,
+.profile-buffet-card a,
+.maps-button {
+  color: #93c5fd;
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.map-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.hotel-hero {
+  min-height: 520px;
+  position: relative;
+  display: flex;
+  align-items: end;
+  overflow: hidden;
+}
+
+.hotel-hero > img,
+.hotel-hero > video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hotel-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(2, 8, 23, .25), rgba(2, 8, 23, .95));
+}
+
+.hotel-hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 65px;
+  max-width: 850px;
+}
+
+.hotel-logo {
+  width: 92px;
+  height: 92px;
+  border-radius: 24px;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,.7);
+  margin-bottom: 18px;
+}
+
+.hotel-hero-content h1 {
+  font-size: 58px;
+  margin-bottom: 12px;
+}
+
+.hotel-hero-content p {
+  color: #cbd5e1;
+  line-height: 1.7;
+}
+
+.maps-button {
+  display: inline-block;
+  margin-top: 20px;
+  background: #2563eb;
+  color: white;
+  padding: 13px 18px;
+  border-radius: 14px;
+}
+
+.profile-section {
+  margin: 35px 60px;
+}
+
+.info-grid,
+.profile-buffet-grid,
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.info-grid > div,
+.review-card {
+  background: #020617;
+  border: 1px solid #334155;
+  border-radius: 18px;
+  padding: 20px;
+}
+
+.profile-buffet-card {
+  background: #020617;
+  border: 1px solid #334155;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.profile-buffet-card img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+}
+
+.profile-buffet-card div {
+  padding: 20px;
+}
+
+.nav-button {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .map-hero,
+  .map-layout {
+    grid-template-columns: 1fr;
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+
+  .hotel-hero-content,
+  .profile-section {
+    padding: 30px;
+    margin: 22px;
+  }
+}

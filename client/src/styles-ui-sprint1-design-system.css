@@ -1,0 +1,660 @@
+/* =========================================================
+   DineFor UI Sprint 1 — Luxury Travel Design System
+   Inspired by clean premium travel UI: cream base, mint accent,
+   soft depth, elegant cards, stronger mobile QA readability.
+   ========================================================= */
+
+:root {
+  --df-cream: #fbf7ef;
+  --df-cream-2: #f5efe4;
+  --df-mint: #69d7c8;
+  --df-mint-2: #9ee7d8;
+  --df-gold: #e8c66a;
+  --df-forest: #0b2f2d;
+  --df-ink: #10201f;
+  --df-night: #06111f;
+  --df-night-2: #0d1f33;
+  --df-card: rgba(255, 255, 255, 0.86);
+  --df-card-dark: rgba(10, 26, 43, 0.82);
+  --df-border: rgba(14, 47, 45, 0.12);
+  --df-border-dark: rgba(177, 221, 213, 0.18);
+  --df-muted: #61716f;
+  --df-muted-light: #a9bbb8;
+  --df-shadow-soft: 0 20px 55px rgba(17, 42, 38, 0.11);
+  --df-shadow-lift: 0 24px 70px rgba(13, 31, 51, 0.22);
+  --df-radius-xl: 32px;
+  --df-radius-lg: 24px;
+  --df-radius-md: 18px;
+  --df-radius-sm: 14px;
+  --df-container: min(1180px, calc(100% - 48px));
+
+  --bg: var(--df-cream);
+  --panel: rgba(255, 255, 255, 0.82);
+  --panel-2: rgba(245, 239, 228, 0.84);
+  --text: var(--df-ink);
+  --muted: var(--df-muted);
+  --soft: #6f807d;
+  --line: var(--df-border);
+  --blue: #2fbdb2;
+  --gold: var(--df-gold);
+  --success: #168a55;
+  --danger: #d94747;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(105, 215, 200, 0.6) transparent;
+}
+
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--df-mint), var(--df-gold));
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(105, 215, 200, 0.18), transparent 32%),
+    radial-gradient(circle at 95% 20%, rgba(232, 198, 106, 0.18), transparent 28%),
+    linear-gradient(180deg, var(--df-cream) 0%, #fffaf1 48%, #f6efe2 100%) !important;
+  color: var(--df-ink) !important;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  text-rendering: geometricPrecision;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(16, 32, 31, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(16, 32, 31, 0.035) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,0.55), transparent 65%);
+  z-index: -1;
+}
+
+/* ---------- Header / Navbar ---------- */
+.site-header.df-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(251, 247, 239, 0.76);
+  backdrop-filter: blur(22px);
+  border-bottom: 1px solid rgba(16, 32, 31, 0.1);
+}
+
+.navbar.df-navbar {
+  width: var(--df-container);
+  margin: 0 auto;
+  padding: 18px 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  display: flex;
+  gap: 22px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.df-logo {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 10px;
+  color: var(--df-forest) !important;
+  text-decoration: none !important;
+  font-weight: 950 !important;
+  letter-spacing: -1.4px;
+  font-size: clamp(28px, 3vw, 38px) !important;
+  flex-shrink: 0;
+}
+
+.df-logo-mark,
+.logo-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 0 16px 16px 0;
+  background: linear-gradient(135deg, var(--df-mint), var(--df-gold));
+  color: var(--df-forest) !important;
+  display: inline-grid;
+  place-items: center;
+  font-weight: 950;
+  box-shadow: 0 12px 30px rgba(22, 138, 85, 0.18);
+}
+
+.df-nav-panel {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.nav-links.df-main-links,
+.nav-links.df-role-links,
+.df-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px !important;
+  flex-wrap: wrap;
+}
+
+.nav-links.df-main-links a,
+.nav-links.df-role-links a {
+  color: var(--df-ink) !important;
+  text-decoration: none !important;
+  font-weight: 850 !important;
+  border-radius: 999px;
+  padding: 11px 14px;
+  transition: background 0.22s ease, color 0.22s ease, transform 0.22s ease;
+}
+
+.nav-links.df-main-links a:hover,
+.nav-links.df-role-links a:hover,
+.nav-links.df-main-links a.active,
+.nav-links.df-role-links a.active {
+  background: rgba(105, 215, 200, 0.2);
+  color: var(--df-forest) !important;
+  transform: translateY(-1px);
+}
+
+.nav-links.df-role-links a {
+  border: 1px solid rgba(16, 32, 31, 0.12);
+  background: rgba(255, 255, 255, 0.54);
+  color: var(--df-forest) !important;
+}
+
+.df-user-chip,
+.user-chip {
+  background: rgba(255, 255, 255, 0.68) !important;
+  border: 1px solid rgba(16, 32, 31, 0.12) !important;
+  color: var(--df-ink) !important;
+  border-radius: 999px !important;
+  padding: 8px 13px !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  max-width: 220px;
+  box-shadow: 0 10px 28px rgba(16, 32, 31, 0.07);
+}
+
+.df-avatar-dot,
+.avatar-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--df-mint), var(--df-gold));
+  color: var(--df-forest);
+  font-weight: 950;
+}
+
+.nav-user-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.df-mobile-toggle {
+  display: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid rgba(16, 32, 31, 0.14);
+  background: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  padding: 13px;
+}
+
+.df-mobile-toggle span {
+  display: block;
+  height: 2px;
+  margin: 5px 0;
+  background: var(--df-forest);
+  border-radius: 999px;
+}
+
+/* ---------- Global UI Elements ---------- */
+.btn,
+.df-btn,
+button,
+input[type="button"],
+input[type="submit"] {
+  border-radius: 999px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.01em;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease, opacity 0.22s ease !important;
+}
+
+.btn:hover,
+.df-btn:hover,
+button:hover,
+.card-hover:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--df-shadow-soft);
+}
+
+.primary,
+.btn.primary,
+.df-btn-primary {
+  color: var(--df-forest) !important;
+  background: linear-gradient(135deg, var(--df-mint), var(--df-gold)) !important;
+  box-shadow: 0 16px 35px rgba(105, 215, 200, 0.26) !important;
+}
+
+.secondary,
+.ghost,
+.btn.secondary,
+.btn.ghost,
+.df-btn-ghost {
+  color: var(--df-forest) !important;
+  background: rgba(255, 255, 255, 0.74) !important;
+  border: 1px solid rgba(16, 32, 31, 0.14) !important;
+}
+
+.danger,
+.btn.danger { background: #d94747 !important; color: #fff !important; }
+.success,
+.btn.success { background: #168a55 !important; color: #fff !important; }
+.warning,
+.btn.warning { background: #d69d2f !important; color: var(--df-forest) !important; }
+
+input,
+select,
+textarea {
+  background: rgba(255, 255, 255, 0.78) !important;
+  color: var(--df-ink) !important;
+  border: 1px solid rgba(16, 32, 31, 0.14) !important;
+  border-radius: 18px !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: rgba(105, 215, 200, 0.9) !important;
+  box-shadow: 0 0 0 4px rgba(105, 215, 200, 0.18) !important;
+}
+
+/* ---------- Layout & Panels ---------- */
+.page-shell,
+.dashboard-page,
+.auth-page,
+.home-page,
+.discovery-page,
+.hotel-portal-page,
+.admin-dashboard,
+.admin-page,
+.customer-dashboard-page {
+  background: transparent !important;
+  color: var(--df-ink) !important;
+}
+
+.page-shell,
+.dashboard-page {
+  width: var(--df-container);
+  margin: 0 auto;
+  padding: 34px 0 70px !important;
+}
+
+.page-hero,
+.hero,
+.home-hero,
+.panel,
+.quick-card,
+.stat-card,
+.feed-card,
+.booking-card,
+.mini-card,
+.auth-card,
+.details-layout,
+.booking-panel,
+.home-feature-card,
+.discovery-toolbar,
+.discovery-layout,
+.filter-sidebar,
+.discovery-card,
+.hotel-portal-shell,
+.hotel-sidebar,
+.hotel-workspace-card,
+.admin-shell,
+.admin-sidebar,
+.admin-content-card,
+.reservation-ops-card,
+.finance-card {
+  border: 1px solid rgba(16, 32, 31, 0.11) !important;
+  background: rgba(255, 255, 255, 0.76) !important;
+  color: var(--df-ink) !important;
+  box-shadow: var(--df-shadow-soft) !important;
+  backdrop-filter: blur(18px);
+}
+
+.page-hero,
+.panel,
+.auth-card,
+.details-layout,
+.discovery-layout,
+.filter-sidebar,
+.discovery-card,
+.hotel-portal-shell,
+.hotel-sidebar,
+.admin-shell,
+.admin-sidebar,
+.admin-content-card,
+.reservation-ops-card,
+.finance-card {
+  border-radius: var(--df-radius-xl) !important;
+}
+
+.page-hero {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.82), rgba(245,239,228,0.72)),
+    radial-gradient(circle at 95% 10%, rgba(105,215,200,0.18), transparent 38%) !important;
+}
+
+.page-hero h1,
+.hero-content h1,
+.home-hero h1,
+.hotel-hero h1,
+.auth-card h1,
+.details-panel h1 {
+  color: var(--df-forest) !important;
+  letter-spacing: -0.055em;
+}
+
+.page-hero p,
+.hero-content p,
+.home-hero p,
+.hotel-desc,
+.muted,
+.auth-card p,
+.details-panel p,
+.feed-body p,
+.discovery-card p,
+.hotel-portal-page p {
+  color: var(--df-muted) !important;
+}
+
+.eyebrow,
+.badge,
+.status,
+.availability-badge,
+.tag,
+.chip {
+  border-radius: 999px !important;
+  background: rgba(105, 215, 200, 0.18) !important;
+  color: var(--df-forest) !important;
+  border: 1px solid rgba(105, 215, 200, 0.28) !important;
+}
+
+.badge.featured,
+.eyebrow.gold {
+  background: linear-gradient(135deg, var(--df-mint), var(--df-gold)) !important;
+  color: var(--df-forest) !important;
+}
+
+/* ---------- Cards / Images ---------- */
+.feed-card,
+.discovery-card,
+.booking-card,
+.mini-card {
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.feed-card:hover,
+.discovery-card:hover,
+.booking-card:hover,
+.mini-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--df-shadow-lift) !important;
+}
+
+.feed-image,
+.discovery-card img,
+.booking-card img,
+.mini-card img,
+.hero-media img,
+.hero-media video,
+.details-media img {
+  filter: saturate(1.06) contrast(1.02);
+}
+
+.feed-image,
+.discovery-card img,
+.booking-card img,
+.mini-card img {
+  border-bottom: 1px solid rgba(16, 32, 31, 0.1);
+}
+
+.meta-row span,
+.slot-preview,
+.booking-panel,
+.table-wrap,
+th,
+td,
+.status,
+.stat-card {
+  color: var(--df-ink) !important;
+}
+
+.meta-row span {
+  background: rgba(245, 239, 228, 0.78) !important;
+  border: 1px solid rgba(16, 32, 31, 0.1) !important;
+}
+
+/* ---------- Tables ---------- */
+table {
+  background: rgba(255, 255, 255, 0.62);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+th {
+  background: rgba(105, 215, 200, 0.14) !important;
+  color: var(--df-forest) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 12px;
+}
+
+td {
+  border-color: rgba(16, 32, 31, 0.1) !important;
+}
+
+/* ---------- Forms / Auth ---------- */
+.auth-page {
+  min-height: calc(100vh - 86px) !important;
+  background:
+    radial-gradient(circle at 15% 5%, rgba(105,215,200,0.24), transparent 34%),
+    radial-gradient(circle at 80% 20%, rgba(232,198,106,0.20), transparent 30%) !important;
+}
+
+.auth-card {
+  max-width: 560px !important;
+  padding: clamp(26px, 4vw, 46px) !important;
+}
+
+/* ---------- Hero Media Overlay Cleanup ---------- */
+.hero-overlay,
+.home-hero .hero-overlay {
+  background: linear-gradient(90deg, rgba(251, 247, 239, 0.94), rgba(251, 247, 239, 0.68), rgba(251, 247, 239, 0.18)) !important;
+}
+
+.mute-btn {
+  background: rgba(255, 255, 255, 0.82) !important;
+  color: var(--df-forest) !important;
+  border: 1px solid rgba(16, 32, 31, 0.12) !important;
+}
+
+/* ---------- Hotel/Admin shell readability ---------- */
+.hotel-sidebar,
+.admin-sidebar {
+  position: sticky;
+  top: 98px;
+  align-self: start;
+}
+
+.hotel-sidebar a,
+.admin-sidebar a,
+.hotel-sidebar button,
+.admin-sidebar button {
+  color: var(--df-ink) !important;
+}
+
+.hotel-sidebar a.active,
+.admin-sidebar a.active,
+.hotel-sidebar button.active,
+.admin-sidebar button.active {
+  background: linear-gradient(135deg, var(--df-mint), var(--df-gold)) !important;
+  color: var(--df-forest) !important;
+}
+
+/* ---------- Light product feel for dark bundle pages ---------- */
+.discovery-hero,
+.hotel-portal-hero,
+.reservation-ops-hero,
+.customer-hero {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.82), rgba(245,239,228,0.78)),
+    radial-gradient(circle at 90% 10%, rgba(105,215,200,0.2), transparent 34%) !important;
+  border: 1px solid rgba(16,32,31,0.1) !important;
+  color: var(--df-ink) !important;
+}
+
+/* ---------- Responsive QA Quick Fix ---------- */
+@media (max-width: 1180px) {
+  :root { --df-container: min(100% - 32px, 1080px); }
+
+  .df-nav-panel {
+    gap: 10px;
+  }
+
+  .nav-links.df-main-links a,
+  .nav-links.df-role-links a {
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 920px) {
+  .navbar.df-navbar {
+    position: relative;
+    align-items: center;
+  }
+
+  .df-mobile-toggle {
+    display: block;
+    margin-left: auto;
+  }
+
+  .df-nav-panel {
+    display: none;
+    position: absolute;
+    top: calc(100% + 12px);
+    left: 0;
+    right: 0;
+    padding: 18px;
+    border-radius: 28px;
+    background: rgba(251, 247, 239, 0.96);
+    border: 1px solid rgba(16, 32, 31, 0.12);
+    box-shadow: var(--df-shadow-lift);
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .df-nav-panel.open { display: flex; }
+
+  .nav-links.df-main-links,
+  .nav-links.df-role-links,
+  .df-nav-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .nav-links.df-main-links a,
+  .nav-links.df-role-links a,
+  .df-nav-actions a,
+  .df-nav-actions button,
+  .df-user-chip {
+    min-height: 44px;
+  }
+
+  .details-layout,
+  .form-grid,
+  .discovery-layout,
+  .hotel-portal-shell,
+  .admin-shell {
+    grid-template-columns: 1fr !important;
+  }
+
+  .details-media img { min-height: 360px !important; }
+
+  .hotel-sidebar,
+  .admin-sidebar {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  :root { --df-container: min(100% - 24px, 100%); }
+
+  .navbar.df-navbar { padding: 14px 0 !important; }
+  .df-logo { font-size: 29px !important; }
+  .df-logo-mark { width: 38px; height: 38px; }
+
+  .page-shell,
+  .dashboard-page { padding-top: 22px !important; }
+
+  .page-hero,
+  .panel,
+  .auth-card,
+  .booking-panel,
+  .filter-sidebar,
+  .discovery-card,
+  .hotel-sidebar,
+  .admin-sidebar,
+  .reservation-ops-card {
+    border-radius: 24px !important;
+    padding: 20px !important;
+  }
+
+  .hero,
+  .home-hero { min-height: 620px !important; }
+  .hero-content h1,
+  .page-hero h1,
+  .home-hero h1,
+  .hotel-hero h1,
+  .details-panel h1 { font-size: clamp(36px, 12vw, 56px) !important; }
+
+  .feed-grid,
+  .stats-grid,
+  .quick-section,
+  .info-grid {
+    grid-template-columns: 1fr !important;
+    gap: 18px !important;
+  }
+
+  .feed-card,
+  .discovery-card,
+  .booking-card { border-radius: 26px !important; }
+
+  .action-row,
+  .hero-actions,
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .action-row .btn,
+  .hero-actions .btn,
+  .action-buttons .btn,
+  .btn.wide {
+    width: 100%;
+  }
+
+  .table-wrap { margin-inline: -8px; }
+  table { min-width: 720px; }
+}

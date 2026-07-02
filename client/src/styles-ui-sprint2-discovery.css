@@ -1,0 +1,370 @@
+/* UI Sprint 2 — DineFor Premium Discovery Experience */
+
+.df-discovery-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 12% 4%, rgba(111, 207, 183, 0.18), transparent 28%),
+    linear-gradient(180deg, #fbf8ef 0%, #f7f3e8 48%, #eef8f1 100%);
+  color: #17352e;
+  padding-bottom: 80px;
+}
+
+.df-kicker {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 9px 15px;
+  border-radius: 999px;
+  background: rgba(111, 207, 183, 0.18);
+  color: #1b6f5f;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.df-discovery-hero-v2 {
+  max-width: 1220px;
+  margin: 0 auto;
+  padding: 72px 22px 28px;
+}
+
+.df-hero-copy-v2 {
+  text-align: center;
+  max-width: 920px;
+  margin: 0 auto 30px;
+}
+
+.df-hero-copy-v2 h1 {
+  margin: 20px 0 18px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(46px, 7vw, 86px);
+  line-height: 0.95;
+  color: #113b34;
+  letter-spacing: -0.055em;
+}
+
+.df-hero-copy-v2 p {
+  max-width: 760px;
+  margin: 0 auto;
+  color: #59736b;
+  font-size: 19px;
+  line-height: 1.75;
+}
+
+.df-hero-search-card {
+  position: relative;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 16px;
+  border: 1px solid rgba(24, 68, 58, 0.12);
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.84);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 28px 80px rgba(20, 67, 55, 0.13);
+  z-index: 8;
+}
+
+.df-search-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.8fr) minmax(170px, 0.9fr) minmax(160px, 0.9fr) 110px 130px;
+  gap: 12px;
+  align-items: end;
+}
+
+.df-search-field {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.df-search-field label,
+.df-filter-label {
+  color: #567168;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.df-search-field input,
+.df-search-field select,
+.df-filter-panel input,
+.df-filter-panel select,
+.df-sort-inline select {
+  width: 100%;
+  min-height: 54px;
+  border: 1px solid rgba(26, 71, 61, 0.14);
+  border-radius: 18px;
+  background: #fffef9;
+  color: #17352e;
+  padding: 0 16px;
+  font-weight: 700;
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+}
+
+.df-search-field input:focus,
+.df-filter-panel input:focus,
+.df-filter-panel select:focus,
+.df-sort-inline select:focus {
+  border-color: #65cdb7;
+  box-shadow: 0 0 0 4px rgba(101, 205, 183, 0.18);
+}
+
+.df-luxury-search-button,
+.df-reserve-cta {
+  min-height: 54px;
+  border: 0;
+  border-radius: 18px;
+  color: #10342e;
+  background: linear-gradient(135deg, #62d0c3, #f3df9a);
+  font-weight: 950;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+  box-shadow: 0 16px 28px rgba(26, 105, 90, 0.18);
+}
+
+.df-luxury-search-button:hover,
+.df-reserve-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 40px rgba(26, 105, 90, 0.23);
+  filter: saturate(1.05);
+}
+
+.df-suggestion-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  border: 1px solid rgba(26, 71, 61, 0.12);
+  border-radius: 24px;
+  background: rgba(255,255,255,.96);
+  box-shadow: 0 26px 55px rgba(20, 67, 55, 0.18);
+  overflow: hidden;
+  padding: 12px;
+}
+
+.df-suggestion-group + .df-suggestion-group { border-top: 1px solid rgba(24, 68, 58, 0.08); padding-top: 10px; margin-top: 8px; }
+.df-suggestion-title { display:block; color:#7b918a; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.09em; margin: 0 8px 6px; }
+.df-suggestion-group button { width: 100%; border: 0; background: transparent; padding: 11px 10px; border-radius: 14px; text-align: left; color: #17352e; font-weight: 800; cursor: pointer; display:flex; gap:10px; align-items:center; }
+.df-suggestion-group button:hover { background: #eef8f1; }
+
+.df-section-heading {
+  max-width: 1220px;
+  margin: 0 auto 20px;
+}
+
+.df-section-heading h2 {
+  margin: 12px 0 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #113b34;
+  font-size: clamp(30px, 4vw, 48px);
+  letter-spacing: -0.035em;
+}
+
+.df-section-heading.compact h2 { font-size: 32px; }
+.df-section-heading.horizontal { display:flex; align-items:end; justify-content:space-between; gap:20px; }
+.df-text-link, .df-text-button { color:#1f7a68; font-weight:900; text-decoration:none; border:0; background:transparent; cursor:pointer; }
+
+.df-category-strip,
+.df-trending-section,
+.df-featured-hotels,
+.df-discovery-layout-v2 {
+  max-width: 1220px;
+  margin: 0 auto;
+  padding: 28px 22px 0;
+}
+
+.df-category-row {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 4px 0 10px;
+  scroll-snap-type: x proximity;
+}
+
+.df-category-row::-webkit-scrollbar,
+.df-hotel-carousel::-webkit-scrollbar { height: 6px; }
+.df-category-row::-webkit-scrollbar-thumb,
+.df-hotel-carousel::-webkit-scrollbar-thumb { background: rgba(23,53,46,.18); border-radius:999px; }
+
+.df-category-card {
+  min-width: 154px;
+  scroll-snap-align: start;
+  border: 1px solid rgba(24, 68, 58, 0.1);
+  border-radius: 24px;
+  background: rgba(255,255,255,.85);
+  color: #17352e;
+  padding: 18px;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 18px 40px rgba(20, 67, 55, 0.08);
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.df-category-card:hover,
+.df-category-card.active {
+  transform: translateY(-3px);
+  border-color: rgba(92, 196, 176, 0.72);
+  box-shadow: 0 24px 50px rgba(20, 67, 55, 0.14);
+}
+
+.df-category-icon { display:block; font-size:28px; margin-bottom:12px; }
+.df-category-card strong { display:block; font-size:16px; }
+.df-category-card small { display:block; color:#738a83; margin-top:5px; font-weight:700; }
+
+.df-trending-grid { display:grid; grid-template-columns: 1.45fr .8fr; gap: 18px; }
+.df-trending-hero-card { min-height: 420px; position:relative; overflow:hidden; border-radius:34px; color:white; text-decoration:none; box-shadow: 0 28px 80px rgba(21,64,54,.2); }
+.df-trending-hero-card img { width:100%; height:100%; object-fit:cover; position:absolute; inset:0; transition: transform .6s ease; }
+.df-trending-hero-card:hover img { transform: scale(1.05); }
+.df-trending-overlay { position:absolute; inset:0; background:linear-gradient(180deg, transparent 20%, rgba(0,0,0,.76)); }
+.df-trending-content { position:absolute; left:28px; right:28px; bottom:26px; }
+.df-trending-content h3 { font-family: Georgia, 'Times New Roman', serif; font-size:42px; margin:16px 0 8px; letter-spacing:-.04em; }
+.df-pill { display:inline-flex; padding:9px 13px; border-radius:999px; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:.08em; }
+.df-pill.warm { background:#f6df9e; color:#1b3d34; }
+.df-trending-meta { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
+.df-trending-meta span { background:rgba(255,255,255,.18); padding:9px 12px; border-radius:999px; backdrop-filter:blur(12px); font-weight:800; }
+.df-trending-side { display:grid; gap:16px; }
+.df-mini-trending-card { display:grid; grid-template-columns: 122px 1fr; gap:14px; align-items:center; border:1px solid rgba(24,68,58,.1); background:rgba(255,255,255,.9); border-radius:26px; padding:12px; color:#17352e; text-decoration:none; box-shadow: 0 18px 40px rgba(20,67,55,.08); transition: transform .18s ease; }
+.df-mini-trending-card:hover { transform: translateY(-2px); }
+.df-mini-trending-card img { width:122px; height:102px; border-radius:20px; object-fit:cover; }
+.df-mini-trending-card strong, .df-mini-trending-card span, .df-mini-trending-card small { display:block; }
+.df-mini-trending-card span { color:#637b74; margin:6px 0; }
+.df-mini-trending-card small { color:#1f7a68; font-weight:900; }
+
+.df-hotel-carousel { display:flex; gap:16px; overflow-x:auto; padding: 4px 0 12px; }
+.df-hotel-feature-card { min-width: 250px; border-radius:28px; overflow:hidden; background:white; color:#17352e; text-decoration:none; border:1px solid rgba(24,68,58,.1); box-shadow:0 18px 42px rgba(20,67,55,.08); transition:transform .18s ease; }
+.df-hotel-feature-card:hover { transform: translateY(-3px); }
+.df-hotel-feature-card > img { width:100%; height:150px; object-fit:cover; display:block; }
+.df-hotel-feature-body { display:grid; grid-template-columns:44px 1fr; gap:12px; padding:14px; align-items:center; }
+.df-hotel-logo-sm { width:44px; height:44px; border-radius:50%; background:#eef8f1; display:grid; place-items:center; font-weight:950; overflow:hidden; }
+.df-hotel-logo-sm img { width:100%; height:100%; object-fit:cover; }
+.df-hotel-feature-body strong, .df-hotel-feature-body span, .df-hotel-feature-body small { display:block; }
+.df-hotel-feature-body span { color:#637b74; margin:3px 0; }
+.df-hotel-feature-body small { color:#1f7a68; font-weight:800; }
+
+.df-discovery-layout-v2 { display:grid; grid-template-columns: 310px minmax(0,1fr); gap:28px; align-items:start; padding-top:34px; }
+.df-desktop-filter-wrap { position: sticky; top: 96px; }
+.df-filter-panel { border:1px solid rgba(24,68,58,.1); border-radius:32px; background: rgba(255,255,255,.88); padding:20px; box-shadow:0 24px 55px rgba(20,67,55,.09); }
+.df-filter-panel-header { display:flex; justify-content:space-between; gap:15px; align-items:start; margin-bottom:18px; }
+.df-filter-panel-header h3 { margin:10px 0 0; font-size:24px; }
+.df-filter-block { padding:18px 0; border-top:1px solid rgba(24,68,58,.08); }
+.df-filter-block:first-of-type { border-top:0; }
+.df-chip-grid, .df-rating-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+.df-filter-chip, .df-rating-filter { border:1px solid rgba(24,68,58,.12); background:#fffef9; color:#17352e; padding:10px 12px; border-radius:999px; font-weight:850; cursor:pointer; }
+.df-filter-chip.active, .df-rating-filter.active, .df-segmented-control button.active { background:#17352e; color:#fffdf6; border-color:#17352e; }
+.df-segmented-control { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; background:#edf5ef; padding:6px; border-radius:18px; margin-top:12px; }
+.df-segmented-control button { border:0; background:transparent; border-radius:14px; padding:10px; font-weight:900; cursor:pointer; color:#31554d; }
+.df-price-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+.df-price-grid small { display:block; color:#7b918a; font-weight:900; margin-bottom:6px; }
+.df-toggle-filter { display:flex; gap:10px; align-items:center; padding:13px; border:1px solid rgba(24,68,58,.1); border-radius:18px; background:#fffef9; margin-top:10px; color:#17352e; font-weight:850; }
+.df-toggle-filter input { width:18px; height:18px; min-height:auto; accent-color:#62d0c3; }
+
+.df-premium-result-header { display:flex; justify-content:space-between; gap:20px; align-items:end; margin-bottom:18px; }
+.df-premium-result-header h2 { font-size:34px; margin:10px 0 6px; color:#113b34; }
+.df-premium-result-header span { color:#667f78; }
+.df-result-actions { display:flex; gap:12px; align-items:center; }
+.df-sort-inline { display:flex; gap:10px; align-items:center; color:#637b74; font-weight:900; }
+.df-sort-inline select { min-height:48px; min-width:185px; }
+.df-mobile-filter-button { display:none; min-height:48px; border:0; border-radius:999px; padding:0 18px; color:#10342e; background:linear-gradient(135deg,#62d0c3,#f3df9a); font-weight:950; }
+.df-search-note { color:#668078; margin:-8px 0 18px; }
+.df-premium-card-grid { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:22px; }
+.df-premium-buffet-card { border:1px solid rgba(24,68,58,.1); background:#fffdf7; border-radius:34px; overflow:hidden; box-shadow:0 24px 60px rgba(20,67,55,.1); transition: transform .22s ease, box-shadow .22s ease; }
+.df-premium-buffet-card:hover { transform: translateY(-6px); box-shadow:0 32px 82px rgba(20,67,55,.16); }
+.df-premium-card-media { position:relative; display:block; height:300px; overflow:hidden; color:white; }
+.df-premium-card-media img, .df-premium-card-media video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition: transform .55s ease; }
+.df-premium-buffet-card:hover .df-premium-card-media img,
+.df-premium-buffet-card:hover .df-premium-card-media video { transform: scale(1.06); }
+.df-premium-card-media video { opacity:0; }
+.df-premium-card-media:hover video { opacity:1; }
+.df-image-fade { position:absolute; inset:auto 0 0 0; height:52%; background:linear-gradient(180deg, transparent, rgba(0,0,0,.58)); }
+.df-floating-type, .df-featured-ribbon, .df-urgency-badge { position:absolute; z-index:2; border-radius:999px; padding:9px 12px; font-size:12px; font-weight:950; text-transform:capitalize; }
+.df-floating-type { top:16px; right:16px; background:rgba(255,255,255,.92); color:#17352e; }
+.df-featured-ribbon { top:16px; left:16px; background:#f4df9d; color:#17352e; }
+.df-urgency-badge { bottom:16px; left:16px; background:#ffe4da; color:#a14422; }
+.df-premium-card-body { padding:20px; }
+.df-hotel-row { display:flex; justify-content:space-between; gap:14px; align-items:center; margin-bottom:12px; }
+.df-card-hotel-link { display:flex; gap:10px; align-items:center; min-width:0; color:#17443b; text-decoration:none; font-weight:950; }
+.df-hotel-avatar { width:34px; height:34px; border-radius:50%; background:#eef8f1; display:grid; place-items:center; flex:0 0 auto; overflow:hidden; }
+.df-hotel-avatar img { width:100%; height:100%; object-fit:cover; }
+.df-card-rating { padding:8px 11px; border-radius:999px; background:#fff6d6; color:#6a4a07; font-weight:950; }
+.df-premium-title-link { color:#113b34; text-decoration:none; }
+.df-premium-title-link h3 { font-size:27px; line-height:1.15; margin:0 0 8px; letter-spacing:-.025em; }
+.df-card-place { margin:0 0 10px; color:#1f7a68; font-weight:850; }
+.df-card-copy { min-height:48px; margin:0 0 14px; color:#5b746d; line-height:1.55; }
+.df-card-meta-pills { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:15px; }
+.df-card-meta-pills span { background:#eef8f1; color:#20473f; padding:9px 12px; border-radius:999px; font-weight:900; font-size:13px; }
+.df-availability-strip { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:16px; color:#668078; }
+.df-card-action-row { display:grid; grid-template-columns: 1fr 52px 52px; gap:10px; align-items:center; }
+.df-icon-action { min-height:52px; border:1px solid rgba(24,68,58,.12); border-radius:18px; background:#fff; color:#17352e; font-size:20px; font-weight:950; cursor:pointer; }
+.df-icon-action.saved { background:#ffe4eb; color:#c92d57; border-color:#ffc7d6; }
+
+.df-premium-empty { min-height:360px; border:1px dashed rgba(24,68,58,.18); border-radius:32px; background:rgba(255,255,255,.7); display:grid; place-items:center; text-align:center; padding:40px; color:#5b746d; }
+.df-premium-empty span { font-size:48px; }
+.df-premium-empty h3 { color:#113b34; font-size:28px; margin:12px 0 8px; }
+.df-premium-empty .df-reserve-cta { margin-top:16px; padding:0 24px; }
+
+.df-skeleton-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; }
+.df-skeleton-premium-card { border-radius:34px; background:rgba(255,255,255,.78); padding:16px; border:1px solid rgba(24,68,58,.08); }
+.df-skeleton-media, .df-skeleton-line, .df-skeleton-pill { position:relative; overflow:hidden; background:#e6eee8; }
+.df-skeleton-media::after, .df-skeleton-line::after, .df-skeleton-pill::after { content:""; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent); animation:dfShimmer 1.3s infinite; }
+.df-skeleton-media { height:260px; border-radius:26px; }
+.df-skeleton-line { height:18px; width:70%; border-radius:999px; margin:18px 0 12px; }
+.df-skeleton-line.wide { width:92%; }
+.df-skeleton-row { display:flex; gap:10px; }
+.df-skeleton-pill { height:38px; width:120px; border-radius:999px; }
+@keyframes dfShimmer { to { transform:translateX(100%); } }
+
+.df-filter-drawer-shell { position:fixed; inset:0; z-index:1000; display:none; }
+.df-filter-backdrop { position:absolute; inset:0; border:0; background:rgba(13,38,33,.42); }
+.df-filter-drawer { position:absolute; left:0; right:0; bottom:0; max-height:86vh; overflow:auto; border-radius:28px 28px 0 0; background:#fbf8ef; padding:12px 18px 20px; box-shadow:0 -20px 60px rgba(0,0,0,.22); }
+.df-drawer-handle { width:56px; height:5px; border-radius:999px; background:#cbd8d2; margin:0 auto 12px; }
+.df-drawer-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.df-drawer-header h3 { margin:0; color:#113b34; }
+.df-drawer-header button { border:0; border-radius:999px; padding:10px 16px; background:#17352e; color:white; font-weight:900; }
+.df-filter-drawer .df-filter-panel { box-shadow:none; border-radius:24px; }
+
+@media (max-width: 1060px) {
+  .df-search-grid { grid-template-columns:1fr 1fr; }
+  .df-search-main-field { grid-column:1 / -1; }
+  .df-luxury-search-button { grid-column:1 / -1; }
+  .df-trending-grid, .df-discovery-layout-v2 { grid-template-columns:1fr; }
+  .df-desktop-filter-wrap { display:none; }
+  .df-mobile-filter-button { display:inline-flex; align-items:center; justify-content:center; }
+  .df-filter-drawer-shell { display:block; }
+}
+
+@media (max-width: 760px) {
+  .df-discovery-hero-v2 { padding:44px 16px 16px; }
+  .df-hero-copy-v2 h1 { font-size:42px; }
+  .df-hero-copy-v2 p { font-size:16px; }
+  .df-hero-search-card { border-radius:26px; padding:14px; }
+  .df-search-grid { grid-template-columns:1fr; }
+  .df-category-strip, .df-trending-section, .df-featured-hotels, .df-discovery-layout-v2 { padding-left:16px; padding-right:16px; }
+  .df-trending-hero-card { min-height:360px; }
+  .df-trending-content h3 { font-size:32px; }
+  .df-mini-trending-card { grid-template-columns:96px 1fr; }
+  .df-mini-trending-card img { width:96px; height:92px; }
+  .df-premium-result-header { align-items:flex-start; flex-direction:column; }
+  .df-result-actions { width:100%; justify-content:space-between; }
+  .df-sort-inline { flex:1; }
+  .df-sort-inline select { min-width:0; width:100%; }
+  .df-premium-card-grid, .df-skeleton-grid { grid-template-columns:1fr; }
+  .df-premium-card-media { height:270px; }
+  .df-card-action-row { grid-template-columns:1fr 50px 50px; }
+}
+
+@media (max-width: 430px) {
+  .df-hero-copy-v2 h1 { font-size:36px; }
+  .df-premium-card-media { height:238px; }
+  .df-premium-card-body { padding:16px; }
+  .df-premium-title-link h3 { font-size:23px; }
+  .df-trending-meta span { font-size:12px; }
+}
