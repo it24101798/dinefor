@@ -51,6 +51,8 @@ function App() {
         <Route path="/favorites" element={<ProtectedRoute allowedRoles={["customer", "hotel", "admin"]}><SavedBuffets /></ProtectedRoute>} />
         <Route path="/hotel-apply" element={<ProtectedRoute allowedRoles={["hotel", "admin"]}><HotelApply /></ProtectedRoute>} />
         <Route path="/hotel/check-in" element={<HotelApprovedRoute><HotelCheckInDesk /></HotelApprovedRoute>} />
+        <Route path="/hotel/checkin" element={<HotelApprovedRoute><HotelCheckInDesk /></HotelApprovedRoute>} />
+        <Route path="/hotel/qr-desk" element={<HotelApprovedRoute><HotelCheckInDesk /></HotelApprovedRoute>} />
         <Route path="/hotel/*" element={<HotelApprovedRoute><HotelDashboard /></HotelApprovedRoute>} />
         <Route path="/admin/*" element={<ProtectedRoute allowedRoles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
         <Route path="/check-in/:code" element={<ProtectedRoute allowedRoles={["hotel", "admin"]}><BookingCheckIn /></ProtectedRoute>} />

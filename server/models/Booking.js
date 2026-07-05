@@ -90,7 +90,7 @@ const bookingSchema = new mongoose.Schema(
 
     bookingStatus: {
       type: String,
-      enum: ["pending", "confirmed", "checked_in", "dining", "completed", "cancelled", "no_show", "expired"],
+      enum: ["draft", "pending", "pending_payment", "confirmed", "reminder_sent", "checked_in", "dining", "completed", "cancelled", "cancelled_by_customer", "cancelled_by_hotel", "refund_pending", "refund_completed", "no_show", "expired"],
       default: "confirmed",
     },
 
@@ -182,6 +182,8 @@ const bookingSchema = new mongoose.Schema(
       confirmation: { type: Boolean, default: false },
       reminder24h: { type: Boolean, default: false },
       reminder3h: { type: Boolean, default: false },
+      hotelNewBooking: { type: Boolean, default: false },
+      cancellation: { type: Boolean, default: false },
       reviewRequest: { type: Boolean, default: false },
     },
 

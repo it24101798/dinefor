@@ -10,6 +10,7 @@ import "./styles-bundle11-analytics.css";
 import "./styles-bundle19bcd-customer-experience.css";
 import "leaflet/dist/leaflet.css";
 import "./styles-stitch-buffet-details.css";
+import "./styles-stitch-master-redesign.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

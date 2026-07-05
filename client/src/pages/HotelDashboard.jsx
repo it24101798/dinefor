@@ -43,7 +43,9 @@ function HotelDashboard() {
 
   const section = useMemo(() => {
     const last = location.pathname.split("/").filter(Boolean).pop();
-    return last === "hotel" ? "overview" : last || "overview";
+    if (!last || last === "hotel") return "overview";
+    if (last === "checkin" || last === "qr-desk") return "check-in";
+    return last;
   }, [location.pathname]);
 
   const storedUser = safeStoredUser();
