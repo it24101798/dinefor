@@ -137,6 +137,13 @@ function BuffetDetails() {
     fetchBuffet();
     fetchReviews();
     fetchSimilarBuffets();
+
+    const storedUser = JSON.parse(localStorage.getItem("dineforUser") || "null");
+    if (storedUser?.token && id) {
+      api.put(`/discovery/recently-viewed/${id}`).catch(() => {
+        // non-blocking customer history feature; never break buffet details loading
+      });
+    }
   }, [id]);
 
   useEffect(() => {

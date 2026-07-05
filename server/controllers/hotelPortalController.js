@@ -253,6 +253,54 @@ exports.duplicateBuffet = async (req, res) => {
   }
 };
 
+exports.updateBuffetDetails = async (req, res) => {
+  try {
+    const hotel = await getMyHotel(req);
+    if (!hotel) return res.status(404).json({ message: "Hotel profile not found." });
+
+    const allowed = [
+      "title",
+      "category",
+      "buffetType",
+      "description",
+      "price",
+      "availableSeats",
+      "scheduleType",
+      "availableFromDate",
+      "availableToDate",
+      "specialDate",
+      "recurringDays",
+      "timeSlots",
+      "images",
+      "videos",
+      "thumbnail",
+      "isActive",
+    ];
+
+    const update = {};
+    allowed.forEach((field) => {
+      if (Object.prototype.hasOwnProperty.call(req.body, field)) update[field] = req.body[field];
+    });
+
+    if (update.price !== undefined) update.price = Number(update.price || 0);
+    if (update.availableSeats !== undefined) update.availableSeats = Number(update.availableSeats || 0);
+    ["availableFromDate", "availableToDate", "specialDate"].forEach((field) => {
+      if (update[field] === "") update[field] = null;
+    });
+
+    const buffet = await Buffet.findOneAndUpdate(
+      { _id: req.params.id, hotel: hotel._id },
+      update,
+      { new: true, runValidators: true }
+    );
+
+    if (!buffet) return res.status(404).json({ message: "Buffet not found for your hotel." });
+    res.status(200).json({ message: "Buffet details updated.", buffet });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update buffet details.", error: error.message });
+  }
+};
+
 exports.getReviews = async (req, res) => {
   try {
     const hotel = await getMyHotel(req);

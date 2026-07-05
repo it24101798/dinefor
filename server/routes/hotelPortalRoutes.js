@@ -6,6 +6,7 @@ const {
   getReservationOperations,
   getReservationCalendar,
   getBuffets,
+  updateBuffetDetails,
   updateBuffetStatus,
   duplicateBuffet,
   getReviews,
@@ -20,6 +21,7 @@ router.get("/reservations", getReservations);
 router.get("/reservation-operations", getReservationOperations);
 router.get("/reservation-calendar", getReservationCalendar);
 router.get("/buffets", getBuffets);
+router.put("/buffets/:id", updateBuffetDetails);
 router.put("/buffets/:id/status", updateBuffetStatus);
 router.post("/buffets/:id/duplicate", duplicateBuffet);
 router.get("/reviews", getReviews);

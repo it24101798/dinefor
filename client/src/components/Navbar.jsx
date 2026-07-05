@@ -52,6 +52,7 @@ function Navbar() {
             <div className="nav-links dashboard-nav-links role-nav-links df-role-links">
               {(isCustomer || isAdmin) && <NavLink to="/my-bookings" onClick={closeMenu}>Reservations</NavLink>}
               {(isCustomer || isAdmin) && <NavLink to="/saved" onClick={closeMenu}>Saved</NavLink>}
+              {(isCustomer || isAdmin) && <NavLink to="/recently-viewed" onClick={closeMenu}>Recent</NavLink>}
               <NavLink to="/profile" onClick={closeMenu}>Profile</NavLink>
               {(isHotel || isAdmin) && <NavLink to="/hotel" onClick={closeMenu}>Hotel</NavLink>}
               {(isHotel || isAdmin) && <NavLink to="/hotel/check-in" onClick={closeMenu}>QR Desk</NavLink>}

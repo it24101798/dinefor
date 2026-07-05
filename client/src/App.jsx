@@ -22,6 +22,7 @@ import SavedBuffets from "./pages/SavedBuffets";
 import CustomerDashboard from "./pages/CustomerDashboard";
 import BookingSummary from "./pages/BookingSummary";
 import PaymentHistory from "./pages/PaymentHistory";
+import RecentlyViewed from "./pages/RecentlyViewed";
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
         <Route path="/profile" element={<ProtectedRoute allowedRoles={["customer", "hotel", "admin"]}><ClientProfile /></ProtectedRoute>} />
         <Route path="/saved" element={<ProtectedRoute allowedRoles={["customer", "hotel", "admin"]}><SavedBuffets /></ProtectedRoute>} />
         <Route path="/favorites" element={<ProtectedRoute allowedRoles={["customer", "hotel", "admin"]}><SavedBuffets /></ProtectedRoute>} />
+        <Route path="/recently-viewed" element={<ProtectedRoute allowedRoles={["customer", "hotel", "admin"]}><RecentlyViewed /></ProtectedRoute>} />
         <Route path="/hotel-apply" element={<ProtectedRoute allowedRoles={["hotel", "admin"]}><HotelApply /></ProtectedRoute>} />
         <Route path="/hotel/check-in" element={<HotelApprovedRoute><HotelCheckInDesk /></HotelApprovedRoute>} />
         <Route path="/hotel/checkin" element={<HotelApprovedRoute><HotelCheckInDesk /></HotelApprovedRoute>} />

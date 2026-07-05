@@ -46,6 +46,7 @@ mount("/api/reviews", "./routes/reviewRoutes");
 mount("/api/site-settings", "./routes/siteSettingRoutes");
 mount("/api/uploads", "./routes/uploadRoutes");
 mount("/api/users", "./routes/userRoutes");
+mount("/api/admin", "./routes/adminRoutes");
 mount("/api/customer", "./routes/customerExperienceRoutes");
 mount("/api/analytics", "./routes/analyticsRoutes");
 mount("/api/payments", "./routes/paymentRoutes");
