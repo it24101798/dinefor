@@ -13,11 +13,13 @@ const {
   payherePlaceholder,
   stripePlaceholder,
   webhookPlaceholder,
+  getAllPayments,
 } = require("../controllers/paymentController");
 const { protect, authorize } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
+router.get("/", protect, authorize("admin"), getAllPayments);
 router.get("/history", protect, authorize("customer", "hotel", "admin"), getMyPaymentHistory);
 router.get("/booking/:bookingId", protect, authorize("customer", "hotel", "admin"), getPaymentByBooking);
 router.get("/invoice/:bookingId", protect, authorize("customer", "hotel", "admin"), getInvoiceByBooking);

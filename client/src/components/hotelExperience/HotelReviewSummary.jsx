@@ -1,32 +1,39 @@
-function HotelReviewSummary({ summary, reviews = [] }) {
-  const total = summary?.total || reviews.length || 0;
-  const distribution = summary?.distribution || { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+import React from "react";
+
+function HotelReviewSummary({ summary, reviews }) {
+  if (!summary || summary.total === 0) {
+    return null;
+  }
 
   return (
-    <section className="df-hotel-section">
-      <div className="df-section-head">
-        <span className="eyebrow">Reviews</span>
-        <h2>Guest rating summary</h2>
+    <section className="py-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-headline-md text-headline-md text-text-deep-green">Reviews</h2>
+        <span className="flex items-center gap-1 text-highlight-gold">
+          <span className="material-symbols-outlined">star</span>
+          {summary.average?.toFixed(1)} ({summary.total})
+        </span>
       </div>
-      <div className="df-review-summary">
-        <div className="df-review-score">
-          <strong>{summary?.average || 0}</strong>
-          <span>⭐ {summary?.label || "No reviews yet"}</span>
-          <p>{total} guest reviews</p>
-        </div>
-        <div className="df-review-bars">
-          {[5, 4, 3, 2, 1].map((star) => {
-            const value = distribution[star] || 0;
-            const width = total ? Math.round((value / total) * 100) : 0;
-            return (
-              <div className="df-review-bar" key={star}>
-                <span>{star}★</span>
-                <div><b style={{ width: `${width}%` }} /></div>
-                <em>{value}</em>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {reviews?.slice(0, 4).map((review) => (
+          <div key={review._id} className="p-4 rounded-xl border border-border-subtle bg-surface-container-lowest">
+            <div className="flex items-center justify-between">
+              <span className="font-label-md text-label-md text-text-deep-green">{review.user?.name || "Guest"}</span>
+              <div className="flex items-center gap-1 text-highlight-gold">
+                {[...Array(5)].map((_, i) => (
+                  <span
+                    key={i}
+                    className="material-symbols-outlined text-[14px]"
+                    style={{ fontVariationSettings: i < (review.rating || 0) ? "'FILL' 1" : "'FILL' 0" }}
+                  >
+                    star
+                  </span>
+                ))}
               </div>
-            );
-          })}
-        </div>
+            </div>
+            <p className="font-body-md text-body-md text-on-surface-variant mt-2">{review.comment}</p>
+          </div>
+        ))}
       </div>
     </section>
   );

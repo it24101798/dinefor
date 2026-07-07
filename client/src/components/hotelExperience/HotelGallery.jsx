@@ -1,35 +1,32 @@
-import { useState } from "react";
+import React, { useState } from "react";
 
-function HotelGallery({ gallery = [] }) {
-  const [active, setActive] = useState(null);
-  const visible = gallery.slice(0, 6);
+function HotelGallery({ gallery }) {
+  const [activeImage, setActiveImage] = useState(0);
+
+  if (!gallery || gallery.length === 0) {
+    return null;
+  }
 
   return (
-    <section className="df-hotel-section">
-      <div className="df-section-head">
-        <span className="eyebrow">Gallery</span>
-        <h2>Photos & videos</h2>
+    <section className="py-6">
+      <h2 className="font-headline-md text-headline-md text-text-deep-green mb-4">Gallery</h2>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        {gallery.slice(0, 4).map((img, index) => (
+          <div
+            key={index}
+            className={`relative overflow-hidden rounded-xl cursor-pointer ${
+              index === 0 ? "col-span-2 row-span-2" : ""
+            }`}
+            onClick={() => setActiveImage(index)}
+          >
+            <img
+              src={img}
+              alt={`Gallery ${index + 1}`}
+              className="w-full h-48 object-cover hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+        ))}
       </div>
-
-      {gallery.length === 0 ? (
-        <div className="df-empty-state">No hotel media uploaded yet.</div>
-      ) : (
-        <div className="df-gallery-grid">
-          {visible.map((item, index) => (
-            <button key={`${item.url}-${index}`} className="df-gallery-item" type="button" onClick={() => setActive(item)}>
-              {item.type === "video" ? <video src={item.url} muted playsInline /> : <img src={item.url} alt="Hotel gallery" />}
-              {index === 5 && gallery.length > 6 ? <span>+{gallery.length - 6} more</span> : null}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {active && (
-        <div className="df-lightbox" role="button" tabIndex={0} onClick={() => setActive(null)}>
-          <button type="button" className="df-lightbox-close" onClick={() => setActive(null)}>×</button>
-          {active.type === "video" ? <video src={active.url} controls autoPlay /> : <img src={active.url} alt="Preview" />}
-        </div>
-      )}
     </section>
   );
 }

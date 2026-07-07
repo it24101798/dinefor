@@ -14,6 +14,7 @@ const {
   requestMoreInfoHotel,
   reopenHotel,
   getHotelById,
+  deleteHotel,
 } = require("../controllers/hotelController");
 
 const { protect, authorize } = require("../middleware/authMiddleware");
@@ -37,6 +38,7 @@ router.put("/:id/suspend", protect, authorize("admin"), suspendHotel);
 router.put("/:id/hold", protect, authorize("admin"), holdHotel);
 router.put("/:id/request-info", protect, authorize("admin"), requestMoreInfoHotel);
 router.put("/:id/reopen", protect, authorize("admin"), reopenHotel);
+router.delete("/:id", protect, authorize("admin"), deleteHotel);
 
 // Public dynamic route must stay last
 router.get("/:id", getHotelById);

@@ -589,3 +589,17 @@ exports.checkInBooking = async (req, res) => {
     res.status(500).json({ message: "Failed to check in booking.", error: error.message });
   }
 };
+
+exports.deleteBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: "Booking not found." });
+    if (!["cancelled", "cancelled_by_customer", "cancelled_by_hotel", "expired", "no_show"].includes(booking.bookingStatus)) {
+      return res.status(400).json({ message: "Only cancelled, expired, or no-show bookings can be deleted." });
+    }
+    await booking.deleteOne();
+    res.status(200).json({ message: "Booking deleted successfully." });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete booking.", error: error.message });
+  }
+};

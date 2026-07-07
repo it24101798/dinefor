@@ -380,3 +380,16 @@ exports.exportFinanceCsv = async (req, res) => {
 exports.payherePlaceholder = (req, res) => res.status(501).json({ message: "PayHere integration is prepared but not enabled yet." });
 exports.stripePlaceholder = (req, res) => res.status(501).json({ message: "Stripe integration is prepared but not enabled yet." });
 exports.webhookPlaceholder = (req, res) => res.status(501).json({ message: "Payment webhook endpoint prepared for future gateway integration." });
+
+exports.getAllPayments = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") return res.status(403).json({ message: "Admin access required." });
+    const filter = {};
+    if (req.query.status && req.query.status !== "all") filter.status = req.query.status;
+    if (req.query.gateway && req.query.gateway !== "all") filter.gateway = req.query.gateway;
+    const payments = await Payment.find(filter).populate(paymentPopulate).sort({ createdAt: -1 });
+    res.status(200).json(payments);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch payments.", error: error.message });
+  }
+};

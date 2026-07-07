@@ -267,3 +267,18 @@ exports.getHotelById = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch hotel profile.", error: error.message });
   }
 };
+
+exports.deleteHotel = async (req, res) => {
+  try {
+    const hotel = await Hotel.findById(req.params.id);
+    if (!hotel) return res.status(404).json({ message: "Hotel not found." });
+    const activeBuffets = await require("../models/Buffet").countDocuments({ hotel: hotel._id });
+    if (activeBuffets > 0) {
+      return res.status(400).json({ message: "Hotel has buffets. Suspend/reject it instead of deleting to protect data history." });
+    }
+    await hotel.deleteOne();
+    res.status(200).json({ message: "Hotel deleted successfully." });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete hotel.", error: error.message });
+  }
+};

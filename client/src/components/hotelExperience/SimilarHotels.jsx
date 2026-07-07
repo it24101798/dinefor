@@ -1,28 +1,30 @@
+import React from "react";
 import { Link } from "react-router-dom";
 
-function SimilarHotels({ hotels = [] }) {
-  if (!hotels.length) return null;
+function SimilarHotels({ hotels }) {
+  if (!hotels || hotels.length === 0) {
+    return null;
+  }
 
   return (
-    <section className="df-hotel-section">
-      <div className="df-section-head">
-        <span className="eyebrow">Nearby</span>
-        <h2>Similar hotels</h2>
-      </div>
-      <div className="df-similar-grid">
-        {hotels.map((hotel) => {
-          const image = hotel.coverMediaUrl || hotel.galleryImages?.[0] || hotel.images?.[0] || "https://images.unsplash.com/photo-1566073771259-6a8506099945";
-          return (
-            <Link className="df-similar-card" to={`/hotels/${hotel._id}`} key={hotel._id}>
-              <img src={image} alt={hotel.hotelName} />
-              <div>
-                <strong>{hotel.hotelName}</strong>
-                <span>📍 {hotel.city || hotel.location}</span>
-                <span>⭐ {hotel.averageRating || 0} ({hotel.totalReviews || 0})</span>
-              </div>
-            </Link>
-          );
-        })}
+    <section className="py-6">
+      <h2 className="font-headline-md text-headline-md text-text-deep-green mb-4">Similar Hotels</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {hotels.slice(0, 3).map((hotel) => (
+          <Link
+            key={hotel._id}
+            to={`/hotels/${hotel._id}`}
+            className="card-ambient-hover p-4"
+          >
+            <img
+              src={hotel.coverImage || hotel.coverMediaUrl || "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=200&fit=crop"}
+              alt={hotel.hotelName}
+              className="w-full h-32 object-cover rounded-xl mb-3"
+            />
+            <h3 className="font-label-md text-label-md text-text-deep-green">{hotel.hotelName}</h3>
+            <p className="font-label-sm text-label-sm text-on-surface-variant">{hotel.city || hotel.location}</p>
+          </Link>
+        ))}
       </div>
     </section>
   );

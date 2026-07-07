@@ -219,3 +219,28 @@ exports.deleteReview = async (req, res) => {
     res.status(500).json({ message: "Failed to delete review.", error: error.message });
   }
 };
+
+exports.setReviewAction = async (req, res) => {
+  try {
+    const action = req.params.action;
+    const statusMap = {
+      approve: "published",
+      approved: "published",
+      publish: "published",
+      published: "published",
+      hide: "hidden",
+      hidden: "hidden",
+      reject: "hidden",
+      rejected: "hidden",
+      flag: "flagged",
+      flagged: "flagged",
+      pending: "pending",
+    };
+    const status = statusMap[action];
+    if (!status) return res.status(400).json({ message: "Invalid review action." });
+    req.body.status = status;
+    return exports.updateReviewStatus(req, res);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update review.", error: error.message });
+  }
+};

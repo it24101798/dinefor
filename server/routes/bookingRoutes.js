@@ -10,6 +10,7 @@ const {
   checkInBooking,
   getBuffetAvailability,
   expireOpenBookings,
+  deleteBooking,
 } = require("../controllers/bookingController");
 
 const { protect, authorize } = require("../middleware/authMiddleware");
@@ -33,5 +34,6 @@ router.put("/:id/status", protect, authorize("hotel", "admin"), updateBookingSta
 
 // Admin
 router.get("/", protect, authorize("admin"), getAllBookings);
+router.delete("/:id", protect, authorize("admin"), deleteBooking);
 
 module.exports = router;

@@ -52,6 +52,7 @@ mount("/api/analytics", "./routes/analyticsRoutes");
 mount("/api/payments", "./routes/paymentRoutes");
 mount("/api/coupons", "./routes/couponRoutes");
 mount("/api/notifications", "./routes/notificationRoutes");
+mount("/api/newsletter", "./routes/newsletterRoutes");
 mount("/api/discovery", "./routes/discoveryRoutes");
 
 app.use((req, res) => res.status(404).json({ message: "API route not found.", path: req.originalUrl }));

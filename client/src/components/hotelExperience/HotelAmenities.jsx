@@ -1,23 +1,28 @@
-const defaultAmenities = ["Parking", "Family Friendly", "Air Conditioned", "Card Payments", "Reservations", "Buffet Dining"];
+import React from "react";
 
-function HotelAmenities({ amenities = [], facilities = [], diningHighlights = [] }) {
-  const items = [...amenities, ...facilities, ...diningHighlights].filter(Boolean);
-  const displayItems = items.length ? items : defaultAmenities;
+function HotelAmenities({ amenities, facilities, diningHighlights }) {
+  const allItems = [...(amenities || []), ...(facilities || [])];
+
+  if (allItems.length === 0 && !diningHighlights) {
+    return null;
+  }
 
   return (
-    <section className="df-hotel-section">
-      <div className="df-section-head">
-        <span className="eyebrow">Amenities</span>
-        <h2>What this hotel offers</h2>
-      </div>
-      <div className="df-amenity-grid">
-        {displayItems.map((item) => (
-          <div className="df-amenity-card" key={item}>
-            <span>✓</span>
-            <strong>{item}</strong>
-          </div>
+    <section className="py-6">
+      <h2 className="font-headline-md text-headline-md text-text-deep-green mb-4">Amenities</h2>
+      <div className="flex flex-wrap gap-2">
+        {allItems.map((item, index) => (
+          <span key={index} className="chip">
+            {item}
+          </span>
         ))}
       </div>
+      {diningHighlights && (
+        <div className="mt-4 p-4 rounded-xl bg-secondary-container/10 border border-secondary/30">
+          <p className="font-label-sm text-label-sm text-secondary">Dining Highlights</p>
+          <p className="font-body-md text-body-md text-text-deep-green">{diningHighlights}</p>
+        </div>
+      )}
     </section>
   );
 }
