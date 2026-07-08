@@ -1,39 +1,35 @@
-import FavoriteHotelButton from "../customer/FavoriteHotelButton";
+import React from "react";
 
 function HotelHero({ hotel, reviewSummary }) {
-  const galleryFallback = hotel?.galleryImages?.[0] || hotel?.images?.[0];
-  const heroMedia = hotel?.coverMediaUrl || galleryFallback || "https://images.unsplash.com/photo-1566073771259-6a8506099945";
-  const mapUrl = hotel?.mapLocation?.googleMapUrl;
+  const rating = Number(hotel?.averageRating || reviewSummary?.average || 0);
+  const reviewCount = Number(hotel?.totalReviews || reviewSummary?.total || 0);
 
   return (
-    <section className="df-hotel-hero">
-      <div className="df-hotel-hero-media">
-        {hotel?.coverMediaType === "video" && hotel?.coverMediaUrl ? (
-          <video src={heroMedia} autoPlay muted loop playsInline />
-        ) : (
-          <img src={heroMedia} alt={hotel?.hotelName || "Hotel"} />
-        )}
-      </div>
-      <div className="df-hotel-hero-shade" />
-      <div className="df-hotel-hero-content">
-        <div className="df-hotel-identity">
-          {hotel?.logo ? <img src={hotel.logo} alt={`${hotel.hotelName} logo`} /> : <span>{hotel?.hotelName?.slice(0, 1) || "D"}</span>}
-        </div>
-        <div className="df-chip-row">
-          {hotel?.isApproved && <span className="df-chip success">Verified Partner</span>}
-          <span className="df-chip">⭐ {reviewSummary?.average || hotel?.averageRating || 0} ({reviewSummary?.total || hotel?.totalReviews || 0} reviews)</span>
-          <span className="df-chip">📍 {hotel?.city || hotel?.location || "Sri Lanka"}</span>
-        </div>
-        <h1>{hotel?.hotelName}</h1>
-        <p>{hotel?.description || "Explore buffet experiences, photos, guest reviews and reservations from this hotel."}</p>
-        <div className="df-hero-actions">
-          <a className="btn primary" href="#hotel-buffets">Reserve Buffet</a>
-          {mapUrl && <a className="btn secondary" href={mapUrl} target="_blank" rel="noreferrer">Directions</a>}
-          {hotel?.contactNumber && <a className="btn secondary" href={`tel:${hotel.contactNumber}`}>Call Hotel</a>}
-          <FavoriteHotelButton hotelId={hotel?._id} />
+    <div className="relative w-full h-[300px] md:h-[450px] bg-surface-dim overflow-hidden">
+      <img
+        src={hotel?.coverImage || hotel?.coverMediaUrl || "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1400&h=450&fit=crop"}
+        alt={hotel?.hotelName}
+        className="w-full h-full object-cover"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-text-deep-green/70 to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 p-6 text-surface-cream">
+        <h1 className="font-display-lg text-display-lg">{hotel?.hotelName}</h1>
+        <div className="flex items-center gap-4 mt-2">
+          {rating > 0 && (
+            <span className="flex items-center gap-1">
+              <span className="material-symbols-outlined text-highlight-gold">star</span>
+              {rating.toFixed(1)} ({reviewCount} reviews)
+            </span>
+          )}
+          {hotel?.location && (
+            <span className="flex items-center gap-1">
+              <span className="material-symbols-outlined">location_on</span>
+              {hotel.location}
+            </span>
+          )}
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 

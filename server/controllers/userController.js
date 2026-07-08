@@ -87,3 +87,23 @@ exports.getSavedBuffets = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch saved buffets.", error: error.message });
   }
 };
+
+exports.getAllUsers = async (req, res) => {
+  try {
+    if (req.user.role !== "admin") return res.status(403).json({ message: "Admin access required." });
+    const { role = "all", q = "" } = req.query;
+    const filter = {};
+    if (role !== "all") filter.role = role;
+    if (q.trim()) {
+      filter.$or = [
+        { name: { $regex: q, $options: "i" } },
+        { email: { $regex: q, $options: "i" } },
+        { phone: { $regex: q, $options: "i" } },
+      ];
+    }
+    const users = await User.find(filter).select("-password").sort({ createdAt: -1 });
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch users.", error: error.message });
+  }
+};

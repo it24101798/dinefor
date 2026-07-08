@@ -1,124 +1,125 @@
 import api from "./api";
 
-const normalizeText = (value) => String(value || "").toLowerCase().trim();
-
-const getHotelName = (buffet) => buffet?.hotel?.hotelName || buffet?.hotelName || "";
-const getCity = (buffet) =>
-  buffet?.location?.city ||
-  buffet?.hotel?.city ||
-  buffet?.hotel?.location ||
-  buffet?.hotel?.address ||
-  "";
+// ============================================
+// DISCOVERY SERVICE
+// ============================================
 
 export const defaultDiscoveryFilters = {
-  query: "",
-  location: "",
-  date: "",
-  guests: 1,
-  category: "all",
-  buffetType: "all",
+  category: "",
   minPrice: "",
   maxPrice: "",
-  minRating: "all",
-  featuredOnly: false,
-  availableOnly: false,
+  rating: "",
   sortBy: "recommended",
+  guests: 1,
+  date: "",
+  location: "",
+  meal: "",
 };
 
-export async function fetchDiscoveryBuffets() {
-  const res = await api.get("/buffets");
-  return Array.isArray(res.data) ? res.data : [];
-}
+export const fetchDiscoveryBuffets = async () => {
+  try {
+    const res = await api.get("/buffets");
+    return Array.isArray(res.data) ? res.data : [];
+  } catch (error) {
+    console.error("Failed to fetch discovery buffets:", error);
+    throw error;
+  }
+};
 
-export function getDiscoverySuggestions(buffets = [], query = "") {
-  const q = normalizeText(query);
-  const values = new Set();
+export const filterDiscoveryBuffets = (buffets, filters) => {
+  let result = [...buffets];
 
-  buffets.forEach((buffet) => {
-    [buffet.title, getHotelName(buffet), getCity(buffet), buffet.category, buffet.buffetType]
-      .filter(Boolean)
-      .forEach((item) => values.add(String(item)));
-  });
-
-  return [...values]
-    .filter((item) => !q || normalizeText(item).includes(q))
-    .slice(0, 8);
-}
-
-export function filterDiscoveryBuffets(buffets = [], filters = defaultDiscoveryFilters) {
-  const q = normalizeText(filters.query);
-  const location = normalizeText(filters.location);
-  const category = filters.category || "all";
-  const buffetType = filters.buffetType || "all";
-  const minPrice = filters.minPrice === "" ? null : Number(filters.minPrice);
-  const maxPrice = filters.maxPrice === "" ? null : Number(filters.maxPrice);
-  const minRating = filters.minRating === "all" ? null : Number(filters.minRating);
-  const guests = Math.max(1, Number(filters.guests || 1));
-
-  let filtered = buffets.filter((buffet) => {
-    const searchable = normalizeText([
-      buffet.title,
-      buffet.description,
-      buffet.category,
-      buffet.buffetType,
-      getHotelName(buffet),
-      getCity(buffet),
-      buffet?.hotel?.province,
-      buffet?.hotel?.district,
-    ].join(" "));
-
-    const cityText = normalizeText(`${getCity(buffet)} ${buffet?.hotel?.province || ""} ${buffet?.hotel?.district || ""}`);
-    const price = Number(buffet.price || 0);
-    const rating = Number(buffet.averageRating || buffet.hotel?.averageRating || 0);
-    const seatsLeft = getTotalAvailableSeats(buffet);
-
-    if (q && !searchable.includes(q)) return false;
-    if (location && !cityText.includes(location)) return false;
-    if (category !== "all" && buffet.category !== category) return false;
-    if (buffetType !== "all" && buffet.buffetType !== buffetType) return false;
-    if (minPrice !== null && price < minPrice) return false;
-    if (maxPrice !== null && price > maxPrice) return false;
-    if (minRating !== null && rating < minRating) return false;
-    if (filters.featuredOnly && !buffet.isFeatured) return false;
-    if (filters.availableOnly && seatsLeft < guests) return false;
-
-    return true;
-  });
-
-  switch (filters.sortBy) {
-    case "price-low":
-      filtered.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
-      break;
-    case "price-high":
-      filtered.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
-      break;
-    case "rating":
-      filtered.sort((a, b) => Number(b.averageRating || 0) - Number(a.averageRating || 0));
-      break;
-    case "newest":
-      filtered.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      break;
-    default:
-      filtered.sort((a, b) => {
-        const featuredScore = Number(Boolean(b.isFeatured)) - Number(Boolean(a.isFeatured));
-        if (featuredScore !== 0) return featuredScore;
-        return Number(b.averageRating || 0) - Number(a.averageRating || 0);
-      });
+  // Category filter
+  if (filters.category) {
+    result = result.filter((b) =>
+      b.category?.toLowerCase().includes(filters.category.toLowerCase()) ||
+      b.buffetType?.toLowerCase().includes(filters.category.toLowerCase())
+    );
   }
 
-  return filtered;
-}
+  // Location filter
+  if (filters.location) {
+    const q = filters.location.toLowerCase();
+    result = result.filter((b) =>
+      `${b.location?.city || ""} ${b.location?.address || ""} ${b.hotel?.location || ""} ${b.hotel?.city || ""}`
+        .toLowerCase()
+        .includes(q)
+    );
+  }
 
-export function getTotalAvailableSeats(buffet) {
-  return (buffet?.timeSlots || []).reduce((total, slot) => total + Number(slot.availableSeats || 0), 0);
-}
+  // Meal filter
+  if (filters.meal) {
+    const q = filters.meal.toLowerCase();
+    result = result.filter((b) =>
+      `${b.category || ""} ${b.title || ""} ${b.buffetType || ""}`
+        .toLowerCase()
+        .includes(q)
+    );
+  }
 
-export function getPrimaryMedia(buffet) {
-  return (
-    buffet?.thumbnail ||
-    buffet?.images?.[0] ||
-    buffet?.hotel?.coverMediaUrl ||
-    buffet?.hotel?.galleryImages?.[0] ||
-    "https://images.unsplash.com/photo-1555244162-803834f70033"
-  );
-}
+  // Price range
+  if (filters.minPrice) {
+    result = result.filter((b) => Number(b.price || 0) >= Number(filters.minPrice));
+  }
+  if (filters.maxPrice) {
+    result = result.filter((b) => Number(b.price || 0) <= Number(filters.maxPrice));
+  }
+
+  // Rating
+  if (filters.rating) {
+    result = result.filter((b) => Number(b.averageRating || 0) >= Number(filters.rating));
+  }
+
+  // Guests
+  if (filters.guests > 1) {
+    result = result.filter((b) =>
+      (b.timeSlots || []).some((slot) => Number(slot.availableSeats || 0) >= filters.guests)
+    );
+  }
+
+  // Date
+  if (filters.date) {
+    const selectedDate = new Date(filters.date);
+    result = result.filter((b) => {
+      if (b.buffetType === "special" && b.specialDate) {
+        return new Date(b.specialDate).toISOString().slice(0, 10) === filters.date;
+      }
+      if (b.availableFromDate && selectedDate < new Date(b.availableFromDate)) return false;
+      if (b.availableToDate && selectedDate > new Date(b.availableToDate)) return false;
+      if (b.scheduleType === "selected_days" && b.recurringDays?.length) {
+        const day = selectedDate.toLocaleDateString("en-US", { weekday: "long" });
+        return b.recurringDays.includes(day);
+      }
+      return true;
+    });
+  }
+
+  // Sorting
+  switch (filters.sortBy) {
+    case "rating":
+      result.sort((a, b) => Number(b.averageRating || 0) - Number(a.averageRating || 0));
+      break;
+    case "price-low":
+      result.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+      break;
+    case "price-high":
+      result.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+      break;
+    case "newest":
+      result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      break;
+    case "recommended":
+    default:
+      result.sort((a, b) =>
+        (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0) ||
+        Number(b.averageRating || 0) - Number(a.averageRating || 0)
+      );
+      break;
+  }
+
+  return result;
+};
+
+export const getPrimaryMedia = (buffet) => {
+  return buffet.thumbnail || buffet.images?.[0] || "https://images.unsplash.com/photo-1555244162-803834f70033";
+};

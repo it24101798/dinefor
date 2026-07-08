@@ -317,3 +317,138 @@
     flex-direction: column;
   }
 }
+
+/* Bundle 30 — Payment + invoice operations */
+.finance-upgrade .success-text,
+.success-text {
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  color: #065f46;
+  border-radius: 16px;
+  padding: 12px 14px;
+  font-weight: 800;
+}
+
+.finance-upgrade .error-text,
+.error-text {
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: #9f1239;
+  border-radius: 16px;
+  padding: 12px 14px;
+  font-weight: 800;
+}
+
+.payment-finance-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.payment-finance-toolbar select,
+.payment-row-actions select {
+  min-height: 40px;
+  border: 1px solid #d7e2df;
+  border-radius: 999px;
+  background: #fffdf8;
+  color: #0b2d24;
+  padding: 0 14px;
+  font-weight: 800;
+}
+
+.improved-payment-table th,
+.improved-payment-table td {
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.improved-payment-table small {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.payment-row-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 180px;
+}
+
+.payment-action-stack {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.payment-action-stack.compact {
+  margin-top: 6px;
+}
+
+.mini-btn.success {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.mini-btn.danger {
+  background: #ffe4e6;
+  border-color: #fda4af;
+  color: #9f1239;
+}
+
+.payment-status.requested,
+.payment-status.approved {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.payment-status.rejected,
+.payment-status.failed,
+.payment-status.cancelled,
+.payment-status.expired {
+  background: #ffe4e6;
+  color: #9f1239;
+}
+
+.payment-status.processed,
+.payment-status.refunded {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.payment-status.none,
+.payment-status.not_ready {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.invoice-detail-card {
+  margin-top: 20px;
+}
+
+.invoice-grid p {
+  background: #fffdf8;
+  border: 1px solid #edf2ef;
+  border-radius: 18px;
+  padding: 14px;
+}
+
+@media (max-width: 760px) {
+  .payment-finance-toolbar,
+  .payment-row-actions,
+  .payment-action-stack {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .payment-finance-toolbar select,
+  .payment-finance-toolbar button,
+  .payment-row-actions select,
+  .payment-row-actions button {
+    width: 100%;
+  }
+}

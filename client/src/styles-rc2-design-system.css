@@ -1,0 +1,386 @@
+/* =========================================================
+   DineFor RC2 — Design System Consistency Cleanup
+   Scope: visual consistency only. No backend/API/business logic.
+   Purpose: unify cards, buttons, inputs, tables, dashboards, empty states,
+   and responsive spacing without changing React functionality.
+   ========================================================= */
+
+:root {
+  --df-bg: #fdfbf7;
+  --df-surface: #ffffff;
+  --df-surface-soft: #f7f3ec;
+  --df-green-900: #102418;
+  --df-green-800: #1a3021;
+  --df-green-700: #296956;
+  --df-mint: #98d8c1;
+  --df-mint-soft: #e9f7f1;
+  --df-gold: #d4af37;
+  --df-gold-soft: #fff7df;
+  --df-border: #e7e1d5;
+  --df-muted: #66726b;
+  --df-danger: #ba1a1a;
+  --df-shadow-sm: 0 8px 24px rgba(16, 36, 24, 0.06);
+  --df-shadow-md: 0 16px 42px rgba(16, 36, 24, 0.09);
+  --df-radius-lg: 18px;
+  --df-radius-xl: 24px;
+  --df-transition: 180ms ease;
+}
+
+html {
+  background: var(--df-bg);
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(152, 216, 193, 0.16), transparent 34rem),
+    linear-gradient(180deg, #fffdfa 0%, var(--df-bg) 42%, #fbf8f0 100%);
+  color: var(--df-green-900);
+}
+
+/* ---------- Focus + accessibility ---------- */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  outline: 3px solid rgba(212, 175, 55, 0.5);
+  outline-offset: 3px;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- Shared cards ---------- */
+.card-ambient,
+.card-ambient-hover,
+.card-glass,
+.card-highlight {
+  border-radius: var(--df-radius-xl) !important;
+  border: 1px solid rgba(231, 225, 213, 0.92) !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+  box-shadow: var(--df-shadow-sm) !important;
+}
+
+.card-ambient-hover:hover,
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--df-shadow-md) !important;
+  border-color: rgba(152, 216, 193, 0.65) !important;
+}
+
+.card-highlight {
+  background: linear-gradient(135deg, #ffffff 0%, #fffaf0 100%) !important;
+  border-color: rgba(212, 175, 55, 0.34) !important;
+}
+
+/* ---------- Buttons ---------- */
+.btn-primary,
+.btn-secondary,
+.btn-outline,
+.btn-ghost,
+.btn-danger,
+button[class*="bg-text-deep-green"],
+button[class*="bg-secondary"] {
+  min-height: 42px;
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em;
+  transition: transform var(--df-transition), box-shadow var(--df-transition), border-color var(--df-transition), background var(--df-transition), opacity var(--df-transition);
+}
+
+.btn-primary,
+button[class*="bg-text-deep-green"] {
+  background: linear-gradient(135deg, var(--df-green-900), var(--df-green-700)) !important;
+  color: #fffdf7 !important;
+  box-shadow: 0 10px 24px rgba(16, 36, 24, 0.18) !important;
+}
+
+.btn-primary:hover,
+button[class*="bg-text-deep-green"]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 32px rgba(16, 36, 24, 0.22) !important;
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #bff1de, var(--df-mint)) !important;
+  color: var(--df-green-900) !important;
+  box-shadow: 0 8px 18px rgba(41, 105, 86, 0.12) !important;
+}
+
+.btn-outline,
+.btn-ghost {
+  border-color: var(--df-border) !important;
+  background: rgba(255, 255, 255, 0.76) !important;
+  color: var(--df-green-800) !important;
+}
+
+.btn-outline:hover,
+.btn-ghost:hover {
+  background: var(--df-mint-soft) !important;
+  border-color: rgba(41, 105, 86, 0.36) !important;
+  transform: translateY(-1px);
+}
+
+.btn-danger,
+button[class*="bg-error"] {
+  border-radius: 999px !important;
+  box-shadow: 0 8px 18px rgba(186, 26, 26, 0.12) !important;
+}
+
+button:disabled,
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-outline:disabled {
+  cursor: not-allowed !important;
+  transform: none !important;
+  opacity: 0.58 !important;
+  box-shadow: none !important;
+}
+
+/* ---------- Forms ---------- */
+.form-input,
+.form-select,
+.form-textarea,
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  border-radius: 16px !important;
+  border: 1px solid var(--df-border) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: var(--df-green-900) !important;
+  transition: border-color var(--df-transition), box-shadow var(--df-transition), background var(--df-transition);
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus,
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+  border-color: rgba(41, 105, 86, 0.58) !important;
+  box-shadow: 0 0 0 4px rgba(152, 216, 193, 0.25) !important;
+}
+
+label,
+.form-label {
+  color: var(--df-green-800) !important;
+}
+
+::placeholder {
+  color: #9aa39d !important;
+}
+
+/* ---------- Status chips and badges ---------- */
+.status-pill,
+.badge-gold,
+.badge-mint,
+.badge-green,
+.badge-red,
+.badge-gray,
+.chip {
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+  white-space: nowrap;
+}
+
+.status-pill.approved,
+.status-pill.good,
+.status-pill.confirmed,
+.status-pill.checked_in,
+.status-pill.completed,
+.badge-green,
+.badge-mint {
+  background: var(--df-mint-soft) !important;
+  color: var(--df-green-700) !important;
+}
+
+.status-pill.pending,
+.status-pill.warning {
+  background: var(--df-gold-soft) !important;
+  color: #7a5f00 !important;
+}
+
+.status-pill.featured,
+.badge-gold {
+  background: var(--df-gold-soft) !important;
+  color: #8a6a00 !important;
+}
+
+.status-pill.rejected,
+.status-pill.cancelled,
+.status-pill.no_show,
+.badge-red {
+  background: #fff1ef !important;
+  color: var(--df-danger) !important;
+}
+
+/* ---------- Tables ---------- */
+table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f7f3ec !important;
+  color: var(--df-green-800) !important;
+  font-size: 0.76rem !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--df-border) !important;
+}
+
+tbody tr {
+  transition: background var(--df-transition);
+}
+
+tbody tr:hover {
+  background: rgba(233, 247, 241, 0.55) !important;
+}
+
+td,
+th {
+  vertical-align: middle;
+}
+
+/* ---------- Dashboard shell polish ---------- */
+.min-h-screen.bg-surface-cream,
+.min-h-screen.bg-gradient-to-br {
+  background:
+    radial-gradient(circle at top left, rgba(152, 216, 193, 0.16), transparent 34rem),
+    linear-gradient(180deg, #fffdfa 0%, var(--df-bg) 45%, #fbf8f0 100%) !important;
+}
+
+.w-64.border-r,
+.w-64[class*="border-r"] {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(18px);
+  border-right-color: var(--df-border) !important;
+}
+
+/* sidebar nav buttons/links inside hotel/admin portals */
+.w-64 a,
+.w-64 button {
+  border-radius: 16px !important;
+}
+
+.w-64 a:hover,
+.w-64 button:hover {
+  background: var(--df-mint-soft) !important;
+}
+
+/* Main portal content max readability */
+.md\:ml-64 {
+  transition: margin var(--df-transition);
+}
+
+/* ---------- Messages / alerts ---------- */
+[class*="bg-error/10"],
+[class*="bg-tertiary-container/10"],
+[class*="bg-secondary-container/10"],
+[class*="bg-primary-container"] {
+  border-radius: 18px !important;
+}
+
+/* ---------- Empty and loading states ---------- */
+.empty-state,
+[class*="min-h-[60vh]"] .text-center {
+  border-radius: var(--df-radius-xl);
+}
+
+.loading-spinner {
+  border-top-color: transparent !important;
+}
+
+/* ---------- Modal cleanup ---------- */
+.fixed.inset-0.z-50 > div,
+.modal-content {
+  box-shadow: 0 24px 80px rgba(16, 36, 24, 0.22) !important;
+}
+
+/* ---------- Image/cards resilience ---------- */
+img {
+  max-width: 100%;
+}
+
+.object-cover {
+  background: linear-gradient(135deg, #f7f3ec, #e9f7f1);
+}
+
+/* ---------- Responsive safety ---------- */
+@media (max-width: 768px) {
+  body {
+    font-size: 15px;
+  }
+
+  .card-ambient,
+  .card-ambient-hover,
+  .card-glass,
+  .card-highlight {
+    border-radius: 20px !important;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-outline,
+  .btn-ghost,
+  .btn-danger {
+    min-height: 44px;
+  }
+
+  .overflow-x-auto {
+    border-radius: 18px;
+  }
+
+  table {
+    min-width: 720px;
+  }
+
+  .p-12 {
+    padding: 2rem !important;
+  }
+
+  .p-6 {
+    padding: 1.25rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .text-headline-lg,
+  .font-headline-lg {
+    font-size: 1.65rem !important;
+    line-height: 1.18 !important;
+  }
+
+  .text-headline-md,
+  .font-headline-md {
+    font-size: 1.25rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .form-input,
+  .form-select,
+  .form-textarea {
+    min-height: 44px;
+  }
+}
+
+/* ---------- Motion preferences ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}

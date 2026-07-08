@@ -14,47 +14,48 @@ const app = express();
 const uploadsDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:5174",
-  process.env.CLIENT_URL,
-].filter(Boolean);
-
-app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-  })
-);
-
+const allowedOrigins = ["http://localhost:5173", "http://localhost:5174", process.env.CLIENT_URL].filter(Boolean);
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(morgan("dev"));
 
-app.get("/", (req, res) => {
-  res.send("DineFor API is running...");
-});
+app.get("/", (req, res) => res.send("DineFor API is running..."));
 
-app.use("/api/auth", require("./routes/authRoutes"));
-app.use("/api/hotels", require("./routes/hotelRoutes"));
-app.use("/api/hotel-experience", require("./routes/hotelExperienceRoutes"));
-app.use("/api/buffets", require("./routes/buffetRoutes"));
-app.use("/api/bookings", require("./routes/bookingRoutes"));
-app.use("/api/reviews", require("./routes/reviewRoutes"));
-app.use("/api/site-settings", require("./routes/siteSettingRoutes"));
-app.use("/api/uploads", require("./routes/uploadRoutes"));
-app.use("/api/users", require("./routes/userRoutes"));
-app.use("/api/customer", require("./routes/customerExperienceRoutes"));
-app.use("/api/analytics", require("./routes/analyticsRoutes"));
-app.use("/api/payments", require("./routes/paymentRoutes"));
-app.use("/api/coupons", require("./routes/couponRoutes"));
+const mount = (basePath, routePath) => {
+  try {
+    app.use(basePath, require(routePath));
+  } catch (error) {
+    if (error.code === "MODULE_NOT_FOUND" && String(error.message || "").includes(routePath.replace("./", ""))) {
+      console.warn(`[DineFor] Optional route not mounted: ${basePath} (${routePath})`);
+    } else {
+      throw error;
+    }
+  }
+};
 
-app.use((req, res) => {
-  res.status(404).json({ message: "API route not found." });
-});
+mount("/api/auth", "./routes/authRoutes");
+mount("/api/hotels", "./routes/hotelRoutes");
+mount("/api/hotel-experience", "./routes/hotelExperienceRoutes");
+mount("/api/hotel-portal", "./routes/hotelPortalRoutes");
+mount("/api/buffets", "./routes/buffetRoutes");
+mount("/api/bookings", "./routes/bookingRoutes");
+mount("/api/booking-lifecycle", "./routes/bookingLifecycleRoutes");
+mount("/api/reviews", "./routes/reviewRoutes");
+mount("/api/site-settings", "./routes/siteSettingRoutes");
+mount("/api/uploads", "./routes/uploadRoutes");
+mount("/api/users", "./routes/userRoutes");
+mount("/api/admin", "./routes/adminRoutes");
+mount("/api/customer", "./routes/customerExperienceRoutes");
+mount("/api/analytics", "./routes/analyticsRoutes");
+mount("/api/payments", "./routes/paymentRoutes");
+mount("/api/coupons", "./routes/couponRoutes");
+mount("/api/notifications", "./routes/notificationRoutes");
+mount("/api/newsletter", "./routes/newsletterRoutes");
+mount("/api/discovery", "./routes/discoveryRoutes");
+
+app.use((req, res) => res.status(404).json({ message: "API route not found.", path: req.originalUrl }));
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

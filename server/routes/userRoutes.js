@@ -4,11 +4,13 @@ const {
   updateMe,
   toggleSavedBuffet,
   getSavedBuffets,
+  getAllUsers,
 } = require("../controllers/userController");
 const { protect } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
+router.get("/", protect, getAllUsers);
 router.get("/me", protect, getMe);
 router.put("/me", protect, updateMe);
 router.get("/saved-buffets", protect, getSavedBuffets);

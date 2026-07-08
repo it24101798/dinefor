@@ -45,6 +45,36 @@ const buildDateRangeFilter = (range) => {
   return null;
 };
 
+
+const normalizeCategory = (value = "other") => {
+  const key = String(value || "other").trim().toLowerCase().replace(/\s+/g, "-");
+  const map = { hightea: "high-tea", "high-tea": "high-tea", weekend: "other", "weekend-buffet": "other" };
+  const normalized = map[key] || key;
+  return ["breakfast", "lunch", "dinner", "high-tea", "seafood", "bbq", "brunch", "other"].includes(normalized) ? normalized : "other";
+};
+
+const normalizeBuffetType = (value = "regular") => {
+  const key = String(value || "regular").toLowerCase();
+  return key === "special" || key === "holiday" ? "special" : "regular";
+};
+
+const normalizeScheduleType = (value = "one_day") => {
+  const key = String(value || "one_day").toLowerCase();
+  if (["daily", "all_days"].includes(key)) return "all_days";
+  if (["selected_days", "selected-days"].includes(key)) return "selected_days";
+  if (["custom"].includes(key)) return "custom";
+  return "one_day";
+};
+
+const normalizeRecurringDays = (days = []) => {
+  const valid = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  if (!Array.isArray(days)) return [];
+  return days
+    .map((day) => String(day || "").trim().toLowerCase())
+    .map((day) => valid.find((validDay) => validDay.toLowerCase() === day))
+    .filter(Boolean);
+};
+
 const filterBookingsForQuery = (bookings, q) => {
   if (!q) return bookings;
   const needle = q.toLowerCase();
@@ -215,9 +245,25 @@ exports.updateBuffetStatus = async (req, res) => {
     const hotel = await getMyHotel(req);
     if (!hotel) return res.status(404).json({ message: "Hotel profile not found." });
 
+    const requestedStatus = String(req.body.status || "").toLowerCase();
+    const update = {};
+
+    if (requestedStatus) {
+      if (!["active", "inactive", "draft", "paused"].includes(requestedStatus)) {
+        return res.status(400).json({ message: "Invalid buffet status." });
+      }
+      update.isActive = requestedStatus === "active";
+      update.status = requestedStatus === "paused" ? "inactive" : requestedStatus;
+    } else if (req.body.isActive !== undefined) {
+      update.isActive = Boolean(req.body.isActive);
+      update.status = update.isActive ? "active" : "inactive";
+    } else {
+      return res.status(400).json({ message: "Status or isActive is required." });
+    }
+
     const buffet = await Buffet.findOneAndUpdate(
       { _id: req.params.id, hotel: hotel._id },
-      { isActive: Boolean(req.body.isActive) },
+      update,
       { new: true }
     );
     if (!buffet) return res.status(404).json({ message: "Buffet not found for your hotel." });
@@ -253,6 +299,58 @@ exports.duplicateBuffet = async (req, res) => {
   }
 };
 
+exports.updateBuffetDetails = async (req, res) => {
+  try {
+    const hotel = await getMyHotel(req);
+    if (!hotel) return res.status(404).json({ message: "Hotel profile not found." });
+
+    const allowed = [
+      "title",
+      "category",
+      "buffetType",
+      "description",
+      "price",
+      "availableSeats",
+      "scheduleType",
+      "availableFromDate",
+      "availableToDate",
+      "specialDate",
+      "recurringDays",
+      "timeSlots",
+      "images",
+      "videos",
+      "thumbnail",
+      "isActive",
+    ];
+
+    const update = {};
+    allowed.forEach((field) => {
+      if (Object.prototype.hasOwnProperty.call(req.body, field)) update[field] = req.body[field];
+    });
+
+    if (update.price !== undefined) update.price = Number(update.price || 0);
+    if (update.availableSeats !== undefined) update.availableSeats = Number(update.availableSeats || 0);
+    if (update.category !== undefined) update.category = normalizeCategory(update.category);
+    if (update.buffetType !== undefined) update.buffetType = normalizeBuffetType(update.buffetType);
+    if (update.scheduleType !== undefined) update.scheduleType = normalizeScheduleType(update.scheduleType);
+    if (update.recurringDays !== undefined) update.recurringDays = normalizeRecurringDays(update.recurringDays);
+    ["availableFromDate", "availableToDate", "specialDate"].forEach((field) => {
+      if (update[field] === "") update[field] = null;
+    });
+
+    const buffet = await Buffet.findOneAndUpdate(
+      { _id: req.params.id, hotel: hotel._id },
+      update,
+      { new: true, runValidators: true }
+    );
+
+    if (!buffet) return res.status(404).json({ message: "Buffet not found for your hotel." });
+    res.status(200).json({ message: "Buffet details updated.", buffet });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update buffet details.", error: error.message });
+  }
+};
+
 exports.getReviews = async (req, res) => {
   try {
     const hotel = await getMyHotel(req);
@@ -284,5 +382,203 @@ exports.replyToReview = async (req, res) => {
     res.status(200).json({ message: "Review reply saved.", review });
   } catch (error) {
     res.status(500).json({ message: "Failed to save review reply.", error: error.message });
+  }
+};
+
+const Payment = require("../models/Payment");
+
+const hotelOwnsBooking = async (req, bookingId) => {
+  const hotel = await getMyHotel(req);
+  if (!hotel) return { hotel: null, booking: null };
+  const buffetIds = await getHotelBuffetIds(hotel._id);
+  const booking = await Booking.findOne({ _id: bookingId, buffet: { $in: buffetIds } }).populate(bookingPopulate);
+  return { hotel, booking };
+};
+
+exports.getPayments = async (req, res) => {
+  try {
+    const hotel = await getMyHotel(req);
+    if (!hotel) return res.status(404).json({ message: "Hotel profile not found." });
+    const payments = await Payment.find({ hotel: hotel._id })
+      .populate([
+        { path: "booking", populate: [{ path: "buffet", populate: { path: "hotel" } }, { path: "user", select: "name email role" }] },
+        { path: "user", select: "name email role" },
+        { path: "hotel", select: "hotelName location city email contact address" },
+      ])
+      .sort({ createdAt: -1 });
+    res.status(200).json(payments);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to load hotel payments.", error: error.message });
+  }
+};
+
+exports.getAnalytics = async (req, res) => {
+  try {
+    const hotel = await getMyHotel(req);
+    if (!hotel) return res.status(404).json({ message: "Hotel profile not found." });
+
+    const buffetIds = await getHotelBuffetIds(hotel._id);
+    const [bookings, payments, reviews, buffets] = await Promise.all([
+      Booking.find({ buffet: { $in: buffetIds } }).populate(bookingPopulate).sort({ createdAt: -1 }),
+      Payment.find({ hotel: hotel._id }).sort({ createdAt: -1 }),
+      Review.find({ hotel: hotel._id }).sort({ createdAt: -1 }),
+      Buffet.find({ hotel: hotel._id }).sort({ createdAt: -1 }),
+    ]);
+
+    const paidPayments = payments.filter((payment) => payment.status === "paid");
+    const activeBookings = bookings.filter((booking) => !["cancelled", "cancelled_by_customer", "cancelled_by_hotel", "expired", "no_show"].includes(booking.bookingStatus));
+    const byStatus = bookings.reduce((acc, booking) => {
+      acc[booking.bookingStatus] = (acc[booking.bookingStatus] || 0) + 1;
+      return acc;
+    }, {});
+    const byBuffet = buffets.map((buffet) => {
+      const buffetBookings = bookings.filter((booking) => String(booking.buffet?._id || booking.buffet) === String(buffet._id));
+      return {
+        buffetId: buffet._id,
+        title: buffet.title,
+        bookings: buffetBookings.length,
+        seats: buffetBookings.reduce((sum, booking) => sum + Number(booking.seats || 0), 0),
+        revenue: buffetBookings.reduce((sum, booking) => sum + Number(booking.totalAmount || 0), 0),
+      };
+    }).sort((a, b) => b.revenue - a.revenue);
+
+    res.status(200).json({
+      hotel: { _id: hotel._id, hotelName: hotel.hotelName },
+      summary: {
+        totalBookings: bookings.length,
+        activeBookings: activeBookings.length,
+        totalSeats: activeBookings.reduce((sum, booking) => sum + Number(booking.seats || 0), 0),
+        grossReservationValue: activeBookings.reduce((sum, booking) => sum + Number(booking.totalAmount || 0), 0),
+        collectedRevenue: paidPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0),
+        totalBuffets: buffets.length,
+        activeBuffets: buffets.filter((buffet) => buffet.isActive !== false).length,
+        reviews: reviews.length,
+        averageRating: reviews.length ? reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviews.length : 0,
+      },
+      breakdown: { bookingStatus: byStatus },
+      topBuffets: byBuffet.slice(0, 10),
+      recentBookings: bookings.slice(0, 10),
+      recentPayments: payments.slice(0, 10),
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to load hotel analytics.", error: error.message });
+  }
+};
+
+exports.createBuffet = async (req, res) => {
+  try {
+    const hotel = await getMyHotel(req);
+    if (!hotel) return res.status(404).json({ message: "Hotel profile not found." });
+    if (req.user.role !== "admin" && (!hotel.isApproved || hotel.status !== "approved")) {
+      return res.status(403).json({ message: "Your hotel must be approved before creating buffets." });
+    }
+
+    const timeSlots = Array.isArray(req.body.timeSlots) ? req.body.timeSlots : [];
+    if (!req.body.title || req.body.price === undefined || timeSlots.length === 0) {
+      return res.status(400).json({ message: "Title, price and at least one time slot are required." });
+    }
+
+    const buffet = await Buffet.create({
+      hotel: hotel._id,
+      title: req.body.title,
+      buffetType: normalizeBuffetType(req.body.buffetType),
+      scheduleType: normalizeScheduleType(req.body.scheduleType),
+      category: normalizeCategory(req.body.category),
+      description: req.body.description || "",
+      price: Number(req.body.price || 0),
+      thumbnail: req.body.thumbnail || req.body.images?.[0] || "",
+      images: req.body.images || [],
+      videos: req.body.videos || [],
+      recurringDays: normalizeRecurringDays(req.body.recurringDays),
+      availableFromDate: req.body.availableFromDate || null,
+      availableToDate: req.body.availableToDate || null,
+      specialDate: req.body.specialDate || null,
+      timeSlots: timeSlots.map((slot) => ({
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        totalSeats: Number(slot.totalSeats || 0),
+        availableSeats: Number(slot.availableSeats || slot.totalSeats || 0),
+      })),
+      isActive: req.body.status ? req.body.status === "active" : req.body.isActive !== false,
+    });
+
+    res.status(201).json({ message: "Buffet created successfully.", buffet });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to create buffet.", error: error.message });
+  }
+};
+
+exports.deleteBuffet = async (req, res) => {
+  try {
+    const hotel = await getMyHotel(req);
+    if (!hotel) return res.status(404).json({ message: "Hotel profile not found." });
+    const buffet = await Buffet.findOne({ _id: req.params.id, hotel: hotel._id });
+    if (!buffet) return res.status(404).json({ message: "Buffet not found for your hotel." });
+    const activeBookings = await Booking.countDocuments({ buffet: buffet._id, bookingStatus: { $nin: ["cancelled", "cancelled_by_customer", "cancelled_by_hotel", "completed", "expired", "no_show"] } });
+    if (activeBookings > 0) {
+      return res.status(400).json({ message: "This buffet has active reservations. Pause it instead of deleting." });
+    }
+    await buffet.deleteOne();
+    res.status(200).json({ message: "Buffet deleted successfully." });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete buffet.", error: error.message });
+  }
+};
+
+exports.toggleBuffetFeature = async (req, res) => {
+  try {
+    const hotel = await getMyHotel(req);
+    if (!hotel) return res.status(404).json({ message: "Hotel profile not found." });
+    const buffet = await Buffet.findOneAndUpdate(
+      { _id: req.params.id, hotel: hotel._id },
+      { isFeatured: Boolean(req.body.isFeatured), featuredUntil: req.body.featuredUntil || null },
+      { new: true }
+    );
+    if (!buffet) return res.status(404).json({ message: "Buffet not found for your hotel." });
+    res.status(200).json({ message: buffet.isFeatured ? "Buffet featured." : "Buffet unfeatured.", buffet });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update featured state.", error: error.message });
+  }
+};
+
+exports.updateBookingStatus = async (req, res) => {
+  try {
+    const allowed = ["pending", "confirmed", "checked_in", "dining", "completed", "cancelled", "cancelled_by_hotel", "no_show", "expired"];
+    const status = req.body.status || req.body.bookingStatus;
+    if (!allowed.includes(status)) return res.status(400).json({ message: "Invalid booking status." });
+    const { booking } = await hotelOwnsBooking(req, req.params.id);
+    if (!booking) return res.status(404).json({ message: "Booking not found for your hotel." });
+    booking.bookingStatus = status;
+    if (status === "checked_in") {
+      booking.qrUsed = true;
+      booking.qrUsedAt = booking.qrUsedAt || new Date();
+      booking.checkedInAt = booking.checkedInAt || new Date();
+      booking.checkedInBy = req.user.id;
+    }
+    if (["cancelled", "cancelled_by_hotel"].includes(status)) {
+      booking.cancelledBy = "hotel";
+      booking.cancelledAt = new Date();
+    }
+    booking.statusTimeline = booking.statusTimeline || [];
+    booking.statusTimeline.push({ status, note: req.body.note || `Hotel changed booking status to ${status}.`, by: req.user.id, at: new Date() });
+    await booking.save();
+    res.status(200).json({ message: "Booking status updated.", booking });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update booking status.", error: error.message });
+  }
+};
+
+exports.deleteBooking = async (req, res) => {
+  try {
+    const { booking } = await hotelOwnsBooking(req, req.params.id);
+    if (!booking) return res.status(404).json({ message: "Booking not found for your hotel." });
+    if (!["cancelled", "cancelled_by_customer", "cancelled_by_hotel", "expired", "no_show"].includes(booking.bookingStatus)) {
+      return res.status(400).json({ message: "Only cancelled, expired, or no-show bookings can be deleted." });
+    }
+    await Payment.deleteMany({ booking: booking._id });
+    await Booking.deleteOne({ _id: booking._id });
+    res.status(200).json({ message: "Booking deleted successfully." });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete booking.", error: error.message });
   }
 };

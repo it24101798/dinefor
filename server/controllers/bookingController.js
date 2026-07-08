@@ -22,7 +22,7 @@ const normalizeDateKey = (value) => {
 
 const toUTCDate = (dateKey) => new Date(`${dateKey}T00:00:00.000Z`);
 
-const activeBookingStatuses = ["pending", "confirmed", "checked_in", "completed"];
+const activeBookingStatuses = ["pending", "confirmed", "checked_in", "dining", "completed"];
 
 const findSlot = (buffet, slotId) => {
   if (!buffet?.timeSlots) return null;
@@ -444,7 +444,7 @@ exports.getHotelBookings = async (req, res) => {
 exports.updateBookingStatus = async (req, res) => {
   try {
     const { bookingStatus, paymentStatus } = req.body;
-    const allowedBookingStatuses = ["pending", "confirmed", "checked_in", "completed", "cancelled", "no_show"];
+    const allowedBookingStatuses = ["pending", "confirmed", "checked_in", "dining", "completed", "cancelled", "no_show", "expired"];
     const allowedPaymentStatuses = ["pending", "unpaid", "paid", "failed", "refunded", "cancelled", "expired"];
 
     if (bookingStatus && !allowedBookingStatuses.includes(bookingStatus)) return res.status(400).json({ message: "Invalid booking status." });
@@ -462,10 +462,25 @@ exports.updateBookingStatus = async (req, res) => {
       booking.bookingStatus = bookingStatus;
       booking.statusTimeline = booking.statusTimeline || [];
       booking.statusTimeline.push({ status: bookingStatus, note: `Status changed to ${bookingStatus}.`, by: req.user.id, at: new Date() });
+
+      if (bookingStatus === "checked_in" && !booking.checkedInAt) {
+        booking.checkedInAt = new Date();
+        booking.checkedInBy = req.user.id;
+        booking.qrUsed = true;
+        booking.qrUsedAt = booking.qrUsedAt || new Date();
+      }
+      if (bookingStatus === "dining" && !booking.checkedInAt) {
+        booking.checkedInAt = new Date();
+        booking.checkedInBy = req.user.id;
+      }
       if (bookingStatus === "completed") booking.completedAt = new Date();
       if (bookingStatus === "expired") booking.expiredAt = new Date();
+      if (bookingStatus === "no_show") booking.expiredAt = booking.expiredAt || new Date();
     }
-    if (paymentStatus) booking.paymentStatus = paymentStatus;
+    if (paymentStatus) {
+      booking.paymentStatus = paymentStatus;
+      if (paymentStatus === "paid") booking.paidAt = booking.paidAt || new Date();
+    }
 
     if (bookingStatus === "cancelled" && !wasCancelled) {
       booking.cancelledBy = req.user.role;
@@ -479,6 +494,58 @@ exports.updateBookingStatus = async (req, res) => {
     res.status(200).json({ message: "Booking updated successfully.", booking: populatedBooking });
   } catch (error) {
     res.status(500).json({ message: "Failed to update booking.", error: error.message });
+  }
+};
+
+
+exports.expireOpenBookings = async (req, res) => {
+  try {
+    const now = new Date();
+    let hotel = null;
+    let buffetFilter = {};
+
+    if (req.user.role === "hotel") {
+      hotel = await Hotel.findOne({ owner: req.user.id });
+      if (!hotel) return res.status(404).json({ message: "Hotel profile not found." });
+      const buffets = await Buffet.find({ hotel: hotel._id }).select("_id");
+      buffetFilter = { buffet: { $in: buffets.map((buffet) => buffet._id) } };
+    } else if (req.query.hotelId) {
+      hotel = await Hotel.findById(req.query.hotelId);
+      if (!hotel) return res.status(404).json({ message: "Hotel profile not found." });
+      const buffets = await Buffet.find({ hotel: hotel._id }).select("_id");
+      buffetFilter = { buffet: { $in: buffets.map((buffet) => buffet._id) } };
+    }
+
+    const candidates = await Booking.find({
+      ...buffetFilter,
+      bookingStatus: { $in: ["pending", "confirmed"] },
+    }).populate({ path: "buffet", populate: { path: "hotel" } });
+
+    let expiredCount = 0;
+    for (const booking of candidates) {
+      const slotEnd = parseSlotTime(booking.selectedDate, booking.selectedTimeSlot?.endTime, 23, 59);
+      if (!slotEnd || slotEnd >= now) continue;
+
+      booking.bookingStatus = "expired";
+      booking.paymentStatus = booking.paymentStatus === "paid" ? booking.paymentStatus : "expired";
+      booking.expiredAt = now;
+      booking.statusTimeline = booking.statusTimeline || [];
+      booking.statusTimeline.push({
+        status: "expired",
+        note: "Automatically expired by hotel operations after the buffet time passed.",
+        by: req.user.id,
+        at: now,
+      });
+      await booking.save();
+      expiredCount += 1;
+    }
+
+    res.status(200).json({
+      message: `${expiredCount} open reservation(s) expired successfully.`,
+      expiredCount,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to expire open reservations.", error: error.message });
   }
 };
 
@@ -520,5 +587,19 @@ exports.checkInBooking = async (req, res) => {
     res.status(200).json({ message: "QR claimed successfully. Guest checked in.", booking: populatedBooking, validation: getBookingValidation(populatedBooking) });
   } catch (error) {
     res.status(500).json({ message: "Failed to check in booking.", error: error.message });
+  }
+};
+
+exports.deleteBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: "Booking not found." });
+    if (!["cancelled", "cancelled_by_customer", "cancelled_by_hotel", "expired", "no_show"].includes(booking.bookingStatus)) {
+      return res.status(400).json({ message: "Only cancelled, expired, or no-show bookings can be deleted." });
+    }
+    await booking.deleteOne();
+    res.status(200).json({ message: "Booking deleted successfully." });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete booking.", error: error.message });
   }
 };

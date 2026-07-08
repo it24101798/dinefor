@@ -1,252 +1,357 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import SearchBar from "../components/discovery/SearchBar";
-import FilterSidebar from "../components/discovery/FilterSidebar";
-import DiscoveryFeedCard from "../components/discovery/DiscoveryFeedCard";
-import {
-  defaultDiscoveryFilters,
-  fetchDiscoveryBuffets,
-  filterDiscoveryBuffets,
-  getPrimaryMedia,
-} from "../services/discoveryService";
-import "../styles-bundle19a-discovery.css";
+import axios from "axios";
+import FeedCard from "../components/FeedCard";
 
-const categories = [
-  { label: "All", value: "all", icon: "✨" },
-  { label: "Seafood", value: "seafood", icon: "🦐" },
-  { label: "BBQ", value: "bbq", icon: "🔥" },
-  { label: "Lunch", value: "lunch", icon: "🍽️" },
-  { label: "Dinner", value: "dinner", icon: "🌙" },
-  { label: "High Tea", value: "high-tea", icon: "🫖" },
-  { label: "Brunch", value: "brunch", icon: "🥐" },
-  { label: "Luxury", value: "luxury", icon: "💎" },
-  { label: "Family", value: "family", icon: "👨‍👩‍👧" },
+const categoryChips = [
+  { key: "", label: "All" },
+  { key: "Lunch", label: "Lunch" },
+  { key: "Dinner", label: "Dinner" },
+  { key: "High Tea", label: "High Tea" },
+  { key: "Seafood", label: "Seafood" },
+  { key: "Weekend Buffet", label: "Weekend Buffet" },
+  { key: "BBQ", label: "BBQ" },
+  { key: "Rooftop", label: "Rooftop" },
+  { key: "Luxury", label: "Luxury" },
+  { key: "Halal", label: "Halal" },
 ];
 
-function getHotelKey(buffet) {
-  return buffet?.hotel?._id || buffet?.hotel?.hotelName || buffet?.hotelName || buffet?._id;
-}
+const priceRanges = [
+  { label: "Under $30", min: 0, max: 30 },
+  { label: "$30 - $60", min: 30, max: 60 },
+  { label: "$60 - $100", min: 60, max: 100 },
+  { label: "$100+", min: 100, max: Infinity },
+];
+
+const ratingOptions = [
+  { label: "4.5 & up", value: 4.5 },
+  { label: "4.0 & up", value: 4.0 },
+];
+
+const API_URL = "http://localhost:5000/api";
 
 function Feed() {
   const [buffets, setBuffets] = useState([]);
-  const [filters, setFilters] = useState(defaultDiscoveryFilters);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [searched, setSearched] = useState(false);
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPriceRange, setSelectedPriceRange] = useState(null);
+  const [selectedRating, setSelectedRating] = useState(null);
+  const [sortBy, setSortBy] = useState("recommended");
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    const loadBuffets = async () => {
+    const fetchBuffets = async () => {
       try {
         setLoading(true);
         setError("");
-        const data = await fetchDiscoveryBuffets();
-        setBuffets(data);
+        const res = await axios.get(`${API_URL}/buffets`, {
+          timeout: 10000,
+        });
+        
+        let buffetData = [];
+        if (Array.isArray(res.data)) {
+          buffetData = res.data;
+        } else if (res.data && Array.isArray(res.data.buffets)) {
+          buffetData = res.data.buffets;
+        } else if (res.data && Array.isArray(res.data.data)) {
+          buffetData = res.data.data;
+        } else {
+          buffetData = [];
+        }
+        
+        setBuffets(buffetData);
       } catch (err) {
-        setError(err.response?.data?.message || "Could not load discovery feed.");
+        console.error("Fetch error:", err);
+        setError(err.response?.data?.message || err.message || "Failed to load buffets.");
       } finally {
         setLoading(false);
       }
     };
-
-    loadBuffets();
+    fetchBuffets();
   }, []);
 
-  const results = useMemo(() => filterDiscoveryBuffets(buffets, filters), [buffets, filters]);
+  const filteredBuffets = useMemo(() => {
+    let result = [...buffets];
 
-  const trendingBuffets = useMemo(() => {
-    return [...buffets]
-      .sort((a, b) => {
-        const aScore = Number(a.averageRating || 0) + Number(a.reviewCount || 0) / 50 + (a.isFeatured ? 2 : 0);
-        const bScore = Number(b.averageRating || 0) + Number(b.reviewCount || 0) / 50 + (b.isFeatured ? 2 : 0);
-        return bScore - aScore;
-      })
-      .slice(0, 3);
-  }, [buffets]);
+    if (activeCategory) {
+      result = result.filter((b) => 
+        b.category?.toLowerCase().includes(activeCategory.toLowerCase()) ||
+        b.buffetType?.toLowerCase().includes(activeCategory.toLowerCase())
+      );
+    }
 
-  const featuredHotels = useMemo(() => {
-    const map = new Map();
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter((b) =>
+        b.title?.toLowerCase().includes(query) ||
+        b.hotel?.hotelName?.toLowerCase().includes(query) ||
+        b.description?.toLowerCase().includes(query)
+      );
+    }
 
-    buffets.forEach((buffet) => {
-      const key = getHotelKey(buffet);
-      if (!key || map.has(key)) return;
-
-      map.set(key, {
-        id: buffet?.hotel?._id || key,
-        name: buffet?.hotel?.hotelName || buffet?.hotelName || "Hotel Partner",
-        location: buffet?.hotel?.city || buffet?.hotel?.location || buffet?.location?.city || "Sri Lanka",
-        logo: buffet?.hotel?.logo,
-        image: buffet?.hotel?.coverImage || buffet?.hotel?.cover || getPrimaryMedia(buffet),
-        rating: Number(buffet?.hotel?.averageRating || buffet?.averageRating || 0),
+    if (selectedPriceRange) {
+      result = result.filter((b) => {
+        const price = Number(b.price || 0);
+        return price >= selectedPriceRange.min && price <= selectedPriceRange.max;
       });
-    });
+    }
 
-    return [...map.values()].slice(0, 5);
-  }, [buffets]);
+    if (selectedRating) {
+      result = result.filter((b) => Number(b.averageRating || 0) >= selectedRating);
+    }
 
-  const updateCategory = (value) => {
-    setFilters((prev) => ({ ...prev, category: value }));
-    setSearched(true);
+    switch (sortBy) {
+      case "recommended":
+        result.sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0) || Number(b.averageRating || 0) - Number(a.averageRating || 0));
+        break;
+      case "rating":
+        result.sort((a, b) => Number(b.averageRating || 0) - Number(a.averageRating || 0));
+        break;
+      case "price-low":
+        result.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+        break;
+      case "price-high":
+        result.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+        break;
+      case "newest":
+        result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        break;
+      default:
+        break;
+    }
+
+    return result;
+  }, [buffets, activeCategory, searchQuery, selectedPriceRange, selectedRating, sortBy]);
+
+  const clearFilters = () => {
+    setActiveCategory("");
+    setSearchQuery("");
+    setSelectedPriceRange(null);
+    setSelectedRating(null);
+    setSortBy("recommended");
   };
 
-  const resetFilters = () => {
-    setFilters(defaultDiscoveryFilters);
-    setSearched(false);
-  };
+  const displayBuffets = filteredBuffets;
 
   return (
-    <main className="discovery-page stitch-discovery-page">
-      <section className="stitch-hero">
-        <div className="stitch-hero-content">
-          <p className="stitch-kicker">Curated hotel buffet experiences</p>
-          <h1>Discover Sri Lanka’s Best Hotel Buffets</h1>
-          <p>
-            Compare premium buffets by price, rating, location, availability, and atmosphere before you reserve.
+    <main className="min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20">
+      {/* HERO */}
+      <section className="relative bg-primary-container py-12 md:py-20 px-margin-mobile md:px-margin-desktop">
+        <div className="max-w-container-max mx-auto text-center">
+          <span className="font-label-md text-label-md text-highlight-gold uppercase tracking-wider">
+            Discover
+          </span>
+          <h1 className="font-display-lg text-display-lg md:text-[56px] text-surface-cream mt-2 mb-4">
+            Discover Sri Lanka's Best Hotel Buffets
+          </h1>
+          <p className="font-body-lg text-body-lg text-on-primary-container max-w-2xl mx-auto">
+            Curated culinary experiences from the finest establishments, designed for the discerning palate.
           </p>
-        </div>
 
-        <SearchBar
-          filters={filters}
-          setFilters={setFilters}
-          buffets={buffets}
-          onSearch={() => setSearched(true)}
-        />
+          <div className="search-bar max-w-4xl mx-auto mt-8">
+            <div className="flex items-center gap-4">
+              <span className="material-symbols-outlined text-on-surface-variant">search</span>
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search buffets, hotels, or cuisines..."
+                className="search-field-input flex-1"
+              />
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="px-4 py-2 rounded-full border border-border-subtle text-text-deep-green font-label-sm text-label-sm hover:bg-surface-container-low transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">tune</span>
+                  Filters
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
       </section>
 
-      <section className="stitch-category-scroll" aria-label="Buffet categories">
-        <div className="stitch-category-track">
-          {categories.map((item) => (
+      {/* Error Message */}
+      {error && (
+        <div className="px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-4">
+          <div className="bg-error/10 border border-error/20 rounded-xl p-4 text-error">
+            <p className="font-body-md text-body-md">
+              <span className="font-semibold">⚠️ {error}</span>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Category Chips */}
+      <section className="py-6 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto overflow-x-auto hide-scrollbar border-b border-border-subtle">
+        <div className="flex gap-3 w-max md:w-full md:flex-wrap">
+          {categoryChips.map((chip) => (
             <button
-              key={item.value}
+              key={chip.key || "all"}
               type="button"
-              className={`stitch-category-pill ${filters.category === item.value ? "active" : ""}`}
-              onClick={() => updateCategory(item.value)}
+              onClick={() => setActiveCategory(chip.key)}
+              className={`chip ${activeCategory === chip.key ? "chip-active" : ""}`}
             >
-              <span>{item.icon}</span>
-              {item.label}
+              {chip.label}
             </button>
           ))}
         </div>
       </section>
 
-      {!loading && !error && trendingBuffets.length > 0 && (
-        <section className="stitch-showcase">
-          <div className="stitch-section-heading">
+      {/* Filters */}
+      {showFilters && (
+        <section className="px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-6 border-b border-border-subtle">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <p className="stitch-kicker">Trending tonight</p>
-              <h2>Popular buffet experiences</h2>
+              <h4 className="font-label-md text-label-md text-text-deep-green uppercase tracking-wider mb-3">
+                Price Range
+              </h4>
+              <div className="space-y-2">
+                {priceRanges.map((range) => (
+                  <label key={range.label} className="flex items-center gap-3 cursor-pointer group">
+                    <div className={`relative flex items-center justify-center w-5 h-5 border rounded-[4px] transition-colors ${
+                      selectedPriceRange?.label === range.label
+                        ? "border-secondary bg-secondary"
+                        : "border-outline bg-surface-container-lowest group-hover:border-secondary"
+                    }`}>
+                      {selectedPriceRange?.label === range.label && (
+                        <span className="material-symbols-outlined text-[14px] text-highlight-gold" style={{ fontVariationSettings: "'FILL' 1" }}>
+                          check
+                        </span>
+                      )}
+                      <input
+                        type="checkbox"
+                        checked={selectedPriceRange?.label === range.label}
+                        onChange={() => setSelectedPriceRange(
+                          selectedPriceRange?.label === range.label ? null : range
+                        )}
+                        className="opacity-0 absolute inset-0 cursor-pointer"
+                      />
+                    </div>
+                    <span className={`font-body-md text-body-md ${
+                      selectedPriceRange?.label === range.label
+                        ? "text-text-deep-green"
+                        : "text-on-surface-variant group-hover:text-text-deep-green"
+                    } transition-colors`}>
+                      {range.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
-            <Link to="/map" className="stitch-link-btn">Explore map →</Link>
-          </div>
 
-          <div className="stitch-trending-grid">
-            {trendingBuffets.map((buffet) => (
-              <Link to={`/buffets/${buffet._id}`} className="stitch-trending-card" key={buffet._id}>
-                <img src={getPrimaryMedia(buffet)} alt={buffet.title} />
-                <div className="stitch-trending-overlay">
-                  <span>{Number(buffet.averageRating || 0).toFixed(1)} ★</span>
-                  <h3>{buffet.title}</h3>
-                  <p>{buffet.hotel?.hotelName || "Hotel Partner"} · Rs. {Number(buffet.price || 0).toLocaleString()}</p>
-                </div>
-              </Link>
-            ))}
+            <div>
+              <h4 className="font-label-md text-label-md text-text-deep-green uppercase tracking-wider mb-3">
+                Rating
+              </h4>
+              <div className="space-y-2">
+                {ratingOptions.map((rating) => (
+                  <label key={rating.value} className="flex items-center gap-3 cursor-pointer group">
+                    <div className={`relative flex items-center justify-center w-5 h-5 border rounded-[4px] transition-colors ${
+                      selectedRating === rating.value
+                        ? "border-secondary bg-secondary"
+                        : "border-outline bg-surface-container-lowest group-hover:border-secondary"
+                    }`}>
+                      {selectedRating === rating.value && (
+                        <span className="material-symbols-outlined text-[14px] text-highlight-gold" style={{ fontVariationSettings: "'FILL' 1" }}>
+                          check
+                        </span>
+                      )}
+                      <input
+                        type="checkbox"
+                        checked={selectedRating === rating.value}
+                        onChange={() => setSelectedRating(
+                          selectedRating === rating.value ? null : rating.value
+                        )}
+                        className="opacity-0 absolute inset-0 cursor-pointer"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1 text-highlight-gold">
+                      <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        star
+                      </span>
+                      <span className={`font-body-md text-body-md ${
+                        selectedRating === rating.value
+                          ? "text-text-deep-green"
+                          : "text-on-surface-variant group-hover:text-text-deep-green"
+                      } transition-colors`}>
+                        {rating.label}
+                      </span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-label-md text-label-md text-text-deep-green uppercase tracking-wider mb-3">
+                Sort By
+              </h4>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="form-select w-full"
+              >
+                <option value="recommended">Recommended</option>
+                <option value="rating">Highest Rated</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+                <option value="newest">Newest</option>
+              </select>
+              <button
+                onClick={clearFilters}
+                className="mt-4 text-label-sm text-label-sm text-outline hover:text-text-deep-green transition-colors"
+              >
+                Clear All Filters
+              </button>
+            </div>
           </div>
         </section>
       )}
 
-      {!loading && !error && featuredHotels.length > 0 && (
-        <section className="stitch-hotels">
-          <div className="stitch-section-heading">
-            <div>
-              <p className="stitch-kicker">Featured hotels</p>
-              <h2>Trusted hotel partners</h2>
-            </div>
+      {/* Results */}
+      <section className="py-8 md:py-12 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="font-headline-md text-headline-md text-text-deep-green">
+              {loading ? "Loading..." : `${displayBuffets.length} Premium Buffet${displayBuffets.length !== 1 ? "s" : ""} Found`}
+            </h2>
+            <p className="font-body-md text-body-md text-on-surface-variant mt-1">
+              {displayBuffets.length > 0 ? "Showing available experiences" : "No buffets match your filters"}
+            </p>
           </div>
-
-          <div className="stitch-hotel-track">
-            {featuredHotels.map((hotel) => (
-              <Link to={`/hotels/${hotel.id}`} className="stitch-hotel-card" key={hotel.id}>
-                <img src={hotel.image} alt={hotel.name} />
-                <div>
-                  {hotel.logo ? <img className="stitch-hotel-logo" src={hotel.logo} alt="" /> : <span className="stitch-hotel-logo fallback">D</span>}
-                  <h3>{hotel.name}</h3>
-                  <p>{hotel.location} · {hotel.rating.toFixed(1)} ★</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <section className="stitch-results-wrap">
-        <div className="stitch-mobile-filter-row">
-          <button className="stitch-outline-btn" type="button" onClick={() => setMobileFiltersOpen(true)}>
-            Filters
-          </button>
-          <button className="stitch-outline-btn" type="button" onClick={resetFilters}>
-            Reset
-          </button>
         </div>
 
-        <FilterSidebar
-          filters={filters}
-          setFilters={setFilters}
-          resultCount={results.length}
-          onReset={resetFilters}
-          mobileOpen={mobileFiltersOpen}
-          onClose={() => setMobileFiltersOpen(false)}
-        />
-
-        <div className="stitch-results-area">
-          <div className="stitch-results-heading">
-            <div>
-              <p className="stitch-kicker">Results</p>
-              <h2>{loading ? "Finding premium buffets..." : `${results.length} premium buffet${results.length === 1 ? "" : "s"}`}</h2>
-              <p>{searched ? "Showing results for your latest search." : "Sorted by recommended buffet experiences."}</p>
-            </div>
-            <select
-              value={filters.sortBy}
-              onChange={(e) => setFilters((prev) => ({ ...prev, sortBy: e.target.value }))}
-              aria-label="Sort results"
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="card-ambient h-[400px] animate-pulse bg-surface-container-low" />
+            ))}
+          </div>
+        ) : displayBuffets.length === 0 ? (
+          <div className="text-center py-16">
+            <span className="material-symbols-outlined text-6xl text-outline mb-4">restaurant</span>
+            <h3 className="font-headline-md text-headline-md text-text-deep-green mb-2">No buffets found</h3>
+            <p className="font-body-md text-body-md text-on-surface-variant mb-6">
+              Try adjusting your filters or search terms.
+            </p>
+            <button
+              onClick={clearFilters}
+              className="btn-secondary inline-flex items-center gap-2"
             >
-              <option value="recommended">Recommended</option>
-              <option value="rating">Highest rated</option>
-              <option value="price-low">Price low to high</option>
-              <option value="price-high">Price high to low</option>
-              <option value="newest">Newest</option>
-            </select>
+              <span className="material-symbols-outlined text-[18px]">refresh</span>
+              Reset Filters
+            </button>
           </div>
-
-          {error && (
-            <div className="stitch-empty-state error-state">
-              <h3>Discovery failed to load</h3>
-              <p>{error}</p>
-            </div>
-          )}
-
-          {!error && loading && (
-            <div className="stitch-card-grid">
-              {[1, 2, 3, 4].map((item) => <div className="stitch-skeleton-card" key={item} />)}
-            </div>
-          )}
-
-          {!error && !loading && results.length === 0 && (
-            <div className="stitch-empty-state">
-              <span>🍽️</span>
-              <h3>No buffet found</h3>
-              <p>Try another date, location, price range, or category.</p>
-              <button className="stitch-primary-btn" type="button" onClick={resetFilters}>Reset filters</button>
-            </div>
-          )}
-
-          {!error && !loading && results.length > 0 && (
-            <div className="stitch-card-grid">
-              {results.map((buffet) => (
-                <DiscoveryFeedCard key={buffet._id} buffet={buffet} guests={filters.guests} />
-              ))}
-            </div>
-          )}
-        </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {displayBuffets.map((buffet) => (
+              <FeedCard key={buffet._id || Math.random()} buffet={buffet} />
+            ))}
+          </div>
+        )}
       </section>
     </main>
   );

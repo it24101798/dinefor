@@ -1,49 +1,79 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import axios from "axios";
 
-function HotelApprovedRoute({ children }) {
-  const { user, token, isLoggedIn } = useAuth();
-  const [status, setStatus] = useState("checking");
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
+const HotelApprovedRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  const [hotelStatus, setHotelStatus] = useState(null);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    const checkHotelApproval = async () => {
-      if (!isLoggedIn || user?.role !== "hotel") {
-        setStatus("not-hotel");
+    const checkHotelStatus = async () => {
+      if (!user || user.role !== "hotel") {
+        setChecking(false);
         return;
       }
 
       try {
-        const res = await axios.get("http://localhost:5000/api/hotels/my-hotel", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (res.data?.status === "approved" && res.data?.isApproved) setStatus("approved");
-        else setStatus("pending");
-      } catch {
-        setStatus("pending");
+        const token = user.token;
+        const headers = { Authorization: `Bearer ${token}` };
+        const res = await axios.get(`${API_BASE}/api/hotels/my-hotel`, { headers });
+        
+        if (res.data) {
+          setHotelStatus(res.data.status || "pending");
+        } else {
+          setHotelStatus("no_application");
+        }
+      } catch (error) {
+        console.error("Hotel status check failed:", error);
+        setHotelStatus("no_application");
+      } finally {
+        setChecking(false);
       }
     };
 
-    checkHotelApproval();
-  }, [isLoggedIn, token, user]);
+    checkHotelStatus();
+  }, [user]);
 
-  if (!isLoggedIn) return <Navigate to="/login" replace />;
-  if (user?.role === "admin") return children;
-  if (user?.role !== "hotel") return <Navigate to="/feed" replace />;
-
-  if (status === "checking") {
+  if (loading || checking) {
     return (
-      <main className="dashboard-page">
-        <section className="panel"><h2>Checking hotel approval...</h2></section>
-      </main>
+      <div className="min-h-screen bg-surface-cream flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-pulse">
+            <span className="material-symbols-outlined text-5xl text-secondary mb-3 block">sync</span>
+            <p className="font-headline-md text-headline-md text-text-deep-green">Checking hotel status...</p>
+          </div>
+        </div>
+      </div>
     );
   }
 
-  if (status !== "approved") return <Navigate to="/hotel-apply" replace />;
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
-  return children;
-}
+  if (user.role !== "hotel") {
+    return <Navigate to="/" replace />;
+  }
+
+  // Redirect based on hotel status
+  if (hotelStatus === "approved") {
+    return children;
+  }
+
+  if (hotelStatus === "pending" || hotelStatus === "need_more_info") {
+    return <Navigate to="/hotel-apply" replace />;
+  }
+
+  if (hotelStatus === "rejected" || hotelStatus === "suspended") {
+    return <Navigate to="/hotel-apply" replace />;
+  }
+
+  // No application or draft
+  return <Navigate to="/hotel-apply" replace />;
+};
 
 export default HotelApprovedRoute;

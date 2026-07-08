@@ -1,58 +1,119 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
-import { useAuth } from "../context/AuthContext";
+import React from "react";
+import { Link } from "react-router-dom";
+
+const resolveMedia = (value) => {
+  if (!value) return "https://images.unsplash.com/photo-1555244162-803834f70033?w=400&h=300&fit=crop";
+  if (typeof value === "string" && (value.startsWith("http") || value.startsWith("data:"))) return value;
+  if (typeof value === "string") return value;
+  return "https://images.unsplash.com/photo-1555244162-803834f70033?w=400&h=300&fit=crop";
+};
 
 function FeedCard({ buffet }) {
-  const firstSlot = buffet.timeSlots?.[0];
-  const firstVideo = buffet.videos?.[0];
-  const { token, isLoggedIn } = useAuth();
-  const navigate = useNavigate();
-  const [saved, setSaved] = useState(false);
-  const [saving, setSaving] = useState(false);
+  if (!buffet) {
+    return (
+      <div className="card-ambient h-[400px] flex items-center justify-center">
+        <p className="text-on-surface-variant">Buffet data unavailable</p>
+      </div>
+    );
+  }
 
-  const toggleSave = async () => {
-    if (!isLoggedIn) {
-      navigate("/login");
-      return;
-    }
-
-    try {
-      setSaving(true);
-      const res = await axios.put(
-        `http://localhost:5000/api/users/saved-buffets/${buffet._id}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setSaved(res.data.saved);
-    } catch (error) {
-      alert(error.response?.data?.message || "Could not update saved buffet.");
-    } finally {
-      setSaving(false);
-    }
-  };
+  const image = resolveMedia(buffet.thumbnail || buffet.images?.[0]);
+  const rating = Number(buffet.averageRating || 0);
+  const reviewCount = Number(buffet.totalReviews || 0);
+  const price = Number(buffet.price || 0);
+  const hotelName = buffet.hotel?.hotelName || "Hotel Partner";
+  const hotelId = buffet.hotel?._id;
+  const isFeatured = buffet.isFeatured;
+  const title = buffet.title || "Buffet Experience";
+  const description = buffet.description || "";
+  const location = buffet.location?.city || buffet.location?.address || "";
+  const category = buffet.category || buffet.buffetType || "";
+  const id = buffet._id || buffet.id;
 
   return (
-    <div className="feed-card reveal-card discovery-card">
-      <Link to={`/buffets/${buffet._id}`} className="feed-card-media discovery-media-link">
-        <img src={buffet.images?.[0] || "https://images.unsplash.com/photo-1555244162-803834f70033"} alt={buffet.title} />
-        {firstVideo && <video src={firstVideo} muted loop playsInline preload="metadata" onMouseEnter={(e) => e.currentTarget.play().catch(() => {})} onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }} />}
-        {buffet.isFeatured && <span className="badge gold">Featured</span>}
-        <span className={`badge ${buffet.buffetType === "special" ? "red" : "blue"}`}>{buffet.buffetType}</span>
-      </Link>
+    <article className="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-ambient card-hover border border-border-subtle flex flex-col h-full group">
+      <div className="relative h-56 overflow-hidden">
+        <img
+          src={image}
+          alt={title}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          onError={(e) => {
+            e.target.src = "https://images.unsplash.com/photo-1555244162-803834f70033?w=400&h=300&fit=crop";
+          }}
+        />
+        {isFeatured && (
+          <span className="absolute top-3 left-3 bg-highlight-gold text-text-deep-green px-3 py-1 rounded-full font-label-sm text-label-sm shadow-sm">
+            Featured
+          </span>
+        )}
+        {rating > 0 && (
+          <span className="absolute top-3 right-3 bg-surface-cream/90 backdrop-blur-sm px-3 py-1 rounded-full font-label-sm text-label-sm text-text-deep-green shadow-sm flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px] text-highlight-gold" style={{ fontVariationSettings: "'FILL' 1" }}>
+              star
+            </span>
+            {rating.toFixed(1)} {reviewCount > 0 && `(${reviewCount})`}
+          </span>
+        )}
+      </div>
 
-      <div className="feed-card-body">
-        <Link to={`/hotels/${buffet.hotel?._id}`} className="hotel-link">{buffet.hotel?.hotelName || "Hotel Partner"}</Link>
-        <h2>{buffet.title}</h2>
-        <p className="muted-text">{buffet.description?.slice(0, 120) || "Premium dining experience available for reservation."}</p>
-        <div className="meta-row"><span>{buffet.category || "Dining"}</span><span>Rs. {buffet.price}</span><span>⭐ {buffet.averageRating || 0} ({buffet.totalReviews || 0})</span></div>
-        {firstSlot && <p className="slot-line">{firstSlot.startTime} - {firstSlot.endTime} • {firstSlot.availableSeats} seats left</p>}
-        <div className="action-row">
-          <Link to={`/buffets/${buffet._id}`} className="btn primary grow">Reserve</Link>
-          <button className={`btn ghost ${saved ? "saved-active" : ""}`} type="button" onClick={toggleSave} disabled={saving}>{saved ? "♥ Saved" : "♡ Save"}</button>
+      <div className="p-5 flex flex-col flex-1">
+        {/* Hotel Name - Clickable */}
+        {hotelId ? (
+          <Link 
+            to={`/hotels/${hotelId}`}
+            className="font-label-sm text-label-sm text-secondary hover:text-highlight-gold transition-colors uppercase tracking-wider hover:underline"
+          >
+            {hotelName}
+          </Link>
+        ) : (
+          <p className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+            {hotelName}
+          </p>
+        )}
+        
+        <h3 className="font-headline-md text-headline-md text-text-deep-green leading-tight mb-2 line-clamp-2">
+          <Link to={`/buffets/${id}`} className="hover:text-highlight-gold transition-colors">
+            {title}
+          </Link>
+        </h3>
+        
+        {description && (
+          <p className="font-body-md text-body-md text-on-surface-variant line-clamp-2 mb-4 flex-1">
+            {description}
+          </p>
+        )}
+
+        <div className="flex items-center gap-3 text-on-surface-variant font-label-sm text-label-sm mb-4">
+          {location && (
+            <span className="flex items-center gap-1">
+              <span className="material-symbols-outlined text-[16px]">location_on</span>
+              {location}
+            </span>
+          )}
+          {category && (
+            <>
+              <span className="w-1 h-1 bg-outline-variant rounded-full" />
+              <span>{category}</span>
+            </>
+          )}
+        </div>
+
+        <div className="mt-auto pt-4 border-t border-border-subtle flex items-center justify-between">
+          <div>
+            <span className="font-headline-md text-headline-md text-highlight-gold">
+              Rs. {price.toLocaleString()}
+            </span>
+            <span className="font-label-sm text-label-sm text-outline ml-1">/person</span>
+          </div>
+          <Link
+            to={`/buffets/${id}`}
+            className="bg-accent-mint text-text-deep-green px-5 py-2.5 rounded-full font-label-md text-label-md hover:opacity-90 active:scale-95 transition-all shadow-sm"
+          >
+            Reserve
+          </Link>
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 

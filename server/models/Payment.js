@@ -82,11 +82,66 @@ const paymentSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "paid", "failed", "refunded", "cancelled", "expired"],
       default: "pending",
+      index: true,
     },
     paidAt: {
       type: Date,
       default: null,
     },
+    collectedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    collectedAt: {
+      type: Date,
+      default: null,
+    },
+    settlementStatus: {
+      type: String,
+      enum: ["not_ready", "pending", "settled", "held", "cancelled"],
+      default: "not_ready",
+      index: true,
+    },
+    settlementAt: {
+      type: Date,
+      default: null,
+    },
+    refundStatus: {
+      type: String,
+      enum: ["none", "requested", "approved", "rejected", "processed"],
+      default: "none",
+      index: true,
+    },
+    refundAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    refundReason: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    refundedAt: {
+      type: Date,
+      default: null,
+    },
+    paymentTimeline: [
+      {
+        status: String,
+        note: String,
+        by: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          default: null,
+        },
+        at: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
     metadata: {
       type: Object,
       default: {},
@@ -94,5 +149,8 @@ const paymentSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+paymentSchema.index({ hotel: 1, status: 1, createdAt: -1 });
+paymentSchema.index({ user: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Payment", paymentSchema);
