@@ -45,6 +45,36 @@ const buildDateRangeFilter = (range) => {
   return null;
 };
 
+
+const normalizeCategory = (value = "other") => {
+  const key = String(value || "other").trim().toLowerCase().replace(/\s+/g, "-");
+  const map = { hightea: "high-tea", "high-tea": "high-tea", weekend: "other", "weekend-buffet": "other" };
+  const normalized = map[key] || key;
+  return ["breakfast", "lunch", "dinner", "high-tea", "seafood", "bbq", "brunch", "other"].includes(normalized) ? normalized : "other";
+};
+
+const normalizeBuffetType = (value = "regular") => {
+  const key = String(value || "regular").toLowerCase();
+  return key === "special" || key === "holiday" ? "special" : "regular";
+};
+
+const normalizeScheduleType = (value = "one_day") => {
+  const key = String(value || "one_day").toLowerCase();
+  if (["daily", "all_days"].includes(key)) return "all_days";
+  if (["selected_days", "selected-days"].includes(key)) return "selected_days";
+  if (["custom"].includes(key)) return "custom";
+  return "one_day";
+};
+
+const normalizeRecurringDays = (days = []) => {
+  const valid = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  if (!Array.isArray(days)) return [];
+  return days
+    .map((day) => String(day || "").trim().toLowerCase())
+    .map((day) => valid.find((validDay) => validDay.toLowerCase() === day))
+    .filter(Boolean);
+};
+
 const filterBookingsForQuery = (bookings, q) => {
   if (!q) return bookings;
   const needle = q.toLowerCase();
@@ -215,9 +245,25 @@ exports.updateBuffetStatus = async (req, res) => {
     const hotel = await getMyHotel(req);
     if (!hotel) return res.status(404).json({ message: "Hotel profile not found." });
 
+    const requestedStatus = String(req.body.status || "").toLowerCase();
+    const update = {};
+
+    if (requestedStatus) {
+      if (!["active", "inactive", "draft", "paused"].includes(requestedStatus)) {
+        return res.status(400).json({ message: "Invalid buffet status." });
+      }
+      update.isActive = requestedStatus === "active";
+      update.status = requestedStatus === "paused" ? "inactive" : requestedStatus;
+    } else if (req.body.isActive !== undefined) {
+      update.isActive = Boolean(req.body.isActive);
+      update.status = update.isActive ? "active" : "inactive";
+    } else {
+      return res.status(400).json({ message: "Status or isActive is required." });
+    }
+
     const buffet = await Buffet.findOneAndUpdate(
       { _id: req.params.id, hotel: hotel._id },
-      { isActive: Boolean(req.body.isActive) },
+      update,
       { new: true }
     );
     if (!buffet) return res.status(404).json({ message: "Buffet not found for your hotel." });
@@ -284,6 +330,10 @@ exports.updateBuffetDetails = async (req, res) => {
 
     if (update.price !== undefined) update.price = Number(update.price || 0);
     if (update.availableSeats !== undefined) update.availableSeats = Number(update.availableSeats || 0);
+    if (update.category !== undefined) update.category = normalizeCategory(update.category);
+    if (update.buffetType !== undefined) update.buffetType = normalizeBuffetType(update.buffetType);
+    if (update.scheduleType !== undefined) update.scheduleType = normalizeScheduleType(update.scheduleType);
+    if (update.recurringDays !== undefined) update.recurringDays = normalizeRecurringDays(update.recurringDays);
     ["availableFromDate", "availableToDate", "specialDate"].forEach((field) => {
       if (update[field] === "") update[field] = null;
     });
@@ -431,15 +481,15 @@ exports.createBuffet = async (req, res) => {
     const buffet = await Buffet.create({
       hotel: hotel._id,
       title: req.body.title,
-      buffetType: req.body.buffetType || "regular",
-      scheduleType: req.body.scheduleType === "daily" ? "all_days" : (req.body.scheduleType || "one_day"),
-      category: req.body.category || "other",
+      buffetType: normalizeBuffetType(req.body.buffetType),
+      scheduleType: normalizeScheduleType(req.body.scheduleType),
+      category: normalizeCategory(req.body.category),
       description: req.body.description || "",
       price: Number(req.body.price || 0),
       thumbnail: req.body.thumbnail || req.body.images?.[0] || "",
       images: req.body.images || [],
       videos: req.body.videos || [],
-      recurringDays: req.body.recurringDays || [],
+      recurringDays: normalizeRecurringDays(req.body.recurringDays),
       availableFromDate: req.body.availableFromDate || null,
       availableToDate: req.body.availableToDate || null,
       specialDate: req.body.specialDate || null,

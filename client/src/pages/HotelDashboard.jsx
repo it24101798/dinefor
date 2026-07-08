@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import axios from "axios";
+import BuffetCreator from "../components/hotel/BuffetCreator";
+import CheckInDesk from "../components/hotel/CheckInDesk";
+import HotelMediaManager from "../components/hotel/HotelMediaManager";
+import HotelProfileSettings from "../components/hotel/HotelProfileSettings";
+import HotelReviewsWorkspace from "../components/hotel/HotelReviewsWorkspace";
+import HotelAnalyticsPanel from "../components/analytics/HotelAnalyticsPanel";
+import HotelFinancePanel from "../components/payments/HotelFinancePanel";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -1256,18 +1263,42 @@ function HotelDashboard() {
           {currentSection.key === "reservations" && renderReservations()}
           {currentSection.key === "buffets" && renderBuffets()}
 
-          {/* Placeholder for other sections */}
-          {["create", "media", "reviews", "analytics", "finance", "check-in", "profile", "settings"].includes(currentSection.key) && (
-            <div className="card-ambient p-12 text-center">
-              <span className="material-symbols-outlined text-5xl text-outline mb-3 block">construction</span>
-              <h3 className="font-headline-md text-headline-md text-text-deep-green">{currentSection.label}</h3>
-              <p className="font-body-md text-body-md text-on-surface-variant">This section is being prepared for the next release.</p>
-              {currentSection.key === "check-in" && (
-                <button onClick={() => navigate("/hotel/check-in")} className="btn-primary mt-4">
-                  Go to QR Check-In Desk
-                </button>
-              )}
-            </div>
+          {currentSection.key === "create" && (
+            <BuffetCreator hotel={hotel} headers={headers} onCreated={fetchAll} setMessage={setMessage} />
+          )}
+
+          {currentSection.key === "media" && (
+            <HotelMediaManager
+              hotel={hotel}
+              headers={headers}
+              onUpdated={(updatedHotel, successMessage) => {
+                if (updatedHotel) setHotel(updatedHotel);
+                setMessage(successMessage || "Hotel media updated successfully.");
+                setMessageType("success");
+                fetchAll();
+              }}
+            />
+          )}
+
+          {currentSection.key === "reviews" && (
+            <HotelReviewsWorkspace headers={headers} setMessage={(msg) => { setMessage(msg); setMessageType(msg?.toLowerCase?.().includes("fail") ? "error" : "success"); }} />
+          )}
+
+          {currentSection.key === "analytics" && <HotelAnalyticsPanel />}
+          {currentSection.key === "finance" && <HotelFinancePanel />}
+          {currentSection.key === "check-in" && <CheckInDesk bookings={bookings} onChanged={fetchAll} setMessage={setMessage} />}
+
+          {(currentSection.key === "profile" || currentSection.key === "settings") && (
+            <HotelProfileSettings
+              hotel={hotel}
+              headers={headers}
+              onUpdated={(updatedHotel, successMessage) => {
+                if (updatedHotel) setHotel(updatedHotel);
+                setMessage(successMessage || "Hotel profile updated successfully.");
+                setMessageType("success");
+                fetchAll();
+              }}
+            />
           )}
         </div>
       </div>

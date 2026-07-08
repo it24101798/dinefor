@@ -1043,6 +1043,112 @@ function AdminDashboard() {
     </>
   );
 
+
+  const renderHomepage = () => (
+    <>
+      <div className="mb-6">
+        <h1 className="font-headline-lg text-headline-lg text-text-deep-green">Homepage CMS</h1>
+        <p className="font-body-md text-body-md text-on-surface-variant">Operational overview for homepage content. Full CMS editing can be added after RC1.</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="card-ambient p-5"><p className="font-label-sm text-label-sm text-on-surface-variant">Featured Buffets</p><p className="font-display-sm text-display-sm text-highlight-gold">{summary.featuredBuffets}</p></div>
+        <div className="card-ambient p-5"><p className="font-label-sm text-label-sm text-on-surface-variant">Approved Hotels</p><p className="font-display-sm text-display-sm text-secondary">{summary.approvedHotels}</p></div>
+        <div className="card-ambient p-5"><p className="font-label-sm text-label-sm text-on-surface-variant">Active Buffets</p><p className="font-display-sm text-display-sm text-text-deep-green">{summary.activeBuffets}</p></div>
+      </div>
+      <div className="card-ambient p-6">
+        <h3 className="font-headline-md text-headline-md text-text-deep-green mb-4">Homepage Readiness</h3>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container-low"><span>Approved hotels available</span><span className={`status-pill ${summary.approvedHotels ? "approved" : "pending"}`}>{summary.approvedHotels ? "Ready" : "Needs data"}</span></div>
+          <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container-low"><span>Featured buffet section</span><span className={`status-pill ${summary.featuredBuffets ? "approved" : "pending"}`}>{summary.featuredBuffets ? "Ready" : "Select featured"}</span></div>
+          <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container-low"><span>Customer booking flow</span><span className="status-pill approved">Connected</span></div>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderReviews = () => (
+    <>
+      <div className="mb-6">
+        <h1 className="font-headline-lg text-headline-lg text-text-deep-green">Review Moderation</h1>
+        <p className="font-body-md text-body-md text-on-surface-variant">Approve, hide, flag, or delete customer reviews without touching review history.</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="card-ambient p-4"><p className="font-label-sm text-label-sm text-on-surface-variant">Total Reviews</p><p className="font-headline-md text-headline-md text-text-deep-green">{reviews.length}</p></div>
+        <div className="card-ambient p-4"><p className="font-label-sm text-label-sm text-on-surface-variant">Published</p><p className="font-headline-md text-headline-md text-secondary">{reviews.filter((r) => ["published", "approved"].includes(r.status)).length}</p></div>
+        <div className="card-ambient p-4"><p className="font-label-sm text-label-sm text-on-surface-variant">Pending</p><p className="font-headline-md text-headline-md text-tertiary">{reviews.filter((r) => !r.status || r.status === "pending").length}</p></div>
+        <div className="card-ambient p-4"><p className="font-label-sm text-label-sm text-on-surface-variant">Hidden / Flagged</p><p className="font-headline-md text-headline-md text-error">{reviews.filter((r) => ["hidden", "flagged"].includes(r.status)).length}</p></div>
+      </div>
+      <div className="space-y-4">
+        {reviews.map((r) => (
+          <div key={r._id} className="card-ambient p-5">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <p className="font-label-md text-label-md text-text-deep-green">{r.user?.name || "Guest"}</p>
+                  <span className="badge-gold">{Number(r.rating || 0).toFixed(1)} ★</span>
+                  <span className={`status-pill ${getStatusColor(r.status || "pending")}`}>{r.status || "pending"}</span>
+                </div>
+                <p className="font-label-sm text-label-sm text-on-surface-variant">{r.hotel?.hotelName || "Hotel"} • {r.buffet?.title || "Buffet"} • {formatDateShort(r.createdAt)}</p>
+                <p className="font-body-md text-body-md text-on-surface mt-3">{r.comment || r.reviewText || "No written comment."}</p>
+              </div>
+              <div className="flex flex-wrap gap-2 lg:justify-end">
+                <button onClick={() => updateReviewStatus(r._id, "approve")} className="btn-secondary text-sm px-3 py-1">Approve</button>
+                <button onClick={() => updateReviewStatus(r._id, "hide")} className="btn-outline text-sm px-3 py-1">Hide</button>
+                <button onClick={() => updateReviewStatus(r._id, "flag")} className="btn-outline text-sm px-3 py-1">Flag</button>
+                <button onClick={() => { setDeleteTarget({ type: "review", id: r._id, name: r.user?.name || "Review" }); setShowDeleteConfirm(true); }} className="text-error text-sm hover:underline">Delete</button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      {!reviews.length && renderEmpty("No reviews found", "Customer reviews will appear here after bookings are completed.", "rate_review")}
+    </>
+  );
+
+  const renderAnalytics = () => {
+    const source = analyticsData?.summary || analyticsData || summary;
+    return (
+      <>
+        <div className="mb-6">
+          <h1 className="font-headline-lg text-headline-lg text-text-deep-green">Analytics</h1>
+          <p className="font-body-md text-body-md text-on-surface-variant">Platform health, bookings, hotels, revenue, and moderation overview.</p>
+        </div>
+        <div className="flex flex-wrap gap-3 mb-4"><select value={analyticsPeriod} onChange={(e) => setAnalyticsPeriod(e.target.value)} className="form-select w-auto"><option value="today">Today</option><option value="week">7 Days</option><option value="month">30 Days</option><option value="year">Year</option></select><button onClick={fetchAll} className="btn-outline">Refresh</button></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="card-ambient p-5"><p className="font-label-sm text-label-sm text-on-surface-variant">Users</p><p className="font-display-sm text-display-sm text-text-deep-green">{source.users || summary.users}</p></div>
+          <div className="card-ambient p-5"><p className="font-label-sm text-label-sm text-on-surface-variant">Hotels</p><p className="font-display-sm text-display-sm text-secondary">{source.hotels || summary.hotels}</p></div>
+          <div className="card-ambient p-5"><p className="font-label-sm text-label-sm text-on-surface-variant">Bookings</p><p className="font-display-sm text-display-sm text-text-deep-green">{source.bookings || summary.bookings}</p></div>
+          <div className="card-ambient p-5"><p className="font-label-sm text-label-sm text-on-surface-variant">Revenue</p><p className="font-headline-md text-headline-md text-highlight-gold">{money(source.grossReservationValue || summary.revenue)}</p></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="card-ambient p-6"><h3 className="font-headline-md text-headline-md text-text-deep-green mb-4">Hotel Applications</h3><div className="space-y-3">{[["Pending", summary.pendingHotels], ["Approved", summary.approvedHotels], ["Rejected", summary.rejectedHotels]].map(([label, value]) => <div key={label} className="flex items-center justify-between p-3 rounded-xl bg-surface-container-low"><span>{label}</span><strong>{value}</strong></div>)}</div></div>
+          <div className="card-ambient p-6"><h3 className="font-headline-md text-headline-md text-text-deep-green mb-4">Booking Status</h3><div className="space-y-3">{[["Confirmed", summary.confirmedBookings], ["Checked In", summary.checkedInBookings], ["Completed", summary.completedBookings], ["Cancelled", summary.cancelledBookings]].map(([label, value]) => <div key={label} className="flex items-center justify-between p-3 rounded-xl bg-surface-container-low"><span>{label}</span><strong>{value}</strong></div>)}</div></div>
+        </div>
+      </>
+    );
+  };
+
+  const renderFinance = () => (
+    <>
+      <div className="mb-6">
+        <h1 className="font-headline-lg text-headline-lg text-text-deep-green">Finance</h1>
+        <p className="font-body-md text-body-md text-on-surface-variant">Platform payment operations and commission overview.</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="card-ambient p-5"><p className="font-label-sm text-label-sm text-on-surface-variant">Transactions</p><p className="font-display-sm text-display-sm text-text-deep-green">{payments.length}</p></div>
+        <div className="card-ambient p-5"><p className="font-label-sm text-label-sm text-on-surface-variant">Payment Value</p><p className="font-headline-md text-headline-md text-highlight-gold">{money(summary.totalPayments)}</p></div>
+        <div className="card-ambient p-5"><p className="font-label-sm text-label-sm text-on-surface-variant">Pending</p><p className="font-headline-md text-headline-md text-tertiary">{money(summary.pendingPayments)}</p></div>
+        <div className="card-ambient p-5"><p className="font-label-sm text-label-sm text-on-surface-variant">Revenue Value</p><p className="font-headline-md text-headline-md text-secondary">{money(summary.revenue)}</p></div>
+      </div>
+      <div className="card-ambient overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px]"><thead className="bg-surface-container-low"><tr><th className="text-left p-4">Invoice</th><th className="text-left p-4">Hotel</th><th className="text-left p-4">Customer</th><th className="text-left p-4">Amount</th><th className="text-left p-4">Status</th></tr></thead><tbody>{payments.slice(0, 80).map((p) => <tr key={p._id} className="border-t border-border-subtle"><td className="p-4">{p.invoiceNumber || p._id}</td><td className="p-4">{p.hotel?.hotelName || p.booking?.buffet?.hotel?.hotelName || "-"}</td><td className="p-4">{p.user?.name || p.booking?.user?.name || "-"}</td><td className="p-4 text-highlight-gold">{money(p.amount)}</td><td className="p-4"><span className={`status-pill ${getStatusColor(p.status)}`}>{p.status}</span></td></tr>)}</tbody></table>
+        </div>
+      </div>
+      {!payments.length && renderEmpty("No payment records", "Payment records will appear after reservations are created.", "payments")}
+    </>
+  );
+
   // ============================================
   // MAIN RENDER
   // ============================================
@@ -1110,16 +1216,11 @@ function AdminDashboard() {
           {currentSection.key === "hotels" && renderHotels()}
           {currentSection.key === "bookings" && renderBookings()}
           {currentSection.key === "featured" && renderFeatured()}
+          {currentSection.key === "homepage" && renderHomepage()}
+          {currentSection.key === "reviews" && renderReviews()}
+          {currentSection.key === "analytics" && renderAnalytics()}
+          {currentSection.key === "finance" && renderFinance()}
           {currentSection.key === "settings" && renderSettings()}
-
-          {/* Placeholder for other sections */}
-          {["homepage", "reviews", "analytics", "finance"].includes(currentSection.key) && (
-            <div className="card-ambient p-12 text-center">
-              <span className="material-symbols-outlined text-5xl text-outline mb-3 block">construction</span>
-              <h3 className="font-headline-md text-headline-md text-text-deep-green">{currentSection.label}</h3>
-              <p className="font-body-md text-body-md text-on-surface-variant">This section is being prepared for the next release.</p>
-            </div>
-          )}
         </div>
       </div>
     </div>

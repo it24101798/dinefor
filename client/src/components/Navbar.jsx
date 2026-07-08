@@ -108,7 +108,7 @@ function Navbar() {
             to="/"
             className="flex items-center gap-2 font-headline-lg text-headline-lg text-text-deep-green hover:opacity-80 transition-opacity group"
           >
-            <span className="text-2xl">🍽️</span>
+            <span className="text-2xl"></span>
             <span className="hidden sm:inline">DineFor</span>
             <span className="sm:hidden">DF</span>
           </Link>

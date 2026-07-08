@@ -4,12 +4,9 @@ import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import App from "./App";
 
-// ===== SINGLE CSS IMPORT =====
+// Single frontend stylesheet for DineFor.
+// All previous bundle/style CSS has been consolidated into index.css.
 import "./index.css";
-
-// Leaflet CSS - only import if you have Leaflet installed
-// If you get errors, comment this line out
-// import "leaflet/dist/leaflet.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
