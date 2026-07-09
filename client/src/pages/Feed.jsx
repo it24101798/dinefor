@@ -9,7 +9,6 @@ import {
   filterDiscoveryBuffets,
   getPrimaryMedia,
 } from "../services/discoveryService";
-import "../styles-bundle19a-discovery.css";
 
 const categories = [
   { label: "All", value: "all", icon: "✨" },
