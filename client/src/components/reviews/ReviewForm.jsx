@@ -1,100 +1,200 @@
-import { useState } from "react";
-import axios from "axios";
-import MediaUploader from "../MediaUploader";
+import React, { useState } from "react";
+import api from "../../services/api";
 
-const ratingLabels = { 5: "Excellent", 4: "Good", 3: "Average", 2: "Poor", 1: "Bad" };
-
-function ReviewForm({ buffetId, onReviewCreated }) {
+function ReviewForm({ buffetId, hotelId, onReviewCreated }) {
   const [rating, setRating] = useState(5);
-  const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState("");
   const [images, setImages] = useState([]);
-  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const submitReview = async (e) => {
+  const storedUser = JSON.parse(localStorage.getItem("dineforUser") || "null");
+
+  const handleFileUpload = (e) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const filePromises = Array.from(files).map((file) => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          resolve(reader.result);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(filePromises).then((results) => {
+      setImages((prev) => [...prev, ...results]);
+    });
+  };
+
+  const removeImage = (index) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!storedUser?.token) {
+      setMessage("Please login to leave a review.");
+      return;
+    }
+
+    if (!comment.trim()) {
+      setMessage("Please write a review comment.");
+      return;
+    }
+
+    setLoading(true);
     setMessage("");
 
-    const storedUser = JSON.parse(localStorage.getItem("dineforUser"));
-    if (!storedUser?.token) {
-      setMessage("Please login to review this buffet.");
-      return;
-    }
-
-    if (comment.trim().length < 5 && images.length === 0 && videos.length === 0) {
-      setMessage("Please add a short comment, photo, or video.");
-      return;
-    }
-
     try {
-      setSubmitting(true);
-      const res = await axios.post(
-        "http://localhost:5000/api/reviews",
-        { buffetId, rating: Number(rating), comment: comment.trim(), images, videos },
-        { headers: { Authorization: `Bearer ${storedUser.token}` } }
-      );
+      const payload = {
+        rating,
+        comment: comment.trim(),
+        images,
+        buffetId,
+        hotelId,
+      };
 
-      setMessage(res.data.message || "Review added successfully.");
+      await api.post("/reviews", payload, {
+        headers: { Authorization: `Bearer ${storedUser.token}` },
+      });
+
+      setMessage("✅ Review submitted successfully!");
+      setIsSubmitted(true);
       setComment("");
       setRating(5);
       setImages([]);
-      setVideos([]);
-      onReviewCreated?.();
+
+      if (onReviewCreated) onReviewCreated();
+
+      setTimeout(() => {
+        setIsSubmitted(false);
+        setMessage("");
+      }, 3000);
     } catch (error) {
-      setMessage(error.response?.data?.message || "Review failed.");
+      setMessage(error.response?.data?.message || "Failed to submit review.");
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
-  const visibleRating = hoverRating || rating;
+  if (isSubmitted) {
+    return (
+      <div className="p-6 rounded-xl bg-secondary-container/20 border border-secondary/30 text-center">
+        <span className="material-symbols-outlined text-4xl text-secondary mb-2 block">check_circle</span>
+        <h4 className="font-headline-md text-headline-md text-text-deep-green">Thank You!</h4>
+        <p className="font-body-md text-body-md text-on-surface-variant">Your review has been submitted.</p>
+      </div>
+    );
+  }
 
   return (
-    <form onSubmit={submitReview} className="google-review-form beach-review-form">
-      <div className="review-form-head">
-        <span className="eyebrow">Customer Experience</span>
-        <h3>Rate this buffet</h3>
-        <p className="muted">Guests and approved hotel users can browse and review like a normal customer.</p>
+    <form onSubmit={handleSubmit} className="space-y-4 p-4 rounded-xl border border-border-subtle bg-surface-container-lowest">
+      <div>
+        <h3 className="font-headline-md text-headline-md text-text-deep-green">Write a Review</h3>
+        <p className="font-label-sm text-label-sm text-on-surface-variant">Share your experience</p>
       </div>
 
-      <div className="star-rating-row" onMouseLeave={() => setHoverRating(0)}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <button key={star} type="button" className={star <= visibleRating ? "star-btn active" : "star-btn"} onMouseEnter={() => setHoverRating(star)} onClick={() => setRating(star)} aria-label={`${star} star rating`}>★</button>
-        ))}
-        <strong>{ratingLabels[visibleRating]}</strong>
-      </div>
-
-      <textarea className="google-review-textarea" placeholder="Share your experience: food quality, service, atmosphere, value..." value={comment} onChange={(e) => setComment(e.target.value)} rows="5" maxLength="1200" />
-      <small className="muted-text">{comment.length}/1200 characters</small>
-
-      <div className="review-media-upload-grid">
-        <div className="google-photo-upload">
-          <div><h4>Add photos</h4><p className="muted">Photos build trust like Google Maps.</p></div>
-          <MediaUploader multiple accept="image/*" label="+ Add review photos" onUpload={(data) => data.mediaType === "image" && setImages((prev) => [...prev, data.fileUrl].slice(0, 8))} />
-        </div>
-
-        <div className="google-photo-upload">
-          <div><h4>Add videos</h4><p className="muted">Short buffet clips make the feed feel alive.</p></div>
-          <MediaUploader multiple accept="video/*" label="+ Add review videos" onUpload={(data) => data.mediaType === "video" && setVideos((prev) => [...prev, data.fileUrl].slice(0, 4))} />
-        </div>
-      </div>
-
-      {(images.length > 0 || videos.length > 0) && (
-        <div className="review-photo-preview-grid">
-          {images.map((image) => (
-            <div className="review-photo-preview" key={image}><img src={image} alt="Review preview" /><button type="button" onClick={() => setImages((prev) => prev.filter((item) => item !== image))}>×</button></div>
+      <div>
+        <label className="font-label-sm text-label-sm text-on-surface-variant block mb-2">Rating</label>
+        <div className="flex gap-1">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              onClick={() => setRating(star)}
+              className="focus:outline-none transition-transform hover:scale-110"
+            >
+              <span
+                className="material-symbols-outlined text-3xl"
+                style={{
+                  fontVariationSettings: star <= rating ? "'FILL' 1" : "'FILL' 0",
+                  color: star <= rating ? "#D4AF37" : "#c3c8c1",
+                }}
+              >
+                star
+              </span>
+            </button>
           ))}
-          {videos.map((video) => (
-            <div className="review-photo-preview" key={video}><video src={video} controls /><button type="button" onClick={() => setVideos((prev) => prev.filter((item) => item !== video))}>×</button></div>
-          ))}
+          <span className="font-label-md text-label-md text-on-surface-variant ml-2">{rating}/5</span>
+        </div>
+      </div>
+
+      <div>
+        <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Comment *</label>
+        <textarea
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder="Describe your experience..."
+          className="form-textarea w-full"
+          rows="4"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Photos (optional)</label>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleFileUpload}
+          className="form-input w-full"
+        />
+        {images.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {images.map((img, idx) => (
+              <div key={idx} className="relative">
+                <img src={img} alt={`Upload ${idx + 1}`} className="w-16 h-16 rounded-lg object-cover border border-border-subtle" />
+                <button
+                  type="button"
+                  onClick={() => removeImage(idx)}
+                  className="absolute -top-1 -right-1 w-5 h-5 bg-error rounded-full text-white flex items-center justify-center text-xs hover:bg-error/80"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {message && (
+        <div
+          className={`p-3 rounded-lg text-sm font-medium ${
+            message.includes("success") || message.includes("✅")
+              ? "bg-secondary-container/30 text-secondary"
+              : "bg-error/10 text-error"
+          }`}
+        >
+          {message}
         </div>
       )}
 
-      <button className="btn primary wide" disabled={submitting}>{submitting ? "Publishing..." : "Publish Review"}</button>
+      <button
+        type="submit"
+        disabled={loading}
+        className="btn-secondary w-full flex items-center justify-center gap-2"
+      >
+        {loading ? (
+          <>
+            <span className="animate-spin rounded-full h-4 w-4 border-2 border-text-deep-green border-t-transparent" />
+            Submitting...
+          </>
+        ) : (
+          "Submit Review"
+        )}
+      </button>
 
-      {message && <p className={message.toLowerCase().includes("failed") || message.toLowerCase().includes("login") || message.toLowerCase().includes("please") ? "error-text" : "success-text"}>{message}</p>}
+      {!storedUser?.token && (
+        <p className="font-label-sm text-label-sm text-on-surface-variant text-center">
+          Please <a href="/login" className="text-secondary hover:underline">login</a> to leave a review.
+        </p>
+      )}
     </form>
   );
 }

@@ -1,3 +1,4 @@
+import React from "react";
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -22,12 +23,12 @@ import SavedBuffets from "./pages/SavedBuffets";
 import CustomerDashboard from "./pages/CustomerDashboard";
 import BookingSummary from "./pages/BookingSummary";
 import PaymentHistory from "./pages/PaymentHistory";
+import RecentlyViewed from "./pages/RecentlyViewed";
 
 function App() {
   return (
     <>
       <Navbar />
-
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/feed" element={<Feed />} />
@@ -41,7 +42,6 @@ function App() {
         <Route path="/hotels/:id" element={<HotelProfile />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-
         <Route path="/customer" element={<ProtectedRoute allowedRoles={["customer", "hotel", "admin"]}><CustomerDashboard /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute allowedRoles={["customer", "hotel", "admin"]}><CustomerDashboard /></ProtectedRoute>} />
         <Route path="/my-bookings" element={<ProtectedRoute allowedRoles={["customer", "admin"]}><MyBookings /></ProtectedRoute>} />
@@ -49,8 +49,11 @@ function App() {
         <Route path="/profile" element={<ProtectedRoute allowedRoles={["customer", "hotel", "admin"]}><ClientProfile /></ProtectedRoute>} />
         <Route path="/saved" element={<ProtectedRoute allowedRoles={["customer", "hotel", "admin"]}><SavedBuffets /></ProtectedRoute>} />
         <Route path="/favorites" element={<ProtectedRoute allowedRoles={["customer", "hotel", "admin"]}><SavedBuffets /></ProtectedRoute>} />
+        <Route path="/recently-viewed" element={<ProtectedRoute allowedRoles={["customer", "hotel", "admin"]}><RecentlyViewed /></ProtectedRoute>} />
         <Route path="/hotel-apply" element={<ProtectedRoute allowedRoles={["hotel", "admin"]}><HotelApply /></ProtectedRoute>} />
         <Route path="/hotel/check-in" element={<HotelApprovedRoute><HotelCheckInDesk /></HotelApprovedRoute>} />
+        <Route path="/hotel/checkin" element={<HotelApprovedRoute><HotelCheckInDesk /></HotelApprovedRoute>} />
+        <Route path="/hotel/qr-desk" element={<HotelApprovedRoute><HotelCheckInDesk /></HotelApprovedRoute>} />
         <Route path="/hotel/*" element={<HotelApprovedRoute><HotelDashboard /></HotelApprovedRoute>} />
         <Route path="/admin/*" element={<ProtectedRoute allowedRoles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
         <Route path="/check-in/:code" element={<ProtectedRoute allowedRoles={["hotel", "admin"]}><BookingCheckIn /></ProtectedRoute>} />

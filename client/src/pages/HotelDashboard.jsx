@@ -11,7 +11,6 @@ import HotelPortalOverview from "../components/hotel/HotelPortalOverview";
 import HotelReservationCenter from "../components/hotel/HotelReservationCenter";
 import HotelBuffetWorkspace from "../components/hotel/HotelBuffetWorkspace";
 import HotelReviewsWorkspace from "../components/hotel/HotelReviewsWorkspace";
-import "../styles-bundle18-hotel-portal.css";
 
 const API = "http://localhost:5000/api";
 

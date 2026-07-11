@@ -1,103 +1,123 @@
-import { useRef, useState } from "react";
-import api from "../services/api";
+import React, { useRef, useState } from "react";
 
-function MediaUploader({
-  onUpload,
-  multiple = false,
-  accept = "image/*,video/*",
-  label = "Upload media",
-  helper = "Drag and drop files here, or click to browse.",
-}) {
-  const inputRef = useRef(null);
+function MediaUploader({ onUpload, accept = "image/*", label = "Upload", multiple = false }) {
+  const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [isDragging, setIsDragging] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
 
-  const getAuthHeaders = () => {
-    const storedUser = JSON.parse(localStorage.getItem("dineforUser") || "null");
-    return storedUser?.token ? { Authorization: `Bearer ${storedUser.token}` } : null;
-  };
+  const handleFileChange = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-  const uploadFiles = async (fileList) => {
-    const files = Array.from(fileList || []);
-    if (!files.length) return;
-
-    const authHeaders = getAuthHeaders();
-    if (!authHeaders) {
-      setMessage("Please login before uploading.");
-      return;
-    }
+    setUploading(true);
 
     try {
-      setUploading(true);
-      setMessage("");
-
-      const formData = new FormData();
-      files.forEach((file) => formData.append("media", file));
-
-      const endpoint = multiple ? "/uploads/multiple" : "/uploads";
-      const res = await api.post(endpoint, formData, {
-        headers: authHeaders,
+      const uploadPromises = Array.from(files).map((file) => {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve({
+              fileUrl: reader.result,
+              mediaType: file.type.startsWith("video") ? "video" : "image",
+              fileName: file.name,
+              fileSize: file.size,
+              fileType: file.type,
+            });
+          };
+          reader.readAsDataURL(file);
+        });
       });
 
+      const results = await Promise.all(uploadPromises);
+
       if (multiple) {
-        const uploadedFiles = res.data?.files || [];
-        uploadedFiles.forEach((file) => onUpload?.(file));
-        setMessage(`${uploadedFiles.length} file(s) uploaded successfully ✅`);
+        setUploadedFiles((prev) => [...prev, ...results]);
+        if (onUpload) onUpload(results);
       } else {
-        onUpload?.(res.data);
-        setMessage("File uploaded successfully ✅");
+        const result = results[0];
+        setUploadedFiles([result]);
+        if (onUpload) onUpload(result);
       }
     } catch (error) {
-      setMessage(error.response?.data?.message || "Upload failed. Check backend terminal.");
+      console.error("Upload failed:", error);
     } finally {
       setUploading(false);
-      setIsDragging(false);
-      if (inputRef.current) inputRef.current.value = "";
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
-  const handleDrop = (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setIsDragging(false);
-    uploadFiles(event.dataTransfer.files);
+  const removeFile = (index) => {
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
   return (
-    <div
-      className={`upload-dropzone media-studio-dropzone ${isDragging ? "dragging" : ""}`}
-      onClick={() => inputRef.current?.click()}
-      onDragOver={(event) => {
-        event.preventDefault();
-        setIsDragging(true);
-      }}
-      onDragLeave={() => setIsDragging(false)}
-      onDrop={handleDrop}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") inputRef.current?.click();
-      }}
-    >
-      <input
-        ref={inputRef}
-        type="file"
-        accept={accept}
-        multiple={multiple}
-        hidden
-        onChange={(event) => uploadFiles(event.target.files)}
-      />
+    <div className="space-y-3">
+      <div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={accept}
+          onChange={handleFileChange}
+          multiple={multiple}
+          className="hidden"
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="btn-outline w-full flex items-center justify-center gap-2"
+        >
+          <span className="material-symbols-outlined text-[18px]">
+            {uploading ? "progress_activity" : "upload"}
+          </span>
+          {uploading ? "Uploading..." : label}
+        </button>
+      </div>
 
-      <div className="upload-icon">{uploading ? "⏳" : "⬆️"}</div>
-      <strong>{uploading ? "Uploading..." : label}</strong>
-      <span>{helper}</span>
-      <small>{multiple ? "Multiple files allowed" : "Single file only"}</small>
-
-      {message && (
-        <p className={message.toLowerCase().includes("failed") || message.toLowerCase().includes("login") ? "error-text" : "success-text"}>
-          {message}
-        </p>
+      {uploadedFiles.length > 0 && (
+        <div className="space-y-2">
+          {uploadedFiles.map((file, index) => (
+            <div
+              key={index}
+              className="flex items-center gap-3 p-3 rounded-xl border border-border-subtle bg-surface-container-low"
+            >
+              {file.mediaType === "image" ? (
+                <img
+                  src={file.fileUrl}
+                  alt={file.fileName || "Uploaded file"}
+                  className="w-12 h-12 rounded-lg object-cover"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center">
+                  <span className="material-symbols-outlined text-2xl text-outline">videocam</span>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="font-label-sm text-label-sm text-text-deep-green truncate">
+                  {file.fileName || "Uploaded file"}
+                </p>
+                <p className="font-label-sm text-label-sm text-on-surface-variant">
+                  {formatFileSize(file.fileSize)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => removeFile(index)}
+                className="text-error hover:text-error/80 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

@@ -1,72 +1,96 @@
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import React from "react";
 import { Link } from "react-router-dom";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
 
-const markerIcon = new L.Icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
-
-function MapView({ hotels }) {
-  const defaultCenter = [6.9271, 79.8612];
-
-  const firstHotelWithLocation = hotels.find(
-    (hotel) => hotel.mapLocation?.latitude && hotel.mapLocation?.longitude
+function MapView({ hotels = [], height = "100%", selectedHotel = null }) {
+  const validHotels = hotels.filter(
+    (hotel) =>
+      hotel?.mapLocation &&
+      hotel.mapLocation.latitude &&
+      hotel.mapLocation.longitude
   );
 
-  const center = firstHotelWithLocation
-    ? [
-        firstHotelWithLocation.mapLocation.latitude,
-        firstHotelWithLocation.mapLocation.longitude,
-      ]
-    : defaultCenter;
+  if (validHotels.length === 0) {
+    return (
+      <div className="w-full bg-surface-dim rounded-xl flex items-center justify-center relative overflow-hidden" style={{ height }}>
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage: `
+              radial-gradient(circle at 20% 50%, #c3c8c1 1px, transparent 1px),
+              radial-gradient(circle at 80% 30%, #c3c8c1 1px, transparent 1px),
+              radial-gradient(circle at 50% 80%, #c3c8c1 1px, transparent 1px)
+            `,
+            backgroundSize: '40px 40px, 60px 60px, 50px 50px',
+          }}
+        />
+        <div className="text-center relative z-10 p-6">
+          <span className="material-symbols-outlined text-5xl text-outline mb-3 block">map</span>
+          <p className="font-body-md text-body-md text-text-deep-green">
+            {hotels.length > 0 ? `${hotels.length} hotels on map` : "Map view"}
+          </p>
+          {hotels.length > 0 && (
+            <div className="mt-3 space-y-1 max-h-40 overflow-y-auto">
+              {hotels.slice(0, 5).map((hotel) => (
+                <div key={hotel._id} className="flex items-center gap-2 text-sm text-on-surface-variant">
+                  <span className="material-symbols-outlined text-[16px] text-secondary">location_on</span>
+                  <span className="truncate">{hotel.hotelName}</span>
+                </div>
+              ))}
+              {hotels.length > 5 && (
+                <p className="font-label-sm text-label-sm text-outline">+{hotels.length - 5} more</p>
+              )}
+            </div>
+          )}
+          <p className="font-label-sm text-label-sm text-outline mt-3">Map view</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <MapContainer
-      center={center}
-      zoom={12}
-      scrollWheelZoom={true}
-      style={{ width: "100%", height: "100%", minHeight: "680px", borderRadius: "22px" }}
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-
-      {hotels.map((hotel) => {
-        const lat = hotel.mapLocation?.latitude;
-        const lng = hotel.mapLocation?.longitude;
-
-        if (!lat || !lng) return null;
-
-        return (
-          <Marker key={hotel._id} position={[lat, lng]} icon={markerIcon}>
-            <Popup>
-              <div style={{ minWidth: "190px" }}>
-                <strong>{hotel.hotelName}</strong>
-                <p style={{ margin: "6px 0" }}>{hotel.location}</p>
-                <p style={{ margin: "6px 0" }}>⭐ {hotel.averageRating || 0}</p>
-                <Link to={`/hotels/${hotel._id}`}>View Hotel</Link>
-                {hotel.mapLocation?.googleMapUrl && (
-                  <>
-                    <br />
-                    <a href={hotel.mapLocation.googleMapUrl} target="_blank" rel="noreferrer">
-                      Open Google Maps
-                    </a>
-                  </>
-                )}
+    <div className="w-full bg-surface-dim rounded-xl overflow-y-auto p-4" style={{ height }}>
+      <div className="space-y-3">
+        {validHotels.map((hotel) => {
+          const isSelected = selectedHotel?._id === hotel._id;
+          return (
+            <Link
+              key={hotel._id}
+              to={`/hotels/${hotel._id}`}
+              className={`block p-3 rounded-xl border transition-all ${
+                isSelected
+                  ? "border-secondary bg-secondary-container/10"
+                  : "border-border-subtle bg-surface-container-lowest hover:border-secondary"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-secondary">
+                  {isSelected ? "location_on" : "fmd_bad"}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-label-md text-label-md text-text-deep-green">{hotel.hotelName}</p>
+                  <p className="font-label-sm text-label-sm text-on-surface-variant">
+                    {hotel.city || hotel.location || ""}
+                  </p>
+                  {hotel.averageRating > 0 && (
+                    <p className="font-label-sm text-label-sm text-highlight-gold">
+                      ⭐ {hotel.averageRating.toFixed(1)}
+                    </p>
+                  )}
+                </div>
+                <span className="material-symbols-outlined text-outline">
+                  chevron_right
+                </span>
               </div>
-            </Popup>
-          </Marker>
-        );
-      })}
-    </MapContainer>
+            </Link>
+          );
+        })}
+      </div>
+      <div className="mt-4 p-3 rounded-xl bg-surface-container-low text-center">
+        <p className="font-label-sm text-label-sm text-on-surface-variant">
+          {validHotels.length} hotel{validHotels.length > 1 ? "s" : ""} with locations
+        </p>
+      </div>
+    </div>
   );
 }
 
