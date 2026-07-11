@@ -1,491 +1,380 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 
-// SVG Icons (reused from Login)
-const EmailIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-    <polyline points="22,6 12,13 2,6" />
-  </svg>
-);
-
-const PasswordIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-    <path d="M7 11V7a5 5 0 0110 0v4" />
-  </svg>
-);
-
-const UserIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-    <circle cx="12" cy="7" r="4" />
-  </svg>
-);
-
-const EyeIcon = ({ open }) => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    {open ? (
-      <>
-        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-        <circle cx="12" cy="12" r="3" />
-      </>
-    ) : (
-      <>
-        <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
-        <line x1="1" y1="1" x2="23" y2="23" />
-      </>
-    )}
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="20 6 9 17 4 12" />
-  </svg>
-);
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 function Register() {
   const navigate = useNavigate();
 
+  // ============================================
+  // STATE
+  // ============================================
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
     role: "customer",
+    termsAccepted: false,
   });
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState("");
+  const [messageType, setMessageType] = useState("info");
   const [loading, setLoading] = useState(false);
-  const [focusedField, setFocusedField] = useState(null);
-  const [passwordStrength, setPasswordStrength] = useState(0);
-  const [passwordValidations, setPasswordValidations] = useState({
-    length: false,
-    uppercase: false,
-    lowercase: false,
-    number: false,
-    special: false,
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState({
+    score: 0,
+    label: "",
+    color: "",
   });
 
-  const nameRef = useRef(null);
+  // ============================================
+  // HANDLERS
+  // ============================================
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
 
-  // Auto-focus name on load
-  useEffect(() => {
-    nameRef.current?.focus();
-  }, []);
-
-  // Password strength calculation
-  const calculatePasswordStrength = useCallback((password) => {
-    let strength = 0;
-    const validations = {
-      length: password.length >= 8,
-      uppercase: /[A-Z]/.test(password),
-      lowercase: /[a-z]/.test(password),
-      number: /[0-9]/.test(password),
-      special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-    };
-
-    setPasswordValidations(validations);
-
-    if (validations.length) strength += 20;
-    if (validations.uppercase) strength += 20;
-    if (validations.lowercase) strength += 20;
-    if (validations.number) strength += 20;
-    if (validations.special) strength += 20;
-
-    setPasswordStrength(strength);
-    return strength;
-  }, []);
-
-  // Handle password change
-  const handlePasswordChange = useCallback(
-    (e) => {
-      const value = e.target.value;
-      setFormData((prev) => ({ ...prev, password: value }));
-      calculatePasswordStrength(value);
-    },
-    [calculatePasswordStrength]
-  );
-
-  const handleChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  }, []);
-
-  const handleRegister = useCallback(
-    async (e) => {
-      e.preventDefault();
-      setMessage("");
-      setMessageType("");
-      setLoading(true);
-
-      // Validate name
-      if (!formData.name.trim()) {
-        setMessage("Please enter your full name.");
-        setMessageType("error");
-        setLoading(false);
-        nameRef.current?.focus();
-        return;
-      }
-
-      // Validate email
-      if (!formData.email.trim() || !formData.email.includes("@")) {
-        setMessage("Please enter a valid email address.");
-        setMessageType("error");
-        setLoading(false);
-        return;
-      }
-
-      // Validate password
-      if (formData.password.length < 8) {
-        setMessage("Password must be at least 8 characters.");
-        setMessageType("error");
-        setLoading(false);
-        return;
-      }
-
-      // Validate confirm password
-      if (formData.password !== formData.confirmPassword) {
-        setMessage("Passwords do not match.");
-        setMessageType("error");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        await axios.post("http://localhost:5000/api/auth/register", {
-          name: formData.name.trim(),
-          email: formData.email.trim(),
-          password: formData.password,
-          role: formData.role,
-        });
-
-        setMessage("Account created successfully! 🎉");
-        setMessageType("success");
-        setFormData({
-          name: "",
-          email: "",
-          password: "",
-          confirmPassword: "",
-          role: "customer",
-        });
-        setPasswordStrength(0);
-
-        setTimeout(() => {
-          navigate("/login", {
-            state: { message: "Account created! Please sign in." },
-          });
-        }, 800);
-      } catch (error) {
-        const errorMessage = error.response?.data?.message || "Registration failed. Please try again.";
-        setMessage(errorMessage);
-        setMessageType("error");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [formData, navigate]
-  );
-
-  // Handle keypress for Enter key
-  const handleKeyPress = useCallback(
-    (e) => {
-      if (e.key === "Enter") {
-        handleRegister(e);
-      }
-    },
-    [handleRegister]
-  );
-
-  // Get password strength label and color
-  const getStrengthLabel = () => {
-    if (passwordStrength === 0) return { label: "", color: "" };
-    if (passwordStrength <= 20) return { label: "Weak", color: "#C0392B" };
-    if (passwordStrength <= 40) return { label: "Fair", color: "#E67E22" };
-    if (passwordStrength <= 60) return { label: "Good", color: "#F1C40F" };
-    if (passwordStrength <= 80) return { label: "Strong", color: "#2D8B4E" };
-    return { label: "Very Strong", color: "#1A6A3A" };
+    // Password strength check
+    if (name === "password") {
+      checkPasswordStrength(value);
+    }
   };
 
-  const strengthInfo = getStrengthLabel();
+  const checkPasswordStrength = (password) => {
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (password.match(/[a-z]/)) score++;
+    if (password.match(/[A-Z]/)) score++;
+    if (password.match(/[0-9]/)) score++;
+    if (password.match(/[^a-zA-Z0-9]/)) score++;
 
-  return (
-    <main className="auth-page premium-auth-page">
-      <div className="auth-container">
-        <div className="auth-brand">
-          <div className="brand-icon">🍽️</div>
-          <h1>DineFor</h1>
-          <p className="brand-tagline">Luxury Hotel Buffet Discovery</p>
+    const labels = {
+      0: { label: "Very Weak", color: "bg-error" },
+      1: { label: "Weak", color: "bg-error/70" },
+      2: { label: "Fair", color: "bg-tertiary-container" },
+      3: { label: "Good", color: "bg-secondary" },
+      4: { label: "Strong", color: "bg-secondary" },
+      5: { label: "Very Strong", color: "bg-primary" },
+    };
+
+    setPasswordStrength({
+      score,
+      label: labels[Math.min(score, 5)].label,
+      color: labels[Math.min(score, 5)].color,
+    });
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setMessage("");
+    setLoading(true);
+
+    // Validation
+    if (!formData.name.trim()) {
+      setMessage("Please enter your full name.");
+      setMessageType("error");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      setMessage("Please enter your email address.");
+      setMessageType("error");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.password) {
+      setMessage("Please enter a password.");
+      setMessageType("error");
+      setLoading(false);
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setMessage("Password must be at least 6 characters.");
+      setMessageType("error");
+      setLoading(false);
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setMessage("Passwords do not match.");
+      setMessageType("error");
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.termsAccepted) {
+      setMessage("Please accept the terms and conditions.");
+      setMessageType("error");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await axios.post(`${API_BASE}/api/auth/register`, {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+      });
+
+      setMessage(res.data.message || "✅ Account created successfully!");
+      setMessageType("success");
+      setFormData({
+        name: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        role: "customer",
+        termsAccepted: false,
+      });
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || "Registration failed. Please try again.";
+      setMessage(errorMsg);
+      setMessageType("error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ============================================
+  // RENDER HELPERS
+  // ============================================
+  const renderMessage = () => {
+    if (!message) return null;
+
+    const styles = {
+      success: "bg-secondary-container/30 text-secondary border border-secondary/30",
+      error: "bg-error/10 text-error border border-error/20",
+      warning: "bg-tertiary-container/20 text-tertiary border border-tertiary-container/30",
+      info: "bg-primary-container/10 text-primary border border-primary-container/20",
+    };
+
+    return (
+      <div className={`p-4 rounded-xl text-sm font-medium mb-4 ${styles[messageType] || styles.info}`}>
+        {message}
+        <button
+          onClick={() => setMessage("")}
+          className="float-right text-inherit opacity-70 hover:opacity-100"
+        >
+          <span className="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+    );
+  };
+
+  const renderPasswordStrength = () => {
+    if (!formData.password) return null;
+
+    const widths = {
+      0: "w-0",
+      1: "w-1/5",
+      2: "w-2/5",
+      3: "w-3/5",
+      4: "w-4/5",
+      5: "w-full",
+    };
+
+    return (
+      <div className="mt-1">
+        <div className="flex gap-1 h-1">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div
+              key={i}
+              className={`flex-1 h-full rounded-full transition-all ${
+                i <= passwordStrength.score ? passwordStrength.color : "bg-border-subtle"
+              }`}
+            />
+          ))}
         </div>
+        <p className={`text-xs mt-1 ${
+          passwordStrength.score <= 1 ? "text-error" :
+          passwordStrength.score <= 2 ? "text-tertiary" :
+          "text-secondary"
+        }`}>
+          {passwordStrength.label}
+        </p>
+      </div>
+    );
+  };
 
-        <div className="auth-card premium-auth-card register-card">
-          <div className="auth-card-header">
-            <span className="auth-badge">Join Us</span>
-            <h2>Create your account</h2>
-            <p className="auth-subtitle">
-              Register as a guest or hotel partner and start using DineFor.
+  // ============================================
+  // MAIN RENDER
+  // ============================================
+  return (
+    <main className="min-h-screen bg-surface-cream flex items-center justify-center px-4 py-12 pt-24">
+      <div className="w-full max-w-md">
+        <div className="bg-surface-container-lowest rounded-2xl p-8 shadow-ambient border border-border-subtle">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <span className="text-4xl">🍽️</span>
+            </div>
+            <h1 className="font-headline-lg text-headline-lg text-text-deep-green">Join DineFor</h1>
+            <p className="font-body-md text-body-md text-on-surface-variant mt-2">
+              Create your account to start discovering premium buffets
             </p>
           </div>
 
-          <form onSubmit={handleRegister} className="auth-form premium-auth-form">
-            {/* Name Field */}
-            <div className="form-field">
-              <label htmlFor="name" className="form-label">
-                Full Name
+          {renderMessage()}
+
+          <form onSubmit={handleRegister} className="space-y-4">
+            {/* Name */}
+            <div>
+              <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">
+                Full Name *
               </label>
-              <div className={`input-wrapper ${focusedField === "name" ? "focused" : ""}`}>
-                <span className="input-icon">
-                  <UserIcon />
-                </span>
-                <input
-                  ref={nameRef}
-                  id="name"
-                  name="name"
-                  type="text"
-                  placeholder="John Doe"
-                  value={formData.name}
-                  onChange={handleChange}
-                  onFocus={() => setFocusedField("name")}
-                  onBlur={() => setFocusedField(null)}
-                  onKeyPress={handleKeyPress}
-                  className="form-input"
-                  autoComplete="name"
-                  disabled={loading}
-                  aria-label="Full name"
-                />
-              </div>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="John Doe"
+                className="form-input w-full"
+                required
+              />
             </div>
 
-            {/* Email Field */}
-            <div className="form-field">
-              <label htmlFor="email" className="form-label">
-                Email Address
+            {/* Email */}
+            <div>
+              <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">
+                Email Address *
               </label>
-              <div className={`input-wrapper ${focusedField === "email" ? "focused" : ""}`}>
-                <span className="input-icon">
-                  <EmailIcon />
-                </span>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  onFocus={() => setFocusedField("email")}
-                  onBlur={() => setFocusedField(null)}
-                  onKeyPress={handleKeyPress}
-                  className="form-input"
-                  autoComplete="email"
-                  disabled={loading}
-                  aria-label="Email address"
-                />
-              </div>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="you@example.com"
+                className="form-input w-full"
+                required
+              />
             </div>
 
-            {/* Password Field */}
-            <div className="form-field">
-              <label htmlFor="password" className="form-label">
-                Password
+            {/* Password */}
+            <div>
+              <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">
+                Password *
               </label>
-              <div className={`input-wrapper ${focusedField === "password" ? "focused" : ""}`}>
-                <span className="input-icon">
-                  <PasswordIcon />
-                </span>
+              <div className="relative">
                 <input
-                  id="password"
-                  name="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Min 8 characters"
+                  name="password"
                   value={formData.password}
-                  onChange={handlePasswordChange}
-                  onFocus={() => setFocusedField("password")}
-                  onBlur={() => setFocusedField(null)}
-                  onKeyPress={handleKeyPress}
-                  className="form-input"
-                  autoComplete="new-password"
-                  disabled={loading}
-                  aria-label="Password"
-                />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  tabIndex="-1"
-                >
-                  <EyeIcon open={showPassword} />
-                </button>
-              </div>
-
-              {/* Password Strength Indicator */}
-              {formData.password.length > 0 && (
-                <div className="password-strength">
-                  <div className="strength-bar">
-                    <div
-                      className="strength-fill"
-                      style={{
-                        width: `${passwordStrength}%`,
-                        backgroundColor: strengthInfo.color,
-                      }}
-                    />
-                  </div>
-                  <span className="strength-label" style={{ color: strengthInfo.color }}>
-                    {strengthInfo.label}
-                  </span>
-                </div>
-              )}
-
-              {/* Password Validations */}
-              {formData.password.length > 0 && (
-                <div className="password-validations">
-                  <div className={`validation-item ${passwordValidations.length ? "valid" : "invalid"}`}>
-                    <span className="validation-icon">
-                      {passwordValidations.length ? <CheckIcon /> : "○"}
-                    </span>
-                    <span>At least 8 characters</span>
-                  </div>
-                  <div className={`validation-item ${passwordValidations.uppercase ? "valid" : "invalid"}`}>
-                    <span className="validation-icon">
-                      {passwordValidations.uppercase ? <CheckIcon /> : "○"}
-                    </span>
-                    <span>At least one uppercase letter</span>
-                  </div>
-                  <div className={`validation-item ${passwordValidations.lowercase ? "valid" : "invalid"}`}>
-                    <span className="validation-icon">
-                      {passwordValidations.lowercase ? <CheckIcon /> : "○"}
-                    </span>
-                    <span>At least one lowercase letter</span>
-                  </div>
-                  <div className={`validation-item ${passwordValidations.number ? "valid" : "invalid"}`}>
-                    <span className="validation-icon">
-                      {passwordValidations.number ? <CheckIcon /> : "○"}
-                    </span>
-                    <span>At least one number</span>
-                  </div>
-                  <div className={`validation-item ${passwordValidations.special ? "valid" : "invalid"}`}>
-                    <span className="validation-icon">
-                      {passwordValidations.special ? <CheckIcon /> : "○"}
-                    </span>
-                    <span>At least one special character</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Confirm Password Field */}
-            <div className="form-field">
-              <label htmlFor="confirmPassword" className="form-label">
-                Confirm Password
-              </label>
-              <div className={`input-wrapper ${focusedField === "confirmPassword" ? "focused" : ""}`}>
-                <span className="input-icon">
-                  <PasswordIcon />
-                </span>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm your password"
-                  value={formData.confirmPassword}
                   onChange={handleChange}
-                  onFocus={() => setFocusedField("confirmPassword")}
-                  onBlur={() => setFocusedField(null)}
-                  onKeyPress={handleKeyPress}
-                  className="form-input"
-                  autoComplete="new-password"
-                  disabled={loading}
-                  aria-label="Confirm password"
+                  placeholder="Minimum 6 characters"
+                  className="form-input w-full pr-10"
+                  required
                 />
                 <button
                   type="button"
-                  className="password-toggle"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                  tabIndex="-1"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-text-deep-green"
                 >
-                  <EyeIcon open={showConfirmPassword} />
+                  <span className="material-symbols-outlined text-[20px]">
+                    {showPassword ? "visibility" : "visibility_off"}
+                  </span>
                 </button>
               </div>
-              {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                <div className="password-mismatch">Passwords do not match</div>
-              )}
+              {renderPasswordStrength()}
             </div>
 
-            {/* Role Selection */}
-            <div className="form-field">
-              <label className="form-label">Account Type</label>
-              <div className="role-selector">
-                <button
-                  type="button"
-                  className={`role-card ${formData.role === "customer" ? "active" : ""}`}
-                  onClick={() => setFormData((prev) => ({ ...prev, role: "customer" }))}
-                >
-                  <span className="role-icon">👤</span>
-                  <div className="role-info">
-                    <strong>Guest</strong>
-                    <span>Book buffets & explore</span>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  className={`role-card ${formData.role === "hotel" ? "active" : ""}`}
-                  onClick={() => setFormData((prev) => ({ ...prev, role: "hotel" }))}
-                >
-                  <span className="role-icon">🏨</span>
-                  <div className="role-info">
-                    <strong>Hotel Partner</strong>
-                    <span>List buffets & manage</span>
-                  </div>
-                </button>
-              </div>
+            {/* Confirm Password */}
+            <div>
+              <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">
+                Confirm Password *
+              </label>
+              <input
+                type={showPassword ? "text" : "password"}
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Confirm your password"
+                className="form-input w-full"
+                required
+              />
             </div>
 
-            {/* Submit Button */}
+            {/* Role */}
+            <div>
+              <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">
+                I am a
+              </label>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                className="form-select w-full"
+              >
+                <option value="customer">Guest / Customer</option>
+                <option value="hotel">Hotel Partner</option>
+              </select>
+            </div>
+
+            {/* Terms */}
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                name="termsAccepted"
+                checked={formData.termsAccepted}
+                onChange={handleChange}
+                className="mt-1 w-4 h-4 text-secondary focus:ring-secondary rounded"
+                required
+              />
+              <label className="font-body-md text-body-md text-on-surface-variant text-sm">
+                I agree to the{" "}
+                <Link to="/terms" className="text-secondary hover:underline">
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link to="/privacy" className="text-secondary hover:underline">
+                  Privacy Policy
+                </Link>
+              </label>
+            </div>
+
             <button
               type="submit"
-              className="btn primary auth-submit-btn"
               disabled={loading}
+              className="btn-primary w-full flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
-                  <span className="spinner" />
+                  <span className="animate-spin rounded-full h-4 w-4 border-2 border-surface-cream border-t-transparent" />
                   Creating account...
                 </>
               ) : (
-                "Create Account"
+                <>
+                  <span className="material-symbols-outlined text-[18px]">person_add</span>
+                  Create Account
+                </>
               )}
             </button>
           </form>
 
-          {/* Terms */}
-          <div className="terms-text">
-            By creating an account, you agree to our{" "}
-            <Link to="/terms">Terms of Service</Link> and{" "}
-            <Link to="/privacy">Privacy Policy</Link>.
+          <div className="mt-6 text-center">
+            <p className="font-body-md text-body-md text-on-surface-variant">
+              Already have an account?{" "}
+              <Link to="/login" className="text-secondary hover:underline font-semibold">
+                Sign in
+              </Link>
+            </p>
           </div>
 
-          {/* Message Display */}
-          {message && (
-            <div className={`auth-message ${messageType}`}>
-              <span className="message-icon">
-                {messageType === "error" && "❌"}
-                {messageType === "success" && "✅"}
-                {messageType === "info" && "ℹ️"}
-              </span>
-              <span>{message}</span>
-            </div>
-          )}
-
-          {/* Footer */}
-          <div className="auth-footer">
-            <p>
-              Already have an account? <Link to="/login">Sign in</Link>
+          <div className="mt-4 text-center">
+            <p className="font-label-sm text-label-sm text-on-surface-variant">
+              By signing up, you agree to our terms and conditions.
             </p>
           </div>
         </div>

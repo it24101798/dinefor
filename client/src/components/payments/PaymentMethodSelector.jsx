@@ -16,6 +16,13 @@ function PaymentMethodSelector({ value, onChange, disabled = false }) {
       description: "Pay securely online (Coming soon)",
       disabled: true,
     },
+    {
+      id: "wallet",
+      label: "DineFor Wallet",
+      icon: "wallet",
+      description: "Use your DineFor wallet balance (Coming soon)",
+      disabled: true,
+    },
   ];
 
   return (

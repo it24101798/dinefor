@@ -57,6 +57,7 @@ function FeedCard({ buffet }) {
       </div>
 
       <div className="p-5 flex flex-col flex-1">
+        {/* Hotel Name - Clickable */}
         {hotelId ? (
           <Link 
             to={`/hotels/${hotelId}`}

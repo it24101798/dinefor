@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import api from "../services/api";
+import axios from "axios";
 import FeedCard from "../components/FeedCard";
 
 // ============================================
@@ -209,8 +209,8 @@ function Home() {
       try {
         setLoading(true);
         const [settingsRes, buffetsRes] = await Promise.allSettled([
-          api.get("/site-settings"),
-          api.get("/buffets"),
+          axios.get("http://localhost:5000/api/site-settings"),
+          axios.get("http://localhost:5000/api/buffets"),
         ]);
 
         if (settingsRes.status === "fulfilled") {
@@ -343,7 +343,7 @@ function Home() {
     setSubscribeMessage("");
 
     try {
-      await api.post("/newsletter/subscribe", {
+      await axios.post("http://localhost:5000/api/newsletter/subscribe", {
         email: emailSubscribe,
       });
       setSubscribeMessage("✅ Successfully subscribed to our newsletter!");

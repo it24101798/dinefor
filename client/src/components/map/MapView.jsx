@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 
 function MapView({ hotels = [], height = "100%", selectedHotel = null }) {
+  // Get hotels with valid coordinates
   const validHotels = hotels.filter(
     (hotel) =>
       hotel?.mapLocation &&
@@ -9,6 +10,7 @@ function MapView({ hotels = [], height = "100%", selectedHotel = null }) {
       hotel.mapLocation.longitude
   );
 
+  // If no hotels with coordinates, show placeholder
   if (validHotels.length === 0) {
     return (
       <div className="w-full bg-surface-dim rounded-xl flex items-center justify-center relative overflow-hidden" style={{ height }}>
@@ -42,11 +44,13 @@ function MapView({ hotels = [], height = "100%", selectedHotel = null }) {
             </div>
           )}
           <p className="font-label-sm text-label-sm text-outline mt-3">Map view</p>
+          <p className="font-label-xs text-label-sm text-outline">Leaflet integration coming soon</p>
         </div>
       </div>
     );
   }
 
+  // Show hotels with coordinates as a styled list
   return (
     <div className="w-full bg-surface-dim rounded-xl overflow-y-auto p-4" style={{ height }}>
       <div className="space-y-3">
@@ -89,6 +93,7 @@ function MapView({ hotels = [], height = "100%", selectedHotel = null }) {
         <p className="font-label-sm text-label-sm text-on-surface-variant">
           {validHotels.length} hotel{validHotels.length > 1 ? "s" : ""} with locations
         </p>
+        <p className="font-label-xs text-label-sm text-outline">Click a hotel to view details</p>
       </div>
     </div>
   );

@@ -1,18 +1,39 @@
 import React, { useRef, useState } from "react";
 
-function MediaUploader({ onUpload, accept = "image/*", label = "Upload", multiple = false }) {
+function MediaUploader({ onUpload, accept = "image/*", label = "Upload", multiple = false, maxFiles = 10 }) {
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [error, setError] = useState("");
 
+  // ============================================
+  // HANDLERS
+  // ============================================
   const handleFileChange = async (e) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    // Validate file count
+    if (!multiple && files.length > 1) {
+      setError("Please select only one file.");
+      return;
+    }
+
+    if (files.length > maxFiles) {
+      setError(`Maximum ${maxFiles} files allowed.`);
+      return;
+    }
+
     setUploading(true);
+    setError("");
 
     try {
       const uploadPromises = Array.from(files).map((file) => {
+        // Validate file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          throw new Error(`File "${file.name}" exceeds 10MB limit.`);
+        }
+
         return new Promise((resolve) => {
           const reader = new FileReader();
           reader.onloadend = () => {
@@ -22,6 +43,7 @@ function MediaUploader({ onUpload, accept = "image/*", label = "Upload", multipl
               fileName: file.name,
               fileSize: file.size,
               fileType: file.type,
+              file: file,
             });
           };
           reader.readAsDataURL(file);
@@ -38,8 +60,8 @@ function MediaUploader({ onUpload, accept = "image/*", label = "Upload", multipl
         setUploadedFiles([result]);
         if (onUpload) onUpload(result);
       }
-    } catch (error) {
-      console.error("Upload failed:", error);
+    } catch (err) {
+      setError(err.message || "Upload failed. Please try again.");
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -58,6 +80,16 @@ function MediaUploader({ onUpload, accept = "image/*", label = "Upload", multipl
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
+  const getFileIcon = (fileType) => {
+    if (fileType?.startsWith("video")) return "videocam";
+    if (fileType?.startsWith("image")) return "image";
+    if (fileType?.includes("pdf")) return "picture_as_pdf";
+    return "insert_drive_file";
+  };
+
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <div className="space-y-3">
       <div>
@@ -82,14 +114,23 @@ function MediaUploader({ onUpload, accept = "image/*", label = "Upload", multipl
         </button>
       </div>
 
+      {error && (
+        <div className="p-3 rounded-xl bg-error/10 text-error text-sm">
+          <span className="material-symbols-outlined text-[16px] align-middle mr-1">error</span>
+          {error}
+        </div>
+      )}
+
+      {/* Uploaded Files Preview */}
       {uploadedFiles.length > 0 && (
         <div className="space-y-2">
           {uploadedFiles.map((file, index) => (
             <div
               key={index}
-              className="flex items-center gap-3 p-3 rounded-xl border border-border-subtle bg-surface-container-low"
+              className="flex items-center gap-3 p-3 rounded-xl border border-border-subtle bg-surface-container-low animate-fade-in"
             >
-              {file.mediaType === "image" ? (
+              {/* Preview */}
+              {file.mediaType === "image" && file.fileUrl ? (
                 <img
                   src={file.fileUrl}
                   alt={file.fileName || "Uploaded file"}
@@ -97,21 +138,33 @@ function MediaUploader({ onUpload, accept = "image/*", label = "Upload", multipl
                 />
               ) : (
                 <div className="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center">
-                  <span className="material-symbols-outlined text-2xl text-outline">videocam</span>
+                  <span className="material-symbols-outlined text-2xl text-outline">
+                    {getFileIcon(file.fileType)}
+                  </span>
                 </div>
               )}
+
+              {/* File Info */}
               <div className="flex-1 min-w-0">
                 <p className="font-label-sm text-label-sm text-text-deep-green truncate">
                   {file.fileName || "Uploaded file"}
                 </p>
-                <p className="font-label-sm text-label-sm text-on-surface-variant">
-                  {formatFileSize(file.fileSize)}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="font-label-xs text-label-sm text-on-surface-variant">
+                    {formatFileSize(file.fileSize)}
+                  </p>
+                  <span className="text-border-subtle">•</span>
+                  <p className="font-label-xs text-label-sm text-on-surface-variant">
+                    {file.mediaType === "image" ? "Image" : "Video"}
+                  </p>
+                </div>
               </div>
+
+              {/* Remove Button */}
               <button
                 type="button"
                 onClick={() => removeFile(index)}
-                className="text-error hover:text-error/80 transition-colors"
+                className="text-on-surface-variant hover:text-error transition-colors"
               >
                 <span className="material-symbols-outlined text-[18px]">close</span>
               </button>

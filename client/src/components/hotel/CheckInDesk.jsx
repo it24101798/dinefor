@@ -44,6 +44,9 @@ function CheckInDesk({ bookings = [], onChanged, setMessage }) {
   const token = storedUser?.token;
   const headers = { Authorization: `Bearer ${token}` };
 
+  // ============================================
+  // HANDLERS
+  // ============================================
   const handleSearch = async () => {
     if (!searchCode.trim()) {
       setMessage("Please enter a booking code.");
@@ -103,6 +106,9 @@ function CheckInDesk({ bookings = [], onChanged, setMessage }) {
     setSearchCode("");
   };
 
+  // ============================================
+  // RENDER HELPERS
+  // ============================================
   const renderSelectedBooking = () => {
     if (!selectedBooking) return null;
     const b = selectedBooking;
@@ -195,10 +201,12 @@ function CheckInDesk({ bookings = [], onChanged, setMessage }) {
         <div className="bg-surface-container-lowest rounded-2xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
           <h3 className="font-headline-md text-headline-md text-text-deep-green mb-2">Confirm Check-In</h3>
           <p className="font-body-md text-body-md text-on-surface-variant mb-4">
-            Check in <strong>{b.user?.name || "Guest"}</strong>?
+            Are you sure you want to check in <strong>{b.user?.name || "Guest"}</strong>?
             <br />
             <span className="text-sm text-on-surface-variant">
-              {b.bookingCode} • {b.seats} seats
+              Booking: {b.bookingCode} • {b.seats} seats
+              <br />
+              Buffet: {b.buffet?.title}
             </span>
           </p>
           <div className="flex gap-3">
@@ -225,10 +233,16 @@ function CheckInDesk({ bookings = [], onChanged, setMessage }) {
     );
   };
 
+  // ============================================
+  // MAIN RENDER
+  // ============================================
   return (
     <div className="space-y-6">
+      {/* Search Section */}
       <div className="card-ambient p-6">
-        <h3 className="font-headline-md text-headline-md text-text-deep-green mb-4">QR Check-In</h3>
+        <h3 className="font-headline-md text-headline-md text-text-deep-green mb-4">
+          QR Check-In
+        </h3>
         <p className="font-body-md text-body-md text-on-surface-variant mb-4">
           Search for a booking by code or scan the QR code from the guest's bill.
         </p>
@@ -251,6 +265,7 @@ function CheckInDesk({ bookings = [], onChanged, setMessage }) {
           </button>
         </div>
 
+        {/* QR Scanner Placeholder */}
         <div className="mt-4 p-6 rounded-xl border-2 border-dashed border-border-subtle bg-surface-container-low text-center">
           <span className="material-symbols-outlined text-4xl text-outline">qr_code_scanner</span>
           <p className="font-body-md text-body-md text-on-surface-variant mt-2">
@@ -262,8 +277,10 @@ function CheckInDesk({ bookings = [], onChanged, setMessage }) {
         </div>
       </div>
 
+      {/* Selected Booking */}
       {renderSelectedBooking()}
 
+      {/* Active Bookings List */}
       <div className="card-ambient p-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-headline-md text-headline-md text-text-deep-green">
@@ -320,6 +337,42 @@ function CheckInDesk({ bookings = [], onChanged, setMessage }) {
         )}
       </div>
 
+      {/* Recent Check-Ins */}
+      {bookings.filter((b) => b.bookingStatus === "checked_in" || b.bookingStatus === "completed").length > 0 && (
+        <div className="card-ambient p-6">
+          <h3 className="font-headline-md text-headline-md text-text-deep-green mb-4">
+            Recent Check-Ins
+          </h3>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {bookings
+              .filter((b) => b.bookingStatus === "checked_in" || b.bookingStatus === "completed")
+              .slice(0, 5)
+              .map((booking) => (
+                <div
+                  key={booking._id}
+                  className="flex justify-between items-center p-3 rounded-xl bg-surface-container-low/50"
+                >
+                  <div>
+                    <p className="font-label-sm text-label-sm text-text-deep-green">
+                      {booking.bookingCode}
+                    </p>
+                    <p className="font-label-sm text-label-sm text-on-surface-variant">
+                      {booking.user?.name || "Guest"} • {booking.seats} seats
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="status-pill approved text-xs">Checked In</span>
+                    <p className="font-label-sm text-label-sm text-on-surface-variant">
+                      {booking.checkedInAt ? formatTime(booking.checkedInAt) : "-"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Modal */}
       {renderConfirmModal()}
     </div>
   );

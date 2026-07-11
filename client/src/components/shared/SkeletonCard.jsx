@@ -19,6 +19,56 @@ function SkeletonCard({ type = "buffet", count = 1 }) {
       );
     }
 
+    if (type === "hotel") {
+      return (
+        <div className="card-ambient overflow-hidden animate-pulse">
+          <div className="h-40 bg-surface-container-high" />
+          <div className="p-4 space-y-2">
+            <div className="h-5 bg-surface-container-high rounded w-3/4" />
+            <div className="h-4 bg-surface-container-high rounded w-1/2" />
+            <div className="h-4 bg-surface-container-high rounded w-1/3" />
+          </div>
+        </div>
+      );
+    }
+
+    if (type === "booking") {
+      return (
+        <div className="card-ambient overflow-hidden animate-pulse p-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-surface-container-high" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 bg-surface-container-high rounded w-3/4" />
+              <div className="h-3 bg-surface-container-high rounded w-1/2" />
+            </div>
+          </div>
+          <div className="mt-3 space-y-2">
+            <div className="h-3 bg-surface-container-high rounded w-full" />
+            <div className="h-3 bg-surface-container-high rounded w-2/3" />
+          </div>
+        </div>
+      );
+    }
+
+    if (type === "review") {
+      return (
+        <div className="card-ambient overflow-hidden animate-pulse p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-surface-container-high" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3 bg-surface-container-high rounded w-1/2" />
+              <div className="h-2 bg-surface-container-high rounded w-1/3" />
+            </div>
+          </div>
+          <div className="mt-3 space-y-2">
+            <div className="h-3 bg-surface-container-high rounded w-full" />
+            <div className="h-3 bg-surface-container-high rounded w-4/5" />
+          </div>
+        </div>
+      );
+    }
+
+    // Default card
     return (
       <div className="card-ambient overflow-hidden animate-pulse p-4 space-y-3">
         <div className="h-4 bg-surface-container-high rounded w-3/4" />

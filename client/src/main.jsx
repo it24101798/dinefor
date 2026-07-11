@@ -4,8 +4,12 @@ import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import App from "./App";
 
-// ===== CSS =====
+// ===== SINGLE CSS IMPORT =====
 import "./index.css";
+
+// Leaflet CSS - only import if you have Leaflet installed
+// If you get errors, comment this line out
+// import "leaflet/dist/leaflet.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

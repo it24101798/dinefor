@@ -11,6 +11,9 @@ function ReviewForm({ buffetId, hotelId, onReviewCreated }) {
 
   const storedUser = JSON.parse(localStorage.getItem("dineforUser") || "null");
 
+  // ============================================
+  // HANDLERS
+  // ============================================
   const handleFileUpload = (e) => {
     const files = e.target.files;
     if (!files) return;
@@ -82,6 +85,9 @@ function ReviewForm({ buffetId, hotelId, onReviewCreated }) {
     }
   };
 
+  // ============================================
+  // RENDER
+  // ============================================
   if (isSubmitted) {
     return (
       <div className="p-6 rounded-xl bg-secondary-container/20 border border-secondary/30 text-center">
@@ -96,9 +102,10 @@ function ReviewForm({ buffetId, hotelId, onReviewCreated }) {
     <form onSubmit={handleSubmit} className="space-y-4 p-4 rounded-xl border border-border-subtle bg-surface-container-lowest">
       <div>
         <h3 className="font-headline-md text-headline-md text-text-deep-green">Write a Review</h3>
-        <p className="font-label-sm text-label-sm text-on-surface-variant">Share your experience</p>
+        <p className="font-label-sm text-label-sm text-on-surface-variant">Share your experience with others</p>
       </div>
 
+      {/* Rating */}
       <div>
         <label className="font-label-sm text-label-sm text-on-surface-variant block mb-2">Rating</label>
         <div className="flex gap-1">
@@ -124,6 +131,7 @@ function ReviewForm({ buffetId, hotelId, onReviewCreated }) {
         </div>
       </div>
 
+      {/* Comment */}
       <div>
         <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Comment *</label>
         <textarea
@@ -136,6 +144,7 @@ function ReviewForm({ buffetId, hotelId, onReviewCreated }) {
         />
       </div>
 
+      {/* Images */}
       <div>
         <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Photos (optional)</label>
         <input
@@ -186,7 +195,10 @@ function ReviewForm({ buffetId, hotelId, onReviewCreated }) {
             Submitting...
           </>
         ) : (
-          "Submit Review"
+          <>
+            <span className="material-symbols-outlined text-[18px]">rate_review</span>
+            Submit Review
+          </>
         )}
       </button>
 
