@@ -58,51 +58,13 @@ const getUrgencyLabel = (slot) => {
 };
 
 // ============================================
-// MOCK DATA FOR FALLBACK
-// ============================================
-const getMockBuffet = (id) => ({
-  _id: id || "mock-buffet-1",
-  title: "Seafood Beach Extravaganza",
-  description: "This most interesting and tasteful seafood buffet in Colombo. Fresh catches daily with live cooking stations.",
-  price: 6999,
-  category: "dinner",
-  buffetType: "special",
-  isFeatured: true,
-  averageRating: 4.5,
-  totalReviews: 28,
-  location: { city: "Galle" },
-  hotel: {
-    _id: "mock-hotel-1",
-    hotelName: "Radison Blue",
-    location: "Galle",
-  },
-  thumbnail: "https://images.unsplash.com/photo-1555244162-803834f70033",
-  images: [
-    "https://images.unsplash.com/photo-1555244162-803834f70033",
-    "https://images.unsplash.com/photo-1544025162-d76694265947",
-    "https://images.unsplash.com/photo-1414235077428-338989a2e8c0",
-  ],
-  timeSlots: [
-    { 
-      _id: "slot-1", 
-      startTime: "6:00 PM", 
-      endTime: "10:00 PM", 
-      totalSeats: 12, 
-      availableSeats: 10 
-    }
-  ],
-  highlights: ["Fresh Lobster", "Oyster Bar", "Live Sushi Station", "Premium Desserts"],
-  availableFromDate: new Date().toISOString(),
-  availableToDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-});
-
-// ============================================
 // MAIN COMPONENT
 // ============================================
 function BuffetDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const bookingRef = useRef(null);
+  const recentlyViewedRecordedRef = useRef("");
 
   // ============================================
   // STATE
@@ -124,7 +86,6 @@ function BuffetDetails() {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [useMockData, setUseMockData] = useState(false);
 
   const storedUser = useMemo(() => {
     try {
@@ -141,7 +102,6 @@ function BuffetDetails() {
     try {
       const res = await api.get(`/buffets/${id}`);
       setBuffet(res.data);
-      setUseMockData(false);
 
       if (res.data.specialDate) {
         setSelectedDate(toDateInput(res.data.specialDate));
@@ -163,13 +123,9 @@ function BuffetDetails() {
       }
     } catch (error) {
       console.error("Failed to fetch buffet:", error);
-      // Use mock data as fallback
-      const mockData = getMockBuffet(id);
-      setBuffet(mockData);
-      setUseMockData(true);
-      setSelectedDate(new Date().toISOString().slice(0, 10));
-      setMessage("Showing preview data (API unavailable)");
-      setMessageType("warning");
+      setBuffet(null);
+      setMessage(error.response?.data?.message || "Buffet details could not be loaded.");
+      setMessageType("error");
     }
   }, [id, storedUser?.token]);
 
@@ -177,24 +133,9 @@ function BuffetDetails() {
     try {
       const res = await api.get(`/reviews/buffet/${id}`);
       setReviews(Array.isArray(res.data) ? res.data : []);
-    } catch {
-      // Use mock reviews if API fails
-      setReviews([
-        {
-          _id: "mock-review-1",
-          user: { name: "John Doe" },
-          rating: 5,
-          comment: "Amazing seafood buffet! The lobster was fresh and delicious.",
-          createdAt: new Date().toISOString(),
-        },
-        {
-          _id: "mock-review-2",
-          user: { name: "Sarah Smith" },
-          rating: 4,
-          comment: "Great variety of seafood. The oyster bar was impressive.",
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-        },
-      ]);
+    } catch (error) {
+      console.error("Failed to fetch reviews:", error);
+      setReviews([]);
     }
   }, [id]);
 
@@ -203,22 +144,9 @@ function BuffetDetails() {
       const res = await api.get("/buffets");
       const items = Array.isArray(res.data) ? res.data : res.data?.buffets || [];
       setSimilarBuffets(items.filter((item) => item._id !== id).slice(0, 4));
-    } catch {
-      // Mock similar buffets
-      setSimilarBuffets([
-        {
-          _id: "mock-similar-1",
-          title: "Oceanic Grand Feast",
-          price: 8500,
-          thumbnail: "https://images.unsplash.com/photo-1555244162-803834f70033",
-        },
-        {
-          _id: "mock-similar-2",
-          title: "Sunset High Tea Buffet",
-          price: 4500,
-          thumbnail: "https://images.unsplash.com/photo-1544025162-d76694265947",
-        },
-      ]);
+    } catch (error) {
+      console.error("Failed to fetch similar buffets:", error);
+      setSimilarBuffets([]);
     }
   }, [id]);
 
@@ -237,34 +165,38 @@ function BuffetDetails() {
         return currentStillExists ? current : firstAvailableSlot?._id || "";
       });
     } catch (error) {
-      // Mock availability
-      setAvailability({
-        isAvailableDate: true,
-        slots: [
-          { _id: "slot-1", startTime: "6:00 PM", endTime: "10:00 PM", totalSeats: 12, availableSeats: 10 },
-          { _id: "slot-2", startTime: "12:00 PM", endTime: "3:00 PM", totalSeats: 8, availableSeats: 6 },
-        ],
-      });
-      setSelectedSlotId("slot-1");
+      console.error("Failed to fetch availability:", error);
+      setAvailability({ isAvailableDate: false, slots: [] });
+      setSelectedSlotId("");
+      setMessage(error.response?.data?.message || "Availability could not be loaded for this date.");
+      setMessageType("error");
     } finally {
       setAvailabilityLoading(false);
     }
   }, [id]);
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadData = async () => {
       setLoading(true);
-      await fetchBuffet();
-      await fetchReviews();
-      await fetchSimilarBuffets();
-
-      if (storedUser?.token && id) {
-        api.put(`/discovery/recently-viewed/${id}`).catch(() => {});
-      }
-      setLoading(false);
+      await Promise.all([fetchBuffet(), fetchReviews(), fetchSimilarBuffets()]);
+      if (!cancelled) setLoading(false);
     };
+
     loadData();
-  }, [fetchBuffet, fetchReviews, fetchSimilarBuffets, id, storedUser?.token]);
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchBuffet, fetchReviews, fetchSimilarBuffets]);
+
+  useEffect(() => {
+    if (!storedUser?.token || !id || recentlyViewedRecordedRef.current === id) return;
+    recentlyViewedRecordedRef.current = id;
+    api.put(`/discovery/recently-viewed/${id}`).catch((error) => {
+      console.warn("Recently viewed could not be recorded:", error.response?.data?.message || error.message);
+    });
+  }, [id, storedUser?.token]);
 
   useEffect(() => {
     if (selectedDate && buffet) {
@@ -313,23 +245,13 @@ function BuffetDetails() {
 
     setSaving(true);
     try {
-      if (isSaved) {
-        await api.delete(`/users/saved-buffets/${id}`, {
-          headers: { Authorization: `Bearer ${storedUser.token}` },
-        });
-        setIsSaved(false);
-        setMessage("Removed from saved buffets.");
-        setMessageType("success");
-      } else {
-        await api.post(
-          "/users/saved-buffets",
-          { buffetId: id },
-          { headers: { Authorization: `Bearer ${storedUser.token}` } }
-        );
-        setIsSaved(true);
-        setMessage("Added to saved buffets!");
-        setMessageType("success");
-      }
+      const response = await api.put(`/users/saved-buffets/${id}`, null, {
+        headers: { Authorization: `Bearer ${storedUser.token}` },
+      });
+      const nextSaved = Boolean(response.data?.saved);
+      setIsSaved(nextSaved);
+      setMessage(nextSaved ? "Added to saved buffets!" : "Removed from saved buffets.");
+      setMessageType("success");
       setTimeout(() => setMessage(""), 3000);
     } catch (error) {
       setMessage(error.response?.data?.message || "Failed to update saved buffets.");
@@ -520,7 +442,7 @@ function BuffetDetails() {
         {buffet?.isFeatured && (
           <span className="badge-gold bg-highlight-gold/20 text-highlight-gold">⭐ Featured</span>
         )}
-        {useMockData && (
+        {false && (
           <span className="badge-gold bg-tertiary-container/20 text-tertiary">Preview Mode</span>
         )}
       </div>

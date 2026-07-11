@@ -47,13 +47,19 @@ function RecentlyViewed() {
   const [searchQuery, setSearchQuery] = useState("");
   const [clearLoading, setClearLoading] = useState(false);
 
-  const storedUser = JSON.parse(localStorage.getItem("dineforUser") || "null");
+  const storedToken = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("dineforUser") || "null")?.token || "";
+    } catch {
+      return "";
+    }
+  }, []);
 
   // ============================================
   // FETCH DATA
   // ============================================
   const loadItems = useCallback(async () => {
-    if (!storedUser?.token) {
+    if (!storedToken) {
       setLoading(false);
       return;
     }
@@ -70,7 +76,7 @@ function RecentlyViewed() {
     } finally {
       setLoading(false);
     }
-  }, [storedUser]);
+  }, [storedToken]);
 
   useEffect(() => {
     loadItems();
@@ -125,7 +131,7 @@ function RecentlyViewed() {
     setClearLoading(true);
     try {
       await api.delete("/discovery/recently-viewed", {
-        headers: { Authorization: `Bearer ${storedUser.token}` },
+        headers: { Authorization: `Bearer ${storedToken}` },
       });
       setItems([]);
       setMessage("✅ Recently viewed history cleared.");
@@ -139,12 +145,18 @@ function RecentlyViewed() {
     }
   };
 
-  const removeItem = async (itemId) => {
+  const removeItem = async (entry) => {
+    const targetId = entry?._id || entry?.item?._id || entry?.item;
+    if (!targetId) return;
+
     try {
-      await api.delete(`/discovery/recently-viewed/${itemId}`, {
-        headers: { Authorization: `Bearer ${storedUser.token}` },
+      await api.delete(`/discovery/recently-viewed/${targetId}`, {
+        headers: { Authorization: `Bearer ${storedToken}` },
       });
-      setItems((prev) => prev.filter((item) => item._id !== itemId));
+      setItems((prev) => prev.filter((item) => {
+        const currentId = item?._id || item?.item?._id || item?.item;
+        return String(currentId) !== String(targetId);
+      }));
       setMessage("Item removed from history.");
       setMessageType("success");
     } catch (error) {
@@ -249,7 +261,7 @@ function RecentlyViewed() {
         <button
           onClick={(e) => {
             e.preventDefault();
-            removeItem(item._id);
+            removeItem(item);
           }}
           className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-surface-cream/90 backdrop-blur-sm flex items-center justify-center text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity hover:bg-error/10 hover:text-error"
         >
@@ -262,7 +274,7 @@ function RecentlyViewed() {
   // ============================================
   // MAIN RENDER
   // ============================================
-  if (!storedUser?.token) {
+  if (!storedToken) {
     return (
       <main className="min-h-screen bg-surface-cream pt-20">
         <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">

@@ -124,7 +124,7 @@ function SavedBuffets() {
 
     setRemoving(true);
     try {
-      await api.delete(`/users/saved-buffets/${selectedItem._id}`, {
+      await api.put(`/users/saved-buffets/${selectedItem._id}`, null, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setMessage("Removed from saved buffets.");
@@ -146,7 +146,7 @@ function SavedBuffets() {
 
     setRemoving(true);
     try {
-      await api.delete(`/customer/saved-hotels/${selectedItem._id}`, {
+      await api.put(`/customer/saved-hotels/${selectedItem._id}`, null, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setMessage("Removed from favourite hotels.");
