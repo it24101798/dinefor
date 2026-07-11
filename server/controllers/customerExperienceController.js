@@ -180,3 +180,34 @@ exports.updateCustomerProfile = async (req, res) => {
     res.status(500).json({ message: "Failed to update profile.", error: error.message });
   }
 };
+
+
+exports.removeRecentlyViewed = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found." });
+    const before = user.recentlyViewed?.length || 0;
+    user.recentlyViewed = (user.recentlyViewed || []).filter(
+      (entry) => String(entry._id) !== String(req.params.itemId) && String(entry.item) !== String(req.params.itemId)
+    );
+    await user.save();
+    res.status(200).json({
+      message: before === user.recentlyViewed.length ? "Recently viewed item not found." : "Recently viewed item removed.",
+      recentlyViewed: user.recentlyViewed,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to remove recently viewed item.", error: error.message });
+  }
+};
+
+exports.clearRecentlyViewed = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found." });
+    user.recentlyViewed = [];
+    await user.save();
+    res.status(200).json({ message: "Recently viewed history cleared.", recentlyViewed: [] });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to clear recently viewed history.", error: error.message });
+  }
+};

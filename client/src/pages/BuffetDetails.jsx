@@ -126,7 +126,13 @@ function BuffetDetails() {
   const [saving, setSaving] = useState(false);
   const [useMockData, setUseMockData] = useState(false);
 
-  const storedUser = JSON.parse(localStorage.getItem("dineforUser") || "null");
+  const storedUser = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("dineforUser") || "null");
+    } catch {
+      return null;
+    }
+  }, []);
 
   // ============================================
   // FETCH DATA
@@ -165,7 +171,7 @@ function BuffetDetails() {
       setMessage("Showing preview data (API unavailable)");
       setMessageType("warning");
     }
-  }, [id, storedUser]);
+  }, [id, storedUser?.token]);
 
   const fetchReviews = useCallback(async () => {
     try {
@@ -258,7 +264,7 @@ function BuffetDetails() {
       setLoading(false);
     };
     loadData();
-  }, [fetchBuffet, fetchReviews, fetchSimilarBuffets, id, storedUser]);
+  }, [fetchBuffet, fetchReviews, fetchSimilarBuffets, id, storedUser?.token]);
 
   useEffect(() => {
     if (selectedDate && buffet) {

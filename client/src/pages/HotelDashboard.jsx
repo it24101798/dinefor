@@ -203,7 +203,7 @@ function HotelDashboard() {
       if (paymentsRes.status === "fulfilled") setPayments(Array.isArray(paymentsRes.value.data) ? paymentsRes.value.data : []);
       if (analyticsRes.status === "fulfilled") setAnalytics(analyticsRes.value.data);
 
-      const failed = [hotelsRes, bookingsRes, buffetsRes, reviewsRes, paymentsRes].filter(
+      const failed = [hotelRes, bookingsRes, buffetsRes, reviewsRes, paymentsRes, analyticsRes].filter(
         (item) => item.status === "rejected"
       );
       if (failed.length) {
@@ -1181,6 +1181,153 @@ function HotelDashboard() {
     </>
   );
 
+
+  const renderCreateSection = () => (
+    <div className="space-y-6">
+      <div className="card-ambient p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-5">
+        <div>
+          <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">Buffet publishing</span>
+          <h2 className="font-headline-lg text-headline-lg text-text-deep-green mt-2">Create a new buffet experience</h2>
+          <p className="font-body-md text-body-md text-on-surface-variant mt-2 max-w-2xl">
+            Add schedule, seating capacity, pricing and availability without leaving the hotel portal.
+          </p>
+        </div>
+        <button onClick={() => setShowCreateBuffet(true)} className="btn-primary flex items-center justify-center gap-2">
+          <span className="material-symbols-outlined">add_circle</span>
+          Open Buffet Creator
+        </button>
+      </div>
+      {renderBuffets()}
+    </div>
+  );
+
+  const renderMediaSection = () => {
+    const media = [hotel?.logo, hotel?.coverMediaUrl, ...(hotel?.galleryImages || []), ...(hotel?.images || [])].filter(Boolean);
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">Hotel media</span>
+            <h2 className="font-headline-lg text-headline-lg text-text-deep-green mt-2">Media Library</h2>
+            <p className="text-on-surface-variant mt-2">Your current logo, cover and gallery media.</p>
+          </div>
+          <button onClick={() => navigate("/hotel/profile")} className="btn-outline">Manage hotel profile media</button>
+        </div>
+        {media.length ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+            {media.map((url, index) => (
+              <div key={`${url}-${index}`} className="card-ambient overflow-hidden aspect-[4/3]">
+                {String(url).match(/\.(mp4|webm|ogg)(\?|$)/i) ? (
+                  <video src={url} controls className="w-full h-full object-cover" />
+                ) : (
+                  <img src={url} alt={`Hotel media ${index + 1}`} className="w-full h-full object-cover" />
+                )}
+              </div>
+            ))}
+          </div>
+        ) : renderEmpty("No hotel media yet", "Add a logo, cover image and gallery photos from Hotel Profile.", "image")}
+      </div>
+    );
+  };
+
+  const renderReviewsSection = () => (
+    <div className="space-y-6">
+      <div>
+        <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">Guest feedback</span>
+        <h2 className="font-headline-lg text-headline-lg text-text-deep-green mt-2">Reviews</h2>
+        <p className="text-on-surface-variant mt-2">Monitor ratings and feedback across your buffet experiences.</p>
+      </div>
+      {reviews.length ? (
+        <div className="space-y-4">
+          {reviews.map((review) => (
+            <article key={review._id} className="card-ambient p-5 md:p-6">
+              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                <div>
+                  <h3 className="font-headline-md text-headline-md text-text-deep-green">{review.user?.name || "Guest"}</h3>
+                  <p className="text-sm text-on-surface-variant">{review.buffet?.title || "Hotel review"} • {formatDate(review.createdAt)}</p>
+                </div>
+                <span className="badge-gold">★ {Number(review.rating || 0).toFixed(1)}</span>
+              </div>
+              <p className="mt-4 text-on-surface-variant leading-relaxed">{review.comment || review.reviewText || "No written comment."}</p>
+              {review.hotelReply?.message && (
+                <div className="mt-4 rounded-xl bg-secondary-container/15 border border-secondary/15 p-4">
+                  <strong className="text-secondary">Hotel reply</strong>
+                  <p className="mt-1 text-on-surface-variant">{review.hotelReply.message}</p>
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+      ) : renderEmpty("No reviews yet", "Customer reviews will appear here after completed buffet visits.", "rate_review")}
+    </div>
+  );
+
+  const renderAnalyticsSection = () => {
+    const stats = analytics?.stats || {};
+    const cards = [
+      ["Reservations", stats.totalBookings ?? summary.bookings, "event_seat"],
+      ["Seats reserved", stats.totalSeats ?? 0, "groups"],
+      ["Gross revenue", money(stats.grossRevenue ?? summary.revenue), "payments"],
+      ["Average rating", Number(stats.averageRating ?? summary.avgRating).toFixed(1), "star"],
+    ];
+    return (
+      <div className="space-y-6">
+        <div>
+          <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">Performance</span>
+          <h2 className="font-headline-lg text-headline-lg text-text-deep-green mt-2">Analytics</h2>
+          <p className="text-on-surface-variant mt-2">A live operational view calculated from your reservations and reviews.</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {cards.map(([label, value, icon]) => (
+            <div key={label} className="card-ambient p-5">
+              <span className="material-symbols-outlined text-secondary">{icon}</span>
+              <p className="text-sm text-on-surface-variant mt-4">{label}</p>
+              <strong className="block text-2xl text-text-deep-green mt-1">{value}</strong>
+            </div>
+          ))}
+        </div>
+        {analytics?.buffetPerformance?.length ? (
+          <div className="card-ambient overflow-hidden">
+            <div className="p-5 border-b border-border-subtle"><h3 className="font-headline-md text-headline-md text-text-deep-green">Buffet performance</h3></div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[650px]">
+                <thead><tr className="text-left bg-surface-container-low"><th className="p-4">Buffet</th><th className="p-4">Bookings</th><th className="p-4">Seats</th><th className="p-4">Revenue</th><th className="p-4">Rating</th></tr></thead>
+                <tbody>{analytics.buffetPerformance.map((item) => <tr key={item.buffetId} className="border-t border-border-subtle"><td className="p-4 font-medium">{item.title}</td><td className="p-4">{item.bookings}</td><td className="p-4">{item.seats}</td><td className="p-4">{money(item.revenue)}</td><td className="p-4">★ {Number(item.rating || 0).toFixed(1)}</td></tr>)}</tbody>
+              </table>
+            </div>
+          </div>
+        ) : renderEmpty("No analytics data yet", "Analytics will appear after customers begin making reservations.", "monitoring")}
+      </div>
+    );
+  };
+
+  const renderFinanceSection = () => (
+    <div className="space-y-6">
+      <div>
+        <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">Payments</span>
+        <h2 className="font-headline-lg text-headline-lg text-text-deep-green mt-2">Finance</h2>
+        <p className="text-on-surface-variant mt-2">Review payment status, invoice references and hotel earnings.</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="card-ambient p-5"><p className="text-sm text-on-surface-variant">Transactions</p><strong className="text-2xl text-text-deep-green">{payments.length}</strong></div>
+        <div className="card-ambient p-5"><p className="text-sm text-on-surface-variant">Total value</p><strong className="text-2xl text-text-deep-green">{money(summary.totalPayments)}</strong></div>
+        <div className="card-ambient p-5"><p className="text-sm text-on-surface-variant">Pending</p><strong className="text-2xl text-text-deep-green">{money(summary.pendingPayments)}</strong></div>
+      </div>
+      {payments.length ? (
+        <div className="card-ambient overflow-hidden"><div className="overflow-x-auto"><table className="w-full min-w-[760px]"><thead><tr className="text-left bg-surface-container-low"><th className="p-4">Invoice</th><th className="p-4">Customer</th><th className="p-4">Method</th><th className="p-4">Amount</th><th className="p-4">Hotel earning</th><th className="p-4">Status</th></tr></thead><tbody>{payments.map((payment) => <tr key={payment._id} className="border-t border-border-subtle"><td className="p-4">{payment.invoiceNumber || "Pending"}</td><td className="p-4">{payment.user?.name || payment.user?.email || "Customer"}</td><td className="p-4">{String(payment.gateway || "pay_at_hotel").replaceAll("_", " ")}</td><td className="p-4">{money(payment.amount)}</td><td className="p-4">{money(payment.hotelEarning)}</td><td className="p-4"><span className={`status-pill ${payment.status === "paid" ? "approved" : payment.status === "failed" ? "rejected" : "pending"}`}>{payment.status}</span></td></tr>)}</tbody></table></div></div>
+      ) : renderEmpty("No payment records yet", "Payment records will appear after reservations are created.", "payments")}
+    </div>
+  );
+
+  const renderSettingsSection = () => (
+    <div className="card-ambient p-6 md:p-8">
+      <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">Hotel account</span>
+      <h2 className="font-headline-lg text-headline-lg text-text-deep-green mt-2">Settings</h2>
+      <p className="text-on-surface-variant mt-2 max-w-2xl">Hotel identity, contact details, map location and media are managed through the Hotel Profile page.</p>
+      <button onClick={() => navigate("/hotel/profile")} className="btn-primary mt-6">Open Hotel Profile</button>
+    </div>
+  );
+
   // ============================================
   // MAIN RENDER
   // ============================================
@@ -1256,19 +1403,14 @@ function HotelDashboard() {
           {currentSection.key === "reservations" && renderReservations()}
           {currentSection.key === "buffets" && renderBuffets()}
 
-          {/* Placeholder for other sections */}
-          {["create", "media", "reviews", "analytics", "finance", "check-in", "profile", "settings"].includes(currentSection.key) && (
-            <div className="card-ambient p-12 text-center">
-              <span className="material-symbols-outlined text-5xl text-outline mb-3 block">construction</span>
-              <h3 className="font-headline-md text-headline-md text-text-deep-green">{currentSection.label}</h3>
-              <p className="font-body-md text-body-md text-on-surface-variant">This section is being prepared for the next release.</p>
-              {currentSection.key === "check-in" && (
-                <button onClick={() => navigate("/hotel/check-in")} className="btn-primary mt-4">
-                  Go to QR Check-In Desk
-                </button>
-              )}
-            </div>
-          )}
+          {currentSection.key === "create" && renderCreateSection()}
+          {currentSection.key === "media" && renderMediaSection()}
+          {currentSection.key === "reviews" && renderReviewsSection()}
+          {currentSection.key === "analytics" && renderAnalyticsSection()}
+          {currentSection.key === "finance" && renderFinanceSection()}
+          {currentSection.key === "settings" && renderSettingsSection()}
+          {currentSection.key === "check-in" && navigate("/hotel/check-in")}
+          {currentSection.key === "profile" && navigate("/hotel/profile")}
         </div>
       </div>
     </div>
