@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import axios from "axios";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { HotelMediaWorkspace, HotelProfileWorkspace, HotelReviewReplyWorkspace, HotelSettingsWorkspace } from "../components/hotel/HotelOperationsPanels";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
@@ -1404,13 +1405,48 @@ function HotelDashboard() {
           {currentSection.key === "buffets" && renderBuffets()}
 
           {currentSection.key === "create" && renderCreateSection()}
-          {currentSection.key === "media" && renderMediaSection()}
-          {currentSection.key === "reviews" && renderReviewsSection()}
+          {currentSection.key === "media" && (
+            <HotelMediaWorkspace
+              hotel={hotel}
+              headers={headers}
+              apiBase={API_BASE}
+              onUpdated={setHotel}
+              setMessage={setMessage}
+              setMessageType={setMessageType}
+            />
+          )}
+          {currentSection.key === "reviews" && (
+            <HotelReviewReplyWorkspace
+              reviews={reviews}
+              headers={headers}
+              apiBase={API_BASE}
+              refresh={fetchAll}
+              setMessage={setMessage}
+              setMessageType={setMessageType}
+            />
+          )}
           {currentSection.key === "analytics" && renderAnalyticsSection()}
           {currentSection.key === "finance" && renderFinanceSection()}
-          {currentSection.key === "settings" && renderSettingsSection()}
-          {currentSection.key === "check-in" && navigate("/hotel/check-in")}
-          {currentSection.key === "profile" && navigate("/hotel/profile")}
+          {currentSection.key === "settings" && (
+            <HotelSettingsWorkspace
+              hotel={hotel}
+              headers={headers}
+              apiBase={API_BASE}
+              onUpdated={setHotel}
+              setMessage={setMessage}
+              setMessageType={setMessageType}
+            />
+          )}
+          {currentSection.key === "profile" && (
+            <HotelProfileWorkspace
+              hotel={hotel}
+              headers={headers}
+              apiBase={API_BASE}
+              onUpdated={setHotel}
+              setMessage={setMessage}
+              setMessageType={setMessageType}
+            />
+          )}
         </div>
       </div>
     </div>
