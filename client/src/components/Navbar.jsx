@@ -8,9 +8,14 @@ function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const profileRef = useRef(null);
   const mobileMenuRef = useRef(null);
 
+  // ============================================
+  // SCROLL EFFECT
+  // ============================================
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -19,6 +24,9 @@ function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // ============================================
+  // CLICK OUTSIDE HANDLER
+  // ============================================
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (profileRef.current && !profileRef.current.contains(e.target)) {
@@ -32,6 +40,9 @@ function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // ============================================
+  // HANDLERS
+  // ============================================
   const handleLogout = () => {
     if (logout) {
       logout();
@@ -92,14 +103,17 @@ function Navbar() {
     >
       <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
         <div className="flex justify-between items-center h-16 md:h-20">
+          {/* Logo */}
           <Link
             to="/"
             className="flex items-center gap-2 font-headline-lg text-headline-lg text-text-deep-green hover:opacity-80 transition-opacity group"
           >
+            <span className="text-2xl">🍽️</span>
             <span className="hidden sm:inline">DineFor</span>
             <span className="sm:hidden">DF</span>
           </Link>
 
+          {/* Desktop Nav Links */}
           <div className="hidden md:flex items-center gap-1">
             {getLinks().map((link) => (
               <NavLink
@@ -119,9 +133,24 @@ function Navbar() {
             ))}
           </div>
 
+          {/* Right Side */}
           <div className="flex items-center gap-2 md:gap-4">
             {user ? (
               <>
+                {/* Notifications */}
+                <button
+                  className="relative p-2 rounded-full hover:bg-surface-container-low transition-colors"
+                  onClick={() => navigate("/customer")}
+                >
+                  <span className="material-symbols-outlined text-on-surface-variant">
+                    notifications
+                  </span>
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full animate-pulse" />
+                  )}
+                </button>
+
+                {/* Profile Dropdown */}
                 <div className="relative" ref={profileRef}>
                   <button
                     onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -150,8 +179,10 @@ function Navbar() {
                     </span>
                   </button>
 
+                  {/* Dropdown Menu */}
                   {isProfileOpen && (
                     <div className="absolute right-0 mt-2 w-72 bg-surface-container-lowest rounded-2xl shadow-ambient-lg border border-border-subtle overflow-hidden animate-fade-in-down">
+                      {/* User Info */}
                       <div className="p-4 border-b border-border-subtle bg-surface-container-low">
                         <div className="flex items-center gap-3">
                           {user.avatarUrl ? (
@@ -187,6 +218,7 @@ function Navbar() {
                         </div>
                       </div>
 
+                      {/* Menu Items */}
                       <div className="p-2">
                         {userMenuItems.map((item) => (
                           <Link
@@ -205,6 +237,7 @@ function Navbar() {
                         ))}
                       </div>
 
+                      {/* Logout */}
                       <div className="p-2 border-t border-border-subtle">
                         <button
                           onClick={handleLogout}
@@ -235,6 +268,7 @@ function Navbar() {
               </>
             )}
 
+            {/* Mobile Menu Toggle */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="md:hidden p-2 rounded-full hover:bg-surface-container-low transition-colors"
@@ -246,6 +280,7 @@ function Navbar() {
           </div>
         </div>
 
+        {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-border-subtle animate-fade-in-down" ref={mobileMenuRef}>
             <div className="flex flex-col space-y-1">
