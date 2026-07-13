@@ -4,6 +4,9 @@ const {
   getHotelFinance,
   getAdminFinance,
   markPayAtHotelPaid,
+  updatePaymentStatus,
+  handleRefundAction,
+  exportPaymentsCsv,
 } = require("../controllers/paymentController");
 const { protect, authorize } = require("../middleware/authMiddleware");
 
@@ -12,6 +15,9 @@ const router = express.Router();
 router.get("/history", protect, authorize("customer", "hotel", "admin"), getMyPaymentHistory);
 router.get("/hotel-finance", protect, authorize("hotel", "admin"), getHotelFinance);
 router.get("/admin-finance", protect, authorize("admin"), getAdminFinance);
+router.get("/export/csv", protect, authorize("admin"), exportPaymentsCsv);
+router.put("/:id/status", protect, authorize("admin"), updatePaymentStatus);
+router.put("/:id/refund-action", protect, authorize("admin"), handleRefundAction);
 router.put("/:id/mark-paid", protect, authorize("hotel", "admin"), markPayAtHotelPaid);
 
 // Gateway placeholders prepared for Bundle 22/production integration.

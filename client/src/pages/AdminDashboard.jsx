@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import axios from "axios";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import HomeCMSPanel from "../components/admin/HomeCMSPanel";
+import ReviewModerationPanel from "../components/admin/ReviewModerationPanel";
+import AdminAnalyticsPanel from "../components/analytics/AdminAnalyticsPanel";
+import AdminFinancePanel from "../components/payments/AdminFinancePanel";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
@@ -183,9 +187,9 @@ function AdminDashboard() {
         axios.get(`${API_BASE}/api/hotels`, { headers }),
         axios.get(`${API_BASE}/api/bookings`, { headers }),
         axios.get(`${API_BASE}/api/buffets`),
-        axios.get(`${API_BASE}/api/users`, { headers }),
-        axios.get(`${API_BASE}/api/reviews`, { headers }),
-        axios.get(`${API_BASE}/api/payments`, { headers }),
+        axios.get(`${API_BASE}/api/users/admin/all`, { headers }),
+        axios.get(`${API_BASE}/api/reviews/admin/all`, { headers }),
+        axios.get(`${API_BASE}/api/payments/admin-finance?period=${analyticsPeriod}&status=all`, { headers }),
         axios.get(`${API_BASE}/api/analytics/admin?period=${analyticsPeriod}`, { headers }),
       ]);
 
@@ -194,7 +198,10 @@ function AdminDashboard() {
       if (buffetsRes.status === "fulfilled") setBuffets(Array.isArray(buffetsRes.value.data) ? buffetsRes.value.data : []);
       if (usersRes.status === "fulfilled") setUsers(Array.isArray(usersRes.value.data) ? usersRes.value.data : []);
       if (reviewsRes.status === "fulfilled") setReviews(Array.isArray(reviewsRes.value.data) ? reviewsRes.value.data : []);
-      if (paymentsRes.status === "fulfilled") setPayments(Array.isArray(paymentsRes.value.data) ? paymentsRes.value.data : []);
+      if (paymentsRes.status === "fulfilled") {
+        const paymentPayload = paymentsRes.value.data;
+        setPayments(Array.isArray(paymentPayload) ? paymentPayload : Array.isArray(paymentPayload?.payments) ? paymentPayload.payments : []);
+      }
       if (analyticsRes.status === "fulfilled") setAnalyticsData(analyticsRes.value.data);
 
       const failed = [hotelsRes, bookingsRes, buffetsRes, usersRes, reviewsRes, paymentsRes].filter(
@@ -440,7 +447,7 @@ function AdminDashboard() {
   const updateReviewStatus = async (reviewId, action) => {
     try {
       await axios.put(
-        `${API_BASE}/api/reviews/${reviewId}/${action}`,
+        `${API_BASE}/api/reviews/${reviewId}/status`,
         {},
         { headers }
       );
@@ -1112,14 +1119,10 @@ function AdminDashboard() {
           {currentSection.key === "featured" && renderFeatured()}
           {currentSection.key === "settings" && renderSettings()}
 
-          {/* Placeholder for other sections */}
-          {["homepage", "reviews", "analytics", "finance"].includes(currentSection.key) && (
-            <div className="card-ambient p-12 text-center">
-              <span className="material-symbols-outlined text-5xl text-outline mb-3 block">construction</span>
-              <h3 className="font-headline-md text-headline-md text-text-deep-green">{currentSection.label}</h3>
-              <p className="font-body-md text-body-md text-on-surface-variant">This section is being prepared for the next release.</p>
-            </div>
-          )}
+          {currentSection.key === "homepage" && <HomeCMSPanel />}
+          {currentSection.key === "reviews" && <ReviewModerationPanel />}
+          {currentSection.key === "analytics" && <AdminAnalyticsPanel />}
+          {currentSection.key === "finance" && <AdminFinancePanel />}
         </div>
       </div>
     </div>

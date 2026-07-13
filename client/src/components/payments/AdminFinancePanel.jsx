@@ -79,7 +79,7 @@ function AdminFinancePanel() {
   if (loading) return <section className="payment-panel"><p>Loading finance data...</p></section>;
 
   return (
-    <section className="payment-panel finance-upgrade">
+    <section className="payment-panel finance-upgrade admin-feature-panel">
       <div className="admin-toolbar-v2 payment-finance-toolbar">
         <select value={period} onChange={(e) => setPeriod(e.target.value)}>
           <option value="today">Today</option>

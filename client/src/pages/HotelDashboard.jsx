@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import axios from "axios";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { HotelMediaWorkspace, HotelProfileWorkspace, HotelReviewReplyWorkspace, HotelSettingsWorkspace } from "../components/hotel/HotelOperationsPanels";
+import HotelBuffetWorkspace from "../components/hotel/HotelBuffetWorkspace";
+import MediaUploader from "../components/MediaUploader";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
@@ -135,11 +137,12 @@ function HotelDashboard() {
     buffetType: "regular",
     thumbnail: "",
     images: [],
+    videos: [],
     timeSlots: [{ startTime: "", endTime: "", totalSeats: "", availableSeats: "" }],
     availableFromDate: "",
     availableToDate: "",
     recurringDays: [],
-    scheduleType: "daily",
+    scheduleType: "all_days",
     isFeatured: false,
     status: "draft",
     specialDate: "",
@@ -403,15 +406,96 @@ function HotelDashboard() {
   const createBuffet = async (e) => {
     e.preventDefault();
     try {
-      const payload = {
-        ...buffetForm,
-        price: Number(buffetForm.price),
-        timeSlots: buffetForm.timeSlots.map(slot => ({
-          ...slot,
+      const normalizedCategory = String(buffetForm.category || "other")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "-");
+
+      const validCategories = new Set([
+        "breakfast", "lunch", "dinner", "high-tea",
+        "seafood", "bbq", "brunch", "other",
+      ]);
+
+      const normalizedScheduleType =
+        buffetForm.scheduleType === "daily"
+          ? "all_days"
+          : buffetForm.scheduleType === "special"
+            ? "one_day"
+            : buffetForm.scheduleType;
+
+      const normalizedSlots = buffetForm.timeSlots
+        .map((slot) => ({
+          startTime: slot.startTime,
+          endTime: slot.endTime,
           totalSeats: Number(slot.totalSeats),
-          availableSeats: Number(slot.availableSeats) || Number(slot.totalSeats),
-        })),
-        recurringDays: Object.keys(recurringOptions).filter(key => recurringOptions[key]),
+          availableSeats:
+            Number(slot.availableSeats) > 0
+              ? Number(slot.availableSeats)
+              : Number(slot.totalSeats),
+        }))
+        .filter((slot) => slot.startTime || slot.endTime || slot.totalSeats);
+
+      if (!buffetForm.title.trim()) {
+        throw new Error("Buffet title is required.");
+      }
+
+      if (!Number.isFinite(Number(buffetForm.price)) || Number(buffetForm.price) < 0) {
+        throw new Error("Enter a valid buffet price.");
+      }
+
+      if (!normalizedSlots.length || normalizedSlots.some(
+        (slot) =>
+          !slot.startTime ||
+          !slot.endTime ||
+          !Number.isFinite(slot.totalSeats) ||
+          slot.totalSeats < 1
+      )) {
+        throw new Error("Each time slot needs a start time, end time, and seat capacity.");
+      }
+
+      if (
+        buffetForm.availableFromDate &&
+        buffetForm.availableToDate &&
+        new Date(buffetForm.availableToDate) < new Date(buffetForm.availableFromDate)
+      ) {
+        throw new Error("Available To date cannot be before Available From date.");
+      }
+
+      if (normalizedScheduleType === "one_day" && !buffetForm.specialDate) {
+        throw new Error("Select the special buffet date.");
+      }
+
+      const recurringDays = Object.entries(recurringOptions)
+        .filter(([, selected]) => selected)
+        .map(([day]) => day.charAt(0).toUpperCase() + day.slice(1));
+
+      if (normalizedScheduleType === "selected_days" && recurringDays.length === 0) {
+        throw new Error("Select at least one recurring day.");
+      }
+
+      const payload = {
+        title: buffetForm.title.trim(),
+        description: buffetForm.description.trim(),
+        price: Number(buffetForm.price),
+        category: validCategories.has(normalizedCategory)
+          ? normalizedCategory
+          : "other",
+        buffetType: ["regular", "special"].includes(buffetForm.buffetType)
+          ? buffetForm.buffetType
+          : "special",
+        thumbnail: buffetForm.thumbnail || "",
+        images: Array.isArray(buffetForm.images) ? buffetForm.images : [],
+        videos: Array.isArray(buffetForm.videos) ? buffetForm.videos : [],
+        timeSlots: normalizedSlots,
+        availableFromDate: buffetForm.availableFromDate || null,
+        availableToDate: buffetForm.availableToDate || null,
+        recurringDays,
+        scheduleType: normalizedScheduleType,
+        specialDate: normalizedScheduleType === "one_day"
+          ? buffetForm.specialDate || null
+          : null,
+        isFeatured: Boolean(buffetForm.isFeatured),
+        status: buffetForm.status || "draft",
       };
 
       await axios.post(`${API_BASE}/api/hotel-portal/buffets`, payload, { headers });
@@ -426,11 +510,12 @@ function HotelDashboard() {
         buffetType: "regular",
         thumbnail: "",
         images: [],
+        videos: [],
         timeSlots: [{ startTime: "", endTime: "", totalSeats: "", availableSeats: "" }],
         availableFromDate: "",
         availableToDate: "",
         recurringDays: [],
-        scheduleType: "daily",
+        scheduleType: "all_days",
         isFeatured: false,
         status: "draft",
         specialDate: "",
@@ -438,7 +523,7 @@ function HotelDashboard() {
       });
       await fetchAll();
     } catch (error) {
-      setMessage(error.response?.data?.message || "Failed to create buffet.");
+      setMessage(error.response?.data?.message || error.message || "Failed to create buffet.");
       setMessageType("error");
     }
   };
@@ -569,7 +654,7 @@ function HotelDashboard() {
 
     return (
       <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowCreateBuffet(false)}>
-        <div className="bg-surface-container-lowest rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="bg-surface-container-lowest rounded-2xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto buffet-creator-modal" onClick={(e) => e.stopPropagation()}>
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-headline-lg text-headline-lg text-text-deep-green">Create New Buffet</h3>
             <button onClick={() => setShowCreateBuffet(false)} className="text-on-surface-variant hover:text-text-deep-green">
@@ -577,7 +662,7 @@ function HotelDashboard() {
             </button>
           </div>
 
-          <form onSubmit={createBuffet} className="space-y-4">
+          <form onSubmit={createBuffet} className="space-y-4 buffet-creator-form">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Title *</label>
@@ -607,14 +692,14 @@ function HotelDashboard() {
                   required
                 >
                   <option value="">Select Category</option>
-                  <option>Breakfast</option>
-                  <option>Lunch</option>
-                  <option>Dinner</option>
-                  <option>High Tea</option>
-                  <option>Seafood</option>
-                  <option>BBQ</option>
-                  <option>Brunch</option>
-                  <option>Weekend Buffet</option>
+                  <option value="breakfast">Breakfast</option>
+                  <option value="lunch">Lunch</option>
+                  <option value="dinner">Dinner</option>
+                  <option value="high-tea">High Tea</option>
+                  <option value="seafood">Seafood</option>
+                  <option value="bbq">BBQ</option>
+                  <option value="brunch">Brunch</option>
+                  <option value="other">Other / Weekend Buffet</option>
                 </select>
               </div>
               <div>
@@ -626,7 +711,7 @@ function HotelDashboard() {
                 >
                   <option value="regular">Regular</option>
                   <option value="special">Special</option>
-                  <option value="holiday">Holiday</option>
+                  
                 </select>
               </div>
             </div>
@@ -735,6 +820,15 @@ function HotelDashboard() {
               </button>
             </div>
 
+            <section className="hf-editor-section">
+              <div><span className="eyebrow">Buffet Media</span><h3>Cover, gallery and video uploads</h3></div>
+              <div className="hf-media-upload-grid">
+                <div><h4>Cover image</h4><MediaUploader accept="image/*" label="Upload cover image" onUpload={(data) => setBuffetForm((current) => ({ ...current, thumbnail: data.fileUrl, images: [data.fileUrl, ...current.images.filter((item) => item !== data.fileUrl)] }))} /></div>
+                <div><h4>Gallery images</h4><MediaUploader multiple accept="image/*" label="Upload gallery images" onUpload={(items) => setBuffetForm((current) => ({ ...current, images: [...current.images, ...items.map((item) => item.fileUrl)] }))} /></div>
+                <div><h4>Buffet videos</h4><MediaUploader multiple accept="video/*" label="Upload videos" onUpload={(items) => setBuffetForm((current) => ({ ...current, videos: [...current.videos, ...items.map((item) => item.fileUrl)] }))} /></div>
+              </div>
+            </section>
+
             <div>
               <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Schedule Type</label>
               <select
@@ -742,9 +836,9 @@ function HotelDashboard() {
                 onChange={(e) => setBuffetForm({ ...buffetForm, scheduleType: e.target.value })}
                 className="form-select w-full"
               >
-                <option value="daily">Daily</option>
+                <option value="all_days">All Days</option>
                 <option value="selected_days">Selected Days</option>
-                <option value="special">Special Date</option>
+                <option value="one_day">One Day / Special Date</option>
               </select>
             </div>
 
@@ -764,7 +858,7 @@ function HotelDashboard() {
               </div>
             )}
 
-            {buffetForm.scheduleType === "special" && (
+            {buffetForm.scheduleType === "one_day" && (
               <div>
                 <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Special Date</label>
                 <input
@@ -1070,116 +1164,13 @@ function HotelDashboard() {
   );
 
   const renderBuffets = () => (
-    <>
-      <div className="mb-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="font-headline-lg text-headline-lg text-text-deep-green">Buffet Management</h1>
-            <p className="font-body-md text-body-md text-on-surface-variant">Create, manage, and promote your buffet offerings.</p>
-          </div>
-          <button onClick={() => setShowCreateBuffet(true)} className="btn-primary flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px]">add</span>
-            New Buffet
-          </button>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-4">
-        <input
-          value={buffetSearch}
-          onChange={(e) => setBuffetSearch(e.target.value)}
-          placeholder="Search buffets..."
-          className="form-input flex-1 min-w-[200px]"
-        />
-        <select value={buffetFilter} onChange={(e) => setBuffetFilter(e.target.value)} className="form-select w-auto">
-          {Object.keys(buffetStatusLabels).map((status) => (
-            <option key={status} value={status}>{buffetStatusLabels[status]}</option>
-          ))}
-        </select>
-        <button onClick={() => { setBuffetSearch(""); setBuffetFilter("all"); }} className="btn-outline">Reset</button>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <div className="p-3 rounded-xl bg-surface-container-low text-center">
-          <p className="font-label-sm text-label-sm text-on-surface-variant">Total</p>
-          <p className="font-headline-md text-headline-md text-text-deep-green">{summary.buffets}</p>
-        </div>
-        <div className="p-3 rounded-xl bg-secondary-container/10 text-center">
-          <p className="font-label-sm text-label-sm text-on-surface-variant">Active</p>
-          <p className="font-headline-md text-headline-md text-secondary">{summary.activeBuffets}</p>
-        </div>
-        <div className="p-3 rounded-xl bg-highlight-gold/10 text-center">
-          <p className="font-label-sm text-label-sm text-on-surface-variant">Featured</p>
-          <p className="font-headline-md text-headline-md text-highlight-gold">{summary.featuredBuffets}</p>
-        </div>
-        <div className="p-3 rounded-xl bg-tertiary-container/10 text-center">
-          <p className="font-label-sm text-label-sm text-on-surface-variant">Draft</p>
-          <p className="font-headline-md text-headline-md text-tertiary">{summary.draftBuffets}</p>
-        </div>
-      </div>
-
-      {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredBuffets.map((b) => (
-          <div key={b._id} className="card-ambient-hover overflow-hidden">
-            <div className="relative h-48">
-              <img
-                src={b.thumbnail || b.images?.[0] || "https://images.unsplash.com/photo-1555244162-803834f70033?w=400&h=300&fit=crop"}
-                alt={b.title}
-                className="w-full h-full object-cover"
-              />
-              {b.isFeatured && (
-                <span className="absolute top-3 left-3 bg-highlight-gold text-text-deep-green px-3 py-1 rounded-full font-label-sm text-label-sm">
-                  Featured
-                </span>
-              )}
-              <span className={`absolute top-3 right-3 status-pill ${getStatusColor(b.status)}`}>
-                {b.status || "Draft"}
-              </span>
-            </div>
-            <div className="p-4">
-              <h3 className="font-headline-md text-headline-md text-text-deep-green">{b.title}</h3>
-              <p className="font-label-sm text-label-sm text-on-surface-variant">{b.category}</p>
-              <p className="font-headline-md text-headline-md text-highlight-gold mt-2">{money(b.price)}</p>
-              <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border-subtle">
-                {!b.isFeatured && b.status === "active" && (
-                  <button onClick={() => toggleFeatureBuffet(b._id, true)} className="text-highlight-gold text-sm hover:underline">
-                    Feature
-                  </button>
-                )}
-                {b.isFeatured && (
-                  <button onClick={() => toggleFeatureBuffet(b._id, false)} className="text-on-surface-variant text-sm hover:underline">
-                    Unfeature
-                  </button>
-                )}
-                {b.status === "draft" && (
-                  <button onClick={() => updateBuffetStatus(b._id, "active")} className="text-secondary text-sm hover:underline">
-                    Publish
-                  </button>
-                )}
-                {b.status === "active" && (
-                  <button onClick={() => updateBuffetStatus(b._id, "inactive")} className="text-tertiary text-sm hover:underline">
-                    Deactivate
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    setDeleteTarget({ type: "buffet", id: b._id, name: b.title });
-                    setShowDeleteConfirm(true);
-                  }}
-                  className="text-error text-sm hover:underline"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-      {!filteredBuffets.length && renderEmpty("No buffets found", "Create your first buffet to get started.", "restaurant")}
-    </>
+    <HotelBuffetWorkspace
+      headers={headers}
+      setMessage={setMessage}
+      setMessageType={setMessageType}
+      onCreate={() => setShowCreateBuffet(true)}
+      onChanged={fetchAll}
+    />
   );
 
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 
 function ReviewModerationPanel() {
   const [reviews, setReviews] = useState([]);
@@ -12,7 +12,7 @@ function ReviewModerationPanel() {
   const fetchReviews = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:5000/api/reviews/admin/all", { headers });
+      const res = await api.get("/reviews/admin/all", { headers });
       setReviews(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       setMessage(error.response?.data?.message || "Could not load reviews. Check reviewRoutes.js.");
@@ -27,8 +27,8 @@ function ReviewModerationPanel() {
 
   const updateStatus = async (reviewId, status) => {
     try {
-      const res = await axios.put(
-        `http://localhost:5000/api/reviews/${reviewId}/status`,
+      const res = await api.put(
+        `/reviews/${reviewId}/status`,
         { status },
         { headers }
       );
@@ -41,7 +41,7 @@ function ReviewModerationPanel() {
 
   const deleteReview = async (reviewId) => {
     try {
-      const res = await axios.delete(`http://localhost:5000/api/reviews/${reviewId}`, { headers });
+      const res = await api.delete(`/reviews/${reviewId}`, { headers });
       setMessage(res.data.message || "Review deleted.");
       fetchReviews();
     } catch (error) {
@@ -50,7 +50,7 @@ function ReviewModerationPanel() {
   };
 
   return (
-    <section className="panel reveal">
+    <section className="panel reveal admin-feature-panel">
       <div className="section-header">
         <span className="eyebrow">Reviews</span>
         <h2>Review Moderation</h2>

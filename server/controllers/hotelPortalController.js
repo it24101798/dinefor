@@ -199,8 +199,9 @@ exports.getBuffets = async (req, res) => {
     if (!hotel) return res.status(404).json({ message: "Hotel profile not found." });
 
     const filter = { hotel: hotel._id };
-    if (req.query.status === "active") filter.isActive = true;
-    if (req.query.status === "paused") filter.isActive = false;
+    if (req.query.status === "active") filter.$or = [{ status: "active" }, { status: { $exists: false }, isActive: true }];
+    if (req.query.status === "paused") filter.$or = [{ status: "paused" }, { status: { $exists: false }, isActive: false }];
+    if (req.query.status === "draft") filter.status = "draft";
     if (req.query.category && req.query.category !== "all") filter.category = req.query.category;
     if (req.query.q) filter.title = { $regex: req.query.q, $options: "i" };
 
@@ -218,7 +219,13 @@ exports.updateBuffetStatus = async (req, res) => {
 
     const buffet = await Buffet.findOneAndUpdate(
       { _id: req.params.id, hotel: hotel._id },
-      { isActive: Boolean(req.body.isActive) },
+      {
+        status: ["draft", "active", "paused", "expired"].includes(req.body.status)
+          ? req.body.status
+          : (req.body.isActive ? "active" : "paused"),
+        status: ["draft", "active", "paused", "expired"].includes(req.body.status) ? req.body.status : "draft",
+      isActive: req.body.status ? req.body.status === "active" : Boolean(req.body.isActive),
+      },
       { new: true }
     );
     if (!buffet) return res.status(404).json({ message: "Buffet not found for your hotel." });
@@ -242,6 +249,7 @@ exports.duplicateBuffet = async (req, res) => {
     delete buffet.updatedAt;
     buffet.title = `${buffet.title} Copy`;
     buffet.isActive = false;
+    buffet.status = "draft";
     buffet.averageRating = 0;
     buffet.totalReviews = 0;
     buffet.likesCount = 0;
@@ -369,6 +377,46 @@ exports.createBuffet = async (req, res) => {
     if (!title || price === undefined || !Array.isArray(timeSlots) || !timeSlots.length) {
       return res.status(400).json({ message: "Title, price and at least one time slot are required." });
     }
+
+    const categoryAliases = {
+      "high tea": "high-tea",
+      "high-tea": "high-tea",
+      "weekend buffet": "other",
+    };
+    const rawCategory = String(req.body.category || "other").trim().toLowerCase();
+    const normalizedCategory = categoryAliases[rawCategory] || rawCategory.replace(/\s+/g, "-");
+    const validCategories = new Set(["breakfast", "lunch", "dinner", "high-tea", "seafood", "bbq", "brunch", "other"]);
+
+    const rawSchedule = String(req.body.scheduleType || "all_days");
+    const normalizedScheduleType =
+      rawSchedule === "daily" ? "all_days" :
+      rawSchedule === "special" ? "one_day" :
+      rawSchedule;
+
+    const normalizedBuffetType = ["regular", "special"].includes(req.body.buffetType)
+      ? req.body.buffetType
+      : "special";
+
+    const normalizedRecurringDays = Array.isArray(req.body.recurringDays)
+      ? req.body.recurringDays.map((day) => String(day).charAt(0).toUpperCase() + String(day).slice(1).toLowerCase())
+      : [];
+
+    if (normalizedScheduleType === "selected_days" && normalizedRecurringDays.length === 0) {
+      return res.status(400).json({ message: "Select at least one recurring day." });
+    }
+
+    if (normalizedScheduleType === "one_day" && !req.body.specialDate) {
+      return res.status(400).json({ message: "Special date is required for a one-day buffet." });
+    }
+
+    if (
+      req.body.availableFromDate &&
+      req.body.availableToDate &&
+      new Date(req.body.availableToDate) < new Date(req.body.availableFromDate)
+    ) {
+      return res.status(400).json({ message: "Available To date cannot be before Available From date." });
+    }
+
     const normalizedSlots = timeSlots.map((slot) => ({
       startTime: slot.startTime,
       endTime: slot.endTime,
@@ -381,9 +429,20 @@ exports.createBuffet = async (req, res) => {
     const buffet = await Buffet.create({
       ...req.body,
       hotel: hotel._id,
+      title: String(title).trim(),
       price: Number(price),
+      category: validCategories.has(normalizedCategory) ? normalizedCategory : "other",
+      buffetType: normalizedBuffetType,
+      scheduleType: ["all_days", "selected_days", "one_day", "custom"].includes(normalizedScheduleType)
+        ? normalizedScheduleType
+        : "all_days",
+      recurringDays: normalizedRecurringDays,
+      availableFromDate: req.body.availableFromDate || null,
+      availableToDate: req.body.availableToDate || null,
+      specialDate: normalizedScheduleType === "one_day" ? req.body.specialDate || null : null,
       timeSlots: normalizedSlots,
       thumbnail: req.body.thumbnail || req.body.images?.[0] || "",
+      status: ["draft", "active", "paused", "expired"].includes(req.body.status) ? req.body.status : "draft",
       isActive: req.body.status ? req.body.status === "active" : Boolean(req.body.isActive),
     });
     res.status(201).json({ message: "Buffet created successfully.", buffet });
@@ -408,7 +467,16 @@ exports.updateBuffet = async (req, res) => {
         availableSeats: slot.availableSeats === undefined ? Number(slot.totalSeats) : Number(slot.availableSeats),
       }));
     }
-    if (updates.status) updates.isActive = updates.status === "active";
+    if (updates.status) {
+      if (!["draft", "active", "paused", "expired"].includes(updates.status)) {
+        return res.status(400).json({ message: "Invalid buffet status." });
+      }
+      updates.isActive = updates.status === "active";
+    }
+    if (Array.isArray(updates.images)) updates.images = updates.images.filter(Boolean);
+    if (Array.isArray(updates.videos)) updates.videos = updates.videos.filter(Boolean);
+    if (Array.isArray(updates.highlights)) updates.highlights = updates.highlights.map((item) => String(item).trim()).filter(Boolean);
+    if (!updates.thumbnail && updates.images?.length) updates.thumbnail = updates.images[0];
     const buffet = await Buffet.findOneAndUpdate({ _id: req.params.id, hotel: hotel._id }, updates, { new: true, runValidators: true });
     if (!buffet) return res.status(404).json({ message: "Buffet not found for your hotel." });
     res.status(200).json({ message: "Buffet updated successfully.", buffet });

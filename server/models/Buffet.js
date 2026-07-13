@@ -118,6 +118,19 @@ const buffetSchema = new mongoose.Schema(
       default: [],
     },
 
+
+    status: {
+      type: String,
+      enum: ["draft", "active", "paused", "expired"],
+      default: "draft",
+      index: true,
+    },
+
+    highlights: {
+      type: [String],
+      default: [],
+    },
+
     isFeatured: {
       type: Boolean,
       default: false,

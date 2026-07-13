@@ -20,6 +20,8 @@ exports.createBuffet = async (req, res) => {
       specialDate,
       timeSlots,
       location,
+      status,
+      highlights,
     } = req.body;
 
     if (!title || price === undefined || !Array.isArray(timeSlots) || timeSlots.length === 0) {
@@ -80,6 +82,9 @@ exports.createBuffet = async (req, res) => {
       specialDate: specialDate || null,
       timeSlots: formattedSlots,
       location,
+      status: ["draft", "active", "paused", "expired"].includes(status) ? status : "draft",
+      isActive: status === "active",
+      highlights: Array.isArray(highlights) ? highlights : [],
     });
 
     res.status(201).json({
@@ -97,7 +102,10 @@ exports.createBuffet = async (req, res) => {
 // Public - all active buffets, featured first, highest rated second, newest third
 exports.getBuffets = async (req, res) => {
   try {
-    const buffets = await Buffet.find({ isActive: true })
+    const buffets = await Buffet.find({
+      isActive: true,
+      $or: [{ status: "active" }, { status: { $exists: false } }],
+    })
       .populate("hotel")
       .sort({ isFeatured: -1, averageRating: -1, createdAt: -1 });
 

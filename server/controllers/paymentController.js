@@ -68,7 +68,9 @@ exports.getAdminFinance = async (req, res) => {
     const period = req.query.period || "month";
     const { start } = getDateRange(period);
 
-    const payments = await Payment.find().populate(paymentPopulate).sort({ createdAt: -1 });
+    let payments = await Payment.find().populate(paymentPopulate).sort({ createdAt: -1 });
+    const statusFilter = req.query.status || "all";
+    if (statusFilter !== "all") payments = payments.filter((payment) => payment.status === statusFilter || payment.refundStatus === statusFilter);
     const periodPayments = payments.filter((payment) => payment.createdAt >= start);
     const activePayments = payments.filter((payment) => ["paid", "pending"].includes(payment.status));
     const periodActivePayments = periodPayments.filter((payment) => ["paid", "pending"].includes(payment.status));
@@ -87,6 +89,8 @@ exports.getAdminFinance = async (req, res) => {
         bookings,
         pendingPayments: payments.filter((p) => p.status === "pending").length,
         refunds: payments.filter((p) => p.status === "refunded").length,
+        refundRequests: payments.filter((p) => p.refundStatus === "requested").length,
+        collectedRevenue: sum(payments.filter((p) => p.status === "paid"), "amount"),
       },
       payments: payments.slice(0, 100),
     });
@@ -121,5 +125,65 @@ exports.markPayAtHotelPaid = async (req, res) => {
     res.status(200).json({ message: "Payment marked as paid.", payment: updatedPayment });
   } catch (error) {
     res.status(500).json({ message: "Failed to update payment.", error: error.message });
+  }
+};
+
+exports.updatePaymentStatus = async (req, res) => {
+  try {
+    const allowed = ["pending", "paid", "failed", "refunded", "cancelled", "expired"];
+    const { status, note } = req.body;
+    if (!allowed.includes(status)) return res.status(400).json({ message: "Invalid payment status." });
+
+    const payment = await Payment.findById(req.params.id);
+    if (!payment) return res.status(404).json({ message: "Payment not found." });
+
+    payment.status = status;
+    if (status === "paid") payment.paidAt = payment.paidAt || new Date();
+    payment.metadata = { ...(payment.metadata || {}), adminNote: note || "", updatedBy: req.user.id };
+    await payment.save();
+
+    await Booking.findByIdAndUpdate(payment.booking, {
+      paymentStatus: status === "paid" ? "paid" : status === "refunded" ? "refunded" : "unpaid",
+      paidAt: payment.paidAt || null,
+      paymentReference: payment._id,
+    });
+
+    res.status(200).json({ message: "Payment status updated.", payment });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update payment status.", error: error.message });
+  }
+};
+
+exports.handleRefundAction = async (req, res) => {
+  try {
+    const { action, note } = req.body;
+    if (!["approve", "reject", "process"].includes(action)) return res.status(400).json({ message: "Invalid refund action." });
+    const payment = await Payment.findById(req.params.id);
+    if (!payment) return res.status(404).json({ message: "Payment not found." });
+
+    const next = action === "approve" ? "approved" : action === "reject" ? "rejected" : "processed";
+    payment.refundStatus = next;
+    if (action === "process") payment.status = "refunded";
+    payment.metadata = { ...(payment.metadata || {}), refundNote: note || "", refundActionBy: req.user.id };
+    await payment.save();
+    res.status(200).json({ message: `Refund ${next}.`, payment });
+  } catch (error) {
+    res.status(500).json({ message: "Refund action failed.", error: error.message });
+  }
+};
+
+exports.exportPaymentsCsv = async (req, res) => {
+  try {
+    const query = req.query.status && req.query.status !== "all" ? { status: req.query.status } : {};
+    const payments = await Payment.find(query).populate(paymentPopulate).sort({ createdAt: -1 });
+    const esc = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+    const rows = [["Invoice", "Date", "Hotel", "Customer", "Gateway", "Status", "Amount", "Commission", "Hotel Earning"]];
+    payments.forEach((p) => rows.push([p.invoiceNumber, p.createdAt?.toISOString(), p.hotel?.hotelName, p.user?.name, p.gateway, p.status, p.amount, p.commissionAmount, p.hotelEarning]));
+    const csv = rows.map((row) => row.map(esc).join(",")).join("\n");
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename=dinefor-payments-${Date.now()}.csv`);
+    res.status(200).send(csv);
+  } catch (error) {
+    res.status(500).json({ message: "CSV export failed.", error: error.message });
   }
 };

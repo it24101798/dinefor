@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import MediaUploader from "../MediaUploader";
 
 function HomeCMSPanel() {
@@ -21,7 +21,7 @@ function HomeCMSPanel() {
 
   const fetchSettings = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/site-settings");
+      const res = await api.get("/site-settings");
       setSettings(res.data);
     } catch (error) {
       console.log(error);
@@ -45,14 +45,10 @@ function HomeCMSPanel() {
     e.preventDefault();
 
     try {
-      const res = await axios.put(
-        "http://localhost:5000/api/site-settings",
+      const res = await api.put(
+        "/site-settings",
         settings,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       setMessage(res.data.message || "Homepage updated successfully ✅");
@@ -62,7 +58,7 @@ function HomeCMSPanel() {
   };
 
   return (
-    <section className="panel cms-panel reveal">
+    <section className="panel cms-panel reveal admin-feature-panel">
       <div className="section-header">
         <span className="eyebrow">Homepage CMS</span>
         <h2>Control DineFor Home Page</h2>
@@ -72,7 +68,7 @@ function HomeCMSPanel() {
         </p>
       </div>
 
-      <form onSubmit={saveSettings} className="form-grid">
+      <form onSubmit={saveSettings} className="form-grid admin-cms-form">
         <input
           name="heroTitle"
           placeholder="Hero Title"
@@ -149,7 +145,7 @@ function HomeCMSPanel() {
           onChange={handleChange}
         />
 
-        <button className="btn primary" type="submit">
+        <button className="btn primary admin-save-button" type="submit">
           Save Homepage Settings
         </button>
       </form>
