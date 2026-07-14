@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import axios from "axios";
+import api from "../services/api";
 import { Link } from "react-router-dom";
 import MapView from "../components/map/MapView";
 
@@ -33,11 +33,11 @@ function ExploreMap() {
       setLoading(true);
       setError("");
       const [hotelRes, buffetRes] = await Promise.all([
-        axios.get(`${API_BASE}/api/hotels/map`, {
+        api.get(`${API_BASE}/api/hotels/map`, {
           params: { q: searchQuery, city: searchCity },
           timeout: 10000,
         }),
-        axios.get(`${API_BASE}/api/buffets`, { timeout: 10000 }),
+        api.get(`${API_BASE}/api/buffets`, { timeout: 10000 }),
       ]);
 
       const hotelData = hotelRes.data || [];

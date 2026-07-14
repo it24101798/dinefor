@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
+import api from "../services/api";
 import FeedCard from "../components/FeedCard";
 
 const categoryChips = [
@@ -28,8 +28,6 @@ const ratingOptions = [
   { label: "4.0 & up", value: 4.0 },
 ];
 
-const API_URL = "http://localhost:5000/api";
-
 function Feed() {
   const [buffets, setBuffets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +44,7 @@ function Feed() {
       try {
         setLoading(true);
         setError("");
-        const res = await axios.get(`${API_URL}/buffets`, {
+        const res = await api.get(`/buffets`, {
           timeout: 10000,
         });
         

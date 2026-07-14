@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 
 function HotelProfileSettings({ hotel, headers, onUpdated }) {
   const [form, setForm] = useState({
@@ -49,7 +49,7 @@ function HotelProfileSettings({ hotel, headers, onUpdated }) {
       },
     };
 
-    const res = await axios.put("http://localhost:5000/api/hotels/my-hotel", payload, { headers });
+    const res = await api.put("/hotels/my-hotel", payload, { headers });
     onUpdated(res.data.hotel, res.data.message);
   };
 

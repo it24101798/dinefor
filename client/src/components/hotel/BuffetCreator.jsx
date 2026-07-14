@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import MediaUploader from "../MediaUploader";
 
 function BuffetCreator({ hotel, headers, onCreated, setMessage }) {
@@ -41,8 +41,8 @@ function BuffetCreator({ hotel, headers, onCreated, setMessage }) {
         availableSeats: Number(slot.totalSeats),
       }));
 
-      await axios.post(
-        "http://localhost:5000/api/buffets",
+      await api.post(
+        "/buffets",
         {
           hotel: hotel._id,
           title: formData.title,

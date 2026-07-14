@@ -1,7 +1,5 @@
-import axios from "axios";
+import api from "../../services/api";
 import { Link } from "react-router-dom";
-
-const API_URL = "http://localhost:5000/api";
 
 const getFallbackHeaders = () => {
   try {
@@ -22,7 +20,7 @@ function ReservationTable({ bookings = [], headers, onChanged, setMessage }) {
 
   const updateBooking = async (bookingId, payload) => {
     try {
-      const res = await axios.put(`${API_URL}/bookings/${bookingId}/status`, payload, { headers: authHeaders });
+      const res = await api.put(`/bookings/${bookingId}/status`, payload, { headers: authHeaders });
       setMessage?.(res.data.message || "Booking updated successfully ✅");
       onChanged?.();
     } catch (error) {
@@ -32,7 +30,7 @@ function ReservationTable({ bookings = [], headers, onChanged, setMessage }) {
 
   const claimBooking = async (bookingId) => {
     try {
-      const res = await axios.put(`${API_URL}/bookings/${bookingId}/check-in`, {}, { headers: authHeaders });
+      const res = await api.put(`/bookings/${bookingId}/check-in`, {}, { headers: authHeaders });
       setMessage?.(res.data.message || "QR claimed successfully ✅");
       onChanged?.();
     } catch (error) {

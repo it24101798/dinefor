@@ -1,11 +1,11 @@
-import axios from "axios";
+import api from "../../services/api";
 import { Link } from "react-router-dom";
 
 function BuffetFeatureManager({ buffets, token, onChange }) {
   const updateFeature = async (buffetId, shouldFeature) => {
     try {
-      await axios.put(
-        `http://localhost:5000/api/buffets/${buffetId}/${
+      await api.put(
+        `/buffets/${buffetId}/${
           shouldFeature ? "feature" : "unfeature"
         }`,
         {},

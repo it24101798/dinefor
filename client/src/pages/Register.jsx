@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 import { Link, useNavigate } from "react-router-dom";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -118,7 +118,7 @@ function Register() {
     }
 
     try {
-      const res = await axios.post(`${API_BASE}/api/auth/register`, {
+      const res = await api.post(`${API_BASE}/api/auth/register`, {
         name: formData.name,
         email: formData.email,
         password: formData.password,

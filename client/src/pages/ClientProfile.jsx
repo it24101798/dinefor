@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import axios from "axios";
+import api from "../services/api";
 import MediaUploader from "../components/MediaUploader";
 import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
@@ -48,8 +48,8 @@ function ClientProfile() {
     try {
       setLoading(true);
       const [profileRes, statsRes] = await Promise.all([
-        axios.get(`${API_BASE}/api/users/me`, { headers }),
-        axios.get(`${API_BASE}/api/users/me/stats`, { headers }),
+        api.get(`${API_BASE}/api/users/me`, { headers }),
+        api.get(`${API_BASE}/api/users/me/stats`, { headers }),
       ]);
       setProfile(profileRes.data);
       setBookingStats(statsRes.data);
@@ -79,7 +79,7 @@ function ClientProfile() {
     setMessage("");
 
     try {
-      const res = await axios.put(`${API_BASE}/api/users/me`, profile, { headers });
+      const res = await api.put(`${API_BASE}/api/users/me`, profile, { headers });
       setProfile(res.data.user);
       login({ ...user, ...res.data.user, token });
       setMessage("✅ Profile updated successfully!");
@@ -97,7 +97,7 @@ function ClientProfile() {
     const updated = { ...profile, avatarUrl: data.fileUrl };
     setProfile(updated);
     try {
-      const res = await axios.put(`${API_BASE}/api/users/me`, updated, { headers });
+      const res = await api.put(`${API_BASE}/api/users/me`, updated, { headers });
       setProfile(res.data.user);
       login({ ...user, ...res.data.user, token });
       setMessage("✅ Avatar updated successfully!");

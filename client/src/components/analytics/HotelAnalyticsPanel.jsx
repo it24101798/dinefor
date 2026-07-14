@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import AnalyticsStatCards from "./AnalyticsStatCards";
 import MonthlyTrendChart from "./MonthlyTrendChart";
 import TopPerformersTable from "./TopPerformersTable";
@@ -16,7 +16,7 @@ function HotelAnalyticsPanel() {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/analytics/hotel", { headers });
+        const res = await api.get("/analytics/hotel", { headers });
         setAnalytics(res.data);
       } catch (error) {
         setMessage(error.response?.data?.message || "Hotel analytics failed to load.");

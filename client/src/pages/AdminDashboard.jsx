@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import axios from "axios";
+import api from "../services/api";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import HomeCMSPanel from "../components/admin/HomeCMSPanel";
 import ReviewModerationPanel from "../components/admin/ReviewModerationPanel";
@@ -184,13 +184,13 @@ function AdminDashboard() {
         paymentsRes,
         analyticsRes,
       ] = await Promise.allSettled([
-        axios.get(`${API_BASE}/api/hotels`, { headers }),
-        axios.get(`${API_BASE}/api/bookings`, { headers }),
-        axios.get(`${API_BASE}/api/buffets`),
-        axios.get(`${API_BASE}/api/users/admin/all`, { headers }),
-        axios.get(`${API_BASE}/api/reviews/admin/all`, { headers }),
-        axios.get(`${API_BASE}/api/payments/admin-finance?period=${analyticsPeriod}&status=all`, { headers }),
-        axios.get(`${API_BASE}/api/analytics/admin?period=${analyticsPeriod}`, { headers }),
+        api.get(`${API_BASE}/api/hotels`, { headers }),
+        api.get(`${API_BASE}/api/bookings`, { headers }),
+        api.get(`${API_BASE}/api/buffets`),
+        api.get(`${API_BASE}/api/users/admin/all`, { headers }),
+        api.get(`${API_BASE}/api/reviews/admin/all`, { headers }),
+        api.get(`${API_BASE}/api/payments/admin-finance?period=${analyticsPeriod}&status=all`, { headers }),
+        api.get(`${API_BASE}/api/analytics/admin?period=${analyticsPeriod}`, { headers }),
       ]);
 
       if (hotelsRes.status === "fulfilled") setHotels(Array.isArray(hotelsRes.value.data) ? hotelsRes.value.data : []);
@@ -367,7 +367,7 @@ function AdminDashboard() {
   // ============================================
   const updateHotelStatus = async (hotelId, action, note = moderationNote) => {
     try {
-      const res = await axios.put(
+      const res = await api.put(
         `${API_BASE}/api/hotels/${hotelId}/${action}`,
         { reviewNote: note },
         { headers }
@@ -388,7 +388,7 @@ function AdminDashboard() {
       const until = new Date();
       until.setDate(until.getDate() + Number(featuredDays || 7));
 
-      await axios.put(
+      await api.put(
         `${API_BASE}/api/buffets/${buffetId}/featured`,
         isFeatured ? { isFeatured: true, featuredUntil: until.toISOString() } : { isFeatured: false },
         { headers }
@@ -404,7 +404,7 @@ function AdminDashboard() {
 
   const deleteHotel = async (hotelId) => {
     try {
-      await axios.delete(`${API_BASE}/api/hotels/${hotelId}`, { headers });
+      await api.delete(`${API_BASE}/api/hotels/${hotelId}`, { headers });
       setMessage("Hotel deleted successfully.");
       setMessageType("success");
       setShowDeleteConfirm(false);
@@ -418,7 +418,7 @@ function AdminDashboard() {
 
   const deleteBooking = async (bookingId) => {
     try {
-      await axios.delete(`${API_BASE}/api/bookings/${bookingId}`, { headers });
+      await api.delete(`${API_BASE}/api/bookings/${bookingId}`, { headers });
       setMessage("Booking deleted successfully.");
       setMessageType("success");
       setShowDeleteConfirm(false);
@@ -432,7 +432,7 @@ function AdminDashboard() {
 
   const deleteReview = async (reviewId) => {
     try {
-      await axios.delete(`${API_BASE}/api/reviews/${reviewId}`, { headers });
+      await api.delete(`${API_BASE}/api/reviews/${reviewId}`, { headers });
       setMessage("Review deleted successfully.");
       setMessageType("success");
       setShowDeleteConfirm(false);
@@ -446,7 +446,7 @@ function AdminDashboard() {
 
   const updateReviewStatus = async (reviewId, action) => {
     try {
-      await axios.put(
+      await api.put(
         `${API_BASE}/api/reviews/${reviewId}/status`,
         {},
         { headers }

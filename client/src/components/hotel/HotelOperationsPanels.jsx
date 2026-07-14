@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 
 const toLines = (values = []) => (Array.isArray(values) ? values.join("\n") : "");
 const fromLines = (value = "") => value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
@@ -19,7 +19,7 @@ function UploadButton({ label, accept, multiple = false, headers, apiBase, onUpl
     try {
       setUploading(true);
       const endpoint = multiple ? "/api/uploads/multiple" : "/api/uploads";
-      const { data } = await axios.post(`${apiBase}${endpoint}`, formData, {
+      const { data } = await api.post(`${apiBase}${endpoint}`, formData, {
         headers: { ...headers, "Content-Type": "multipart/form-data" },
       });
 
@@ -89,7 +89,7 @@ export function HotelMediaWorkspace({ hotel, headers, apiBase, onUpdated, setMes
         images: form.galleryImages,
         videos: form.videos,
       };
-      const { data } = await axios.put(`${apiBase}/api/hotels/my-hotel`, payload, { headers });
+      const { data } = await api.put(`${apiBase}/api/hotels/my-hotel`, payload, { headers });
       onUpdated?.(data.hotel || { ...hotel, ...payload });
       setMessage("Hotel media saved successfully.");
       setMessageType("success");
@@ -214,7 +214,7 @@ export function HotelProfileWorkspace({ hotel, headers, apiBase, onUpdated, setM
         diningHighlights: fromLines(form.diningHighlights),
         mapLocation: { latitude: form.latitude, longitude: form.longitude, googleMapUrl: form.googleMapUrl.trim() },
       };
-      const { data } = await axios.put(`${apiBase}/api/hotels/my-hotel`, payload, { headers });
+      const { data } = await api.put(`${apiBase}/api/hotels/my-hotel`, payload, { headers });
       onUpdated?.(data.hotel || { ...hotel, ...payload });
       setMessage("Hotel profile saved successfully.");
       setMessageType("success");
@@ -299,7 +299,7 @@ export function HotelReviewReplyWorkspace({ reviews = [], headers, apiBase, refr
     }
     try {
       setSavingId(reviewId);
-      await axios.put(`${apiBase}/api/hotel-portal/reviews/${reviewId}/reply`, { message }, { headers });
+      await api.put(`${apiBase}/api/hotel-portal/reviews/${reviewId}/reply`, { message }, { headers });
       setReplyByReview((current) => ({ ...current, [reviewId]: "" }));
       setMessage("Review reply published successfully.");
       setMessageType("success");
@@ -347,7 +347,7 @@ export function HotelSettingsWorkspace({ hotel, headers, apiBase, onUpdated, set
     try {
       setSaving(true);
       const payload = { contactNumber: form.contactNumber.trim(), email: form.email.trim(), application: { ...(hotel?.application || {}), cancellationPolicy: form.cancellationPolicy.trim(), refundPolicy: form.refundPolicy.trim(), financeContactName: form.financeContactName.trim(), financeContactPhone: form.financeContactPhone.trim(), bankName: form.bankName.trim(), accountNumber: form.accountNumber.trim(), accountHolderName: form.accountHolderName.trim(), bankBranch: form.bankBranch.trim() } };
-      const { data } = await axios.put(`${apiBase}/api/hotels/my-hotel`, payload, { headers });
+      const { data } = await api.put(`${apiBase}/api/hotels/my-hotel`, payload, { headers });
       onUpdated?.(data.hotel || { ...hotel, ...payload });
       setMessage("Hotel settings saved successfully.");
       setMessageType("success");

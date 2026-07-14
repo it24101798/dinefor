@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 
 const API = "http://localhost:5000/api";
 
@@ -97,9 +97,9 @@ function HotelReservationCenter({ headers, setMessage }) {
     try {
       setLoading(true);
       const [bookingsRes, opsRes, calendarRes] = await Promise.all([
-        axios.get(`${API}/hotel-portal/reservations?${queryString}`, { headers }),
-        axios.get(`${API}/hotel-portal/reservation-operations`, { headers }),
-        axios.get(`${API}/hotel-portal/reservation-calendar`, { headers }),
+        api.get(`${API}/hotel-portal/reservations?${queryString}`, { headers }),
+        api.get(`${API}/hotel-portal/reservation-operations`, { headers }),
+        api.get(`${API}/hotel-portal/reservation-calendar`, { headers }),
       ]);
       setBookings(bookingsRes.data || []);
       setOps(opsRes.data || null);
@@ -115,7 +115,7 @@ function HotelReservationCenter({ headers, setMessage }) {
 
   const updateBooking = async (bookingId, patch) => {
     try {
-      await axios.put(`${API}/bookings/${bookingId}/status`, patch, { headers });
+      await api.put(`${API}/bookings/${bookingId}/status`, patch, { headers });
       setMessage?.("Reservation updated successfully ✅");
       loadBookings();
     } catch (error) {
@@ -125,7 +125,7 @@ function HotelReservationCenter({ headers, setMessage }) {
 
   const expireOpenBookings = async () => {
     try {
-      const res = await axios.put(`${API}/bookings/expire-open`, {}, { headers });
+      const res = await api.put(`${API}/bookings/expire-open`, {}, { headers });
       setMessage?.(res.data?.message || "Open reservations checked for expiry.");
       loadBookings();
     } catch (error) {

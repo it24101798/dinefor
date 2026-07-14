@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import axios from "axios";
+import api from "../services/api";
 import MediaUploader from "../components/MediaUploader";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -97,7 +97,7 @@ function HotelApply() {
 
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/api/hotels/my-hotel`, { headers });
+      const res = await api.get(`${API_BASE}/api/hotels/my-hotel`, { headers });
       const h = res.data;
       setHotel(h);
       setFormData({
@@ -263,8 +263,8 @@ function HotelApply() {
     try {
       const payload = buildPayload();
       const res = hotel
-        ? await axios.put(`${API_BASE}/api/hotels/my-hotel`, payload, { headers })
-        : await axios.post(`${API_BASE}/api/hotels`, payload, { headers });
+        ? await api.put(`${API_BASE}/api/hotels/my-hotel`, payload, { headers })
+        : await api.post(`${API_BASE}/api/hotels`, payload, { headers });
 
       setMessage(res.data.message || "Hotel application saved successfully!");
       setMessageType("success");

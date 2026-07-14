@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 
 const API = "http://localhost:5000/api";
 
@@ -14,7 +14,7 @@ function HotelReviewsWorkspace({ headers, setMessage }) {
       setLoading(true);
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => value && value !== "all" && params.append(key, value));
-      const res = await axios.get(`${API}/hotel-portal/reviews?${params.toString()}`, { headers });
+      const res = await api.get(`${API}/hotel-portal/reviews?${params.toString()}`, { headers });
       setReviews(res.data || []);
     } catch (error) {
       setMessage?.(error.response?.data?.message || "Failed to load reviews.");
@@ -27,7 +27,7 @@ function HotelReviewsWorkspace({ headers, setMessage }) {
 
   const saveReply = async (reviewId) => {
     try {
-      await axios.put(`${API}/hotel-portal/reviews/${reviewId}/reply`, { reply: replyText[reviewId] }, { headers });
+      await api.put(`${API}/hotel-portal/reviews/${reviewId}/reply`, { reply: replyText[reviewId] }, { headers });
       setReplyText({ ...replyText, [reviewId]: "" });
       setMessage?.("Review reply saved successfully ✅");
       loadReviews();

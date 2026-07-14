@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import axios from "axios";
+import api from "../services/api";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { HotelMediaWorkspace, HotelProfileWorkspace, HotelReviewReplyWorkspace, HotelSettingsWorkspace } from "../components/hotel/HotelOperationsPanels";
 import HotelBuffetWorkspace from "../components/hotel/HotelBuffetWorkspace";
@@ -192,12 +192,12 @@ function HotelDashboard() {
         paymentsRes,
         analyticsRes,
       ] = await Promise.allSettled([
-        axios.get(`${API_BASE}/api/hotels/my-hotel`, { headers }),
-        axios.get(`${API_BASE}/api/hotel-portal/reservations`, { headers }),
-        axios.get(`${API_BASE}/api/hotel-portal/buffets`, { headers }),
-        axios.get(`${API_BASE}/api/hotel-portal/reviews`, { headers }),
-        axios.get(`${API_BASE}/api/hotel-portal/payments`, { headers }),
-        axios.get(`${API_BASE}/api/hotel-portal/analytics`, { headers }),
+        api.get(`${API_BASE}/api/hotels/my-hotel`, { headers }),
+        api.get(`${API_BASE}/api/hotel-portal/reservations`, { headers }),
+        api.get(`${API_BASE}/api/hotel-portal/buffets`, { headers }),
+        api.get(`${API_BASE}/api/hotel-portal/reviews`, { headers }),
+        api.get(`${API_BASE}/api/hotel-portal/payments`, { headers }),
+        api.get(`${API_BASE}/api/hotel-portal/analytics`, { headers }),
       ]);
 
       if (hotelRes.status === "fulfilled") setHotel(hotelRes.value.data);
@@ -345,7 +345,7 @@ function HotelDashboard() {
   // ============================================
   const updateBookingStatus = async (bookingId, status) => {
     try {
-      await axios.put(
+      await api.put(
         `${API_BASE}/api/hotel-portal/bookings/${bookingId}/status`,
         { status },
         { headers }
@@ -361,7 +361,7 @@ function HotelDashboard() {
 
   const deleteBooking = async (bookingId) => {
     try {
-      await axios.delete(`${API_BASE}/api/hotel-portal/bookings/${bookingId}`, { headers });
+      await api.delete(`${API_BASE}/api/hotel-portal/bookings/${bookingId}`, { headers });
       setMessage("Booking deleted successfully.");
       setMessageType("success");
       setShowDeleteConfirm(false);
@@ -375,7 +375,7 @@ function HotelDashboard() {
 
   const deleteBuffet = async (buffetId) => {
     try {
-      await axios.delete(`${API_BASE}/api/hotel-portal/buffets/${buffetId}`, { headers });
+      await api.delete(`${API_BASE}/api/hotel-portal/buffets/${buffetId}`, { headers });
       setMessage("Buffet deleted successfully.");
       setMessageType("success");
       setShowDeleteConfirm(false);
@@ -389,7 +389,7 @@ function HotelDashboard() {
 
   const updateBuffetStatus = async (buffetId, status) => {
     try {
-      await axios.put(
+      await api.put(
         `${API_BASE}/api/hotel-portal/buffets/${buffetId}/status`,
         { status },
         { headers }
@@ -498,7 +498,7 @@ function HotelDashboard() {
         status: buffetForm.status || "draft",
       };
 
-      await axios.post(`${API_BASE}/api/hotel-portal/buffets`, payload, { headers });
+      await api.post(`${API_BASE}/api/hotel-portal/buffets`, payload, { headers });
       setMessage("Buffet created successfully!");
       setMessageType("success");
       setShowCreateBuffet(false);
@@ -542,7 +542,7 @@ function HotelDashboard() {
         recurringDays: Object.keys(recurringOptions).filter(key => recurringOptions[key]),
       };
 
-      await axios.put(
+      await api.put(
         `${API_BASE}/api/hotel-portal/buffets/${showEditBuffet}`,
         payload,
         { headers }
@@ -559,7 +559,7 @@ function HotelDashboard() {
 
   const toggleFeatureBuffet = async (buffetId, isFeatured) => {
     try {
-      await axios.put(
+      await api.put(
         `${API_BASE}/api/hotel-portal/buffets/${buffetId}/feature`,
         { isFeatured },
         { headers }

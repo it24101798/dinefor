@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import AvailabilityBadge from "./AvailabilityBadge";
 import { getPrimaryMedia, getTotalAvailableSeats } from "../../services/discoveryService";
@@ -26,8 +26,8 @@ function DiscoveryFeedCard({ buffet, guests = 1 }) {
 
     try {
       setSaving(true);
-      const res = await axios.put(
-        `http://localhost:5000/api/users/saved-buffets/${buffet._id}`,
+      const res = await api.put(
+        `/users/saved-buffets/${buffet._id}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import axios from "axios";
+import api from "../services/api";
 import { Link, useNavigate } from "react-router-dom";
 import CheckInDesk from "../components/hotel/CheckInDesk";
 
@@ -76,7 +76,7 @@ function HotelCheckInDesk() {
     try {
       setLoading(true);
       setMessage("");
-      const res = await axios.get(`${API_BASE}/api/bookings/hotel-bookings`, { headers });
+      const res = await api.get(`${API_BASE}/api/bookings/hotel-bookings`, { headers });
       const data = Array.isArray(res.data) ? res.data : [];
       setBookings(data);
 
@@ -138,7 +138,7 @@ function HotelCheckInDesk() {
   // ============================================
   const handleBookingAction = async (bookingId, action) => {
     try {
-      const res = await axios.put(
+      const res = await api.put(
         `${API_BASE}/api/bookings/${bookingId}/${action}`,
         {},
         { headers }
