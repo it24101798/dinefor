@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 const formatDate = (date) => {
   if (!date) return "-";
@@ -89,7 +88,7 @@ function BookingCheckIn() {
     try {
       setLoading(true);
       setMessage("");
-      const res = await api.get(`${API_BASE}/api/bookings/verify/${code}`, { headers });
+      const res = await api.get(`/bookings/verify/${code}`, { headers });
       setBooking(res.data.booking);
       setValidation(res.data.validation);
 
@@ -136,7 +135,7 @@ function BookingCheckIn() {
     setCheckingIn(true);
     try {
       const res = await api.put(
-        `${API_BASE}/api/bookings/${booking._id}/check-in`,
+        `/bookings/${booking._id}/check-in`,
         {},
         { headers }
       );

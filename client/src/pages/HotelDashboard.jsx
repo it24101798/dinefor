@@ -5,7 +5,6 @@ import { HotelMediaWorkspace, HotelProfileWorkspace, HotelReviewReplyWorkspace, 
 import HotelBuffetWorkspace from "../components/hotel/HotelBuffetWorkspace";
 import MediaUploader from "../components/MediaUploader";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 // ============================================
 // SECTION CONFIGURATION
@@ -192,12 +191,12 @@ function HotelDashboard() {
         paymentsRes,
         analyticsRes,
       ] = await Promise.allSettled([
-        api.get(`${API_BASE}/api/hotels/my-hotel`, { headers }),
-        api.get(`${API_BASE}/api/hotel-portal/reservations`, { headers }),
-        api.get(`${API_BASE}/api/hotel-portal/buffets`, { headers }),
-        api.get(`${API_BASE}/api/hotel-portal/reviews`, { headers }),
-        api.get(`${API_BASE}/api/hotel-portal/payments`, { headers }),
-        api.get(`${API_BASE}/api/hotel-portal/analytics`, { headers }),
+        api.get(`/hotels/my-hotel`, { headers }),
+        api.get(`/hotel-portal/reservations`, { headers }),
+        api.get(`/hotel-portal/buffets`, { headers }),
+        api.get(`/hotel-portal/reviews`, { headers }),
+        api.get(`/hotel-portal/payments`, { headers }),
+        api.get(`/hotel-portal/analytics`, { headers }),
       ]);
 
       if (hotelRes.status === "fulfilled") setHotel(hotelRes.value.data);
@@ -346,7 +345,7 @@ function HotelDashboard() {
   const updateBookingStatus = async (bookingId, status) => {
     try {
       await api.put(
-        `${API_BASE}/api/hotel-portal/bookings/${bookingId}/status`,
+        `/hotel-portal/bookings/${bookingId}/status`,
         { status },
         { headers }
       );
@@ -361,7 +360,7 @@ function HotelDashboard() {
 
   const deleteBooking = async (bookingId) => {
     try {
-      await api.delete(`${API_BASE}/api/hotel-portal/bookings/${bookingId}`, { headers });
+      await api.delete(`/hotel-portal/bookings/${bookingId}`, { headers });
       setMessage("Booking deleted successfully.");
       setMessageType("success");
       setShowDeleteConfirm(false);
@@ -375,7 +374,7 @@ function HotelDashboard() {
 
   const deleteBuffet = async (buffetId) => {
     try {
-      await api.delete(`${API_BASE}/api/hotel-portal/buffets/${buffetId}`, { headers });
+      await api.delete(`/hotel-portal/buffets/${buffetId}`, { headers });
       setMessage("Buffet deleted successfully.");
       setMessageType("success");
       setShowDeleteConfirm(false);
@@ -390,7 +389,7 @@ function HotelDashboard() {
   const updateBuffetStatus = async (buffetId, status) => {
     try {
       await api.put(
-        `${API_BASE}/api/hotel-portal/buffets/${buffetId}/status`,
+        `/hotel-portal/buffets/${buffetId}/status`,
         { status },
         { headers }
       );
@@ -498,7 +497,7 @@ function HotelDashboard() {
         status: buffetForm.status || "draft",
       };
 
-      await api.post(`${API_BASE}/api/hotel-portal/buffets`, payload, { headers });
+      await api.post(`/hotel-portal/buffets`, payload, { headers });
       setMessage("Buffet created successfully!");
       setMessageType("success");
       setShowCreateBuffet(false);
@@ -543,7 +542,7 @@ function HotelDashboard() {
       };
 
       await api.put(
-        `${API_BASE}/api/hotel-portal/buffets/${showEditBuffet}`,
+        `/hotel-portal/buffets/${showEditBuffet}`,
         payload,
         { headers }
       );
@@ -560,7 +559,7 @@ function HotelDashboard() {
   const toggleFeatureBuffet = async (buffetId, isFeatured) => {
     try {
       await api.put(
-        `${API_BASE}/api/hotel-portal/buffets/${buffetId}/feature`,
+        `/hotel-portal/buffets/${buffetId}/feature`,
         { isFeatured },
         { headers }
       );
@@ -1400,7 +1399,6 @@ function HotelDashboard() {
             <HotelMediaWorkspace
               hotel={hotel}
               headers={headers}
-              apiBase={API_BASE}
               onUpdated={setHotel}
               setMessage={setMessage}
               setMessageType={setMessageType}
@@ -1410,7 +1408,6 @@ function HotelDashboard() {
             <HotelReviewReplyWorkspace
               reviews={reviews}
               headers={headers}
-              apiBase={API_BASE}
               refresh={fetchAll}
               setMessage={setMessage}
               setMessageType={setMessageType}
@@ -1422,7 +1419,6 @@ function HotelDashboard() {
             <HotelSettingsWorkspace
               hotel={hotel}
               headers={headers}
-              apiBase={API_BASE}
               onUpdated={setHotel}
               setMessage={setMessage}
               setMessageType={setMessageType}
@@ -1432,7 +1428,6 @@ function HotelDashboard() {
             <HotelProfileWorkspace
               hotel={hotel}
               headers={headers}
-              apiBase={API_BASE}
               onUpdated={setHotel}
               setMessage={setMessage}
               setMessageType={setMessageType}

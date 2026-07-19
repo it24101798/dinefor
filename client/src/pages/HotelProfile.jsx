@@ -1,13 +1,12 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import api from "../services/api";
+import api, { resolveMediaUrl } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import MapView from "../components/map/MapView";
 import ReviewList from "../components/reviews/ReviewList";
 import ReviewForm from "../components/reviews/ReviewForm";
 import SkeletonCard from "../components/shared/SkeletonCard";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 const formatDate = (value) => {
   if (!value) return "-";
@@ -26,8 +25,8 @@ const resolveMedia = (value) => {
   if (!value) return "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop";
   if (typeof value === "string") {
     if (value.startsWith("http") || value.startsWith("data:")) return value;
-    if (value.startsWith("/uploads")) return `${API_BASE}${value}`;
-    if (value.startsWith("uploads")) return `${API_BASE}/${value}`;
+    if (value.startsWith("/uploads")) return resolveMediaUrl(value);
+    if (value.startsWith("uploads")) return resolveMediaUrl(`/${value}`);
     return value;
   }
   return value;

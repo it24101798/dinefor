@@ -3,7 +3,6 @@ import api from "../services/api";
 import { Link } from "react-router-dom";
 import MapView from "../components/map/MapView";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 const formatCurrency = (value) => `Rs. ${Number(value || 0).toLocaleString()}`;
 
@@ -33,11 +32,11 @@ function ExploreMap() {
       setLoading(true);
       setError("");
       const [hotelRes, buffetRes] = await Promise.all([
-        api.get(`${API_BASE}/api/hotels/map`, {
+        api.get(`/hotels/map`, {
           params: { q: searchQuery, city: searchCity },
           timeout: 10000,
         }),
-        api.get(`${API_BASE}/api/buffets`, { timeout: 10000 }),
+        api.get(`/buffets`, { timeout: 10000 }),
       ]);
 
       const hotelData = hotelRes.data || [];

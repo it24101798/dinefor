@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import api from "../services/api";
 import { Link, useNavigate } from "react-router-dom";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 const APP_URL = import.meta.env.VITE_CLIENT_URL || "http://localhost:5173";
 
 const formatDate = (date) => {
@@ -93,7 +92,7 @@ function MyBookings() {
     try {
       setLoading(true);
       setMessage("");
-      const res = await api.get(`${API_BASE}/api/bookings/my-bookings`, { headers });
+      const res = await api.get(`/bookings/my-bookings`, { headers });
       setBookings(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       const errorMsg = error.response?.data?.message || "Failed to load bookings.";
@@ -173,7 +172,7 @@ function MyBookings() {
     setCancelling(true);
     try {
       const res = await api.put(
-        `${API_BASE}/api/bookings/my-bookings/${cancelTarget}/cancel`,
+        `/bookings/my-bookings/${cancelTarget}/cancel`,
         {},
         { headers }
       );

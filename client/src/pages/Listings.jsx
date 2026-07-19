@@ -3,7 +3,6 @@ import { useSearchParams, Link } from "react-router-dom";
 import api from "../services/api";
 import FeedCard from "../components/FeedCard";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 const sortOptions = [
   { value: "featured", label: "Featured First" },
@@ -68,7 +67,7 @@ function Listings() {
     try {
       setLoading(true);
       setError("");
-      const res = await api.get(`${API_BASE}/api/buffets`, { timeout: 10000 });
+      const res = await api.get(`/buffets`, { timeout: 10000 });
       setBuffets(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       setError(err.message || "Failed to load buffets. Please try again.");

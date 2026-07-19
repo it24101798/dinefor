@@ -5,7 +5,6 @@ import { useAuth } from "../context/AuthContext";
 import FeedCard from "../components/FeedCard";
 import SkeletonCard from "../components/shared/SkeletonCard";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 const formatDate = (value) => {
   if (!value) return "Not selected";

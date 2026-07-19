@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import api from "../../services/api";
 import { Link } from "react-router-dom";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 const formatDate = (date) => {
   if (!date) return "-";
@@ -55,7 +54,7 @@ function CheckInDesk({ bookings = [], onChanged, setMessage }) {
 
     setLoading(true);
     try {
-      const res = await api.get(`${API_BASE}/api/bookings/verify/${searchCode.trim()}`, { headers });
+      const res = await api.get(`/bookings/verify/${searchCode.trim()}`, { headers });
 
       if (res.data.booking) {
         setSelectedBooking(res.data.booking);
@@ -78,7 +77,7 @@ function CheckInDesk({ bookings = [], onChanged, setMessage }) {
     setCheckingIn(true);
     try {
       const res = await api.put(
-        `${API_BASE}/api/bookings/${selectedBooking._id}/check-in`,
+        `/bookings/${selectedBooking._id}/check-in`,
         {},
         { headers }
       );

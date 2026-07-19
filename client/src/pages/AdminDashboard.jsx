@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import api from "../services/api";
+import api, { getServerBaseUrl } from "../services/api";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import HomeCMSPanel from "../components/admin/HomeCMSPanel";
 import ReviewModerationPanel from "../components/admin/ReviewModerationPanel";
 import AdminAnalyticsPanel from "../components/analytics/AdminAnalyticsPanel";
 import AdminFinancePanel from "../components/payments/AdminFinancePanel";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const API_SERVER = getServerBaseUrl();
 
 // ============================================
 // SECTION CONFIGURATION
@@ -184,13 +184,13 @@ function AdminDashboard() {
         paymentsRes,
         analyticsRes,
       ] = await Promise.allSettled([
-        api.get(`${API_BASE}/api/hotels`, { headers }),
-        api.get(`${API_BASE}/api/bookings`, { headers }),
-        api.get(`${API_BASE}/api/buffets`),
-        api.get(`${API_BASE}/api/users/admin/all`, { headers }),
-        api.get(`${API_BASE}/api/reviews/admin/all`, { headers }),
-        api.get(`${API_BASE}/api/payments/admin-finance?period=${analyticsPeriod}&status=all`, { headers }),
-        api.get(`${API_BASE}/api/analytics/admin?period=${analyticsPeriod}`, { headers }),
+        api.get(`/hotels`, { headers }),
+        api.get(`/bookings`, { headers }),
+        api.get(`/buffets`),
+        api.get(`/users/admin/all`, { headers }),
+        api.get(`/reviews/admin/all`, { headers }),
+        api.get(`/payments/admin-finance?period=${analyticsPeriod}&status=all`, { headers }),
+        api.get(`/analytics/admin?period=${analyticsPeriod}`, { headers }),
       ]);
 
       if (hotelsRes.status === "fulfilled") setHotels(Array.isArray(hotelsRes.value.data) ? hotelsRes.value.data : []);
@@ -368,7 +368,7 @@ function AdminDashboard() {
   const updateHotelStatus = async (hotelId, action, note = moderationNote) => {
     try {
       const res = await api.put(
-        `${API_BASE}/api/hotels/${hotelId}/${action}`,
+        `/hotels/${hotelId}/${action}`,
         { reviewNote: note },
         { headers }
       );
@@ -389,7 +389,7 @@ function AdminDashboard() {
       until.setDate(until.getDate() + Number(featuredDays || 7));
 
       await api.put(
-        `${API_BASE}/api/buffets/${buffetId}/featured`,
+        `/buffets/${buffetId}/featured`,
         isFeatured ? { isFeatured: true, featuredUntil: until.toISOString() } : { isFeatured: false },
         { headers }
       );
@@ -404,7 +404,7 @@ function AdminDashboard() {
 
   const deleteHotel = async (hotelId) => {
     try {
-      await api.delete(`${API_BASE}/api/hotels/${hotelId}`, { headers });
+      await api.delete(`/hotels/${hotelId}`, { headers });
       setMessage("Hotel deleted successfully.");
       setMessageType("success");
       setShowDeleteConfirm(false);
@@ -418,7 +418,7 @@ function AdminDashboard() {
 
   const deleteBooking = async (bookingId) => {
     try {
-      await api.delete(`${API_BASE}/api/bookings/${bookingId}`, { headers });
+      await api.delete(`/bookings/${bookingId}`, { headers });
       setMessage("Booking deleted successfully.");
       setMessageType("success");
       setShowDeleteConfirm(false);
@@ -432,7 +432,7 @@ function AdminDashboard() {
 
   const deleteReview = async (reviewId) => {
     try {
-      await api.delete(`${API_BASE}/api/reviews/${reviewId}`, { headers });
+      await api.delete(`/reviews/${reviewId}`, { headers });
       setMessage("Review deleted successfully.");
       setMessageType("success");
       setShowDeleteConfirm(false);
@@ -447,7 +447,7 @@ function AdminDashboard() {
   const updateReviewStatus = async (reviewId, action) => {
     try {
       await api.put(
-        `${API_BASE}/api/reviews/${reviewId}/status`,
+        `/reviews/${reviewId}/status`,
         {},
         { headers }
       );
@@ -1002,7 +1002,7 @@ function AdminDashboard() {
             </div>
             <div>
               <p className="font-label-sm text-label-sm text-on-surface-variant">API Base URL</p>
-              <p className="font-body-md text-body-md text-text-deep-green">{API_BASE}</p>
+              <p className="font-body-md text-body-md text-text-deep-green">{API_SERVER}</p>
             </div>
           </div>
         </div>

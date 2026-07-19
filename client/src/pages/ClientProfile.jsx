@@ -4,7 +4,6 @@ import MediaUploader from "../components/MediaUploader";
 import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 // ============================================
 // MAIN COMPONENT
@@ -48,8 +47,8 @@ function ClientProfile() {
     try {
       setLoading(true);
       const [profileRes, statsRes] = await Promise.all([
-        api.get(`${API_BASE}/api/users/me`, { headers }),
-        api.get(`${API_BASE}/api/users/me/stats`, { headers }),
+        api.get(`/users/me`, { headers }),
+        api.get(`/users/me/stats`, { headers }),
       ]);
       setProfile(profileRes.data);
       setBookingStats(statsRes.data);
@@ -79,7 +78,7 @@ function ClientProfile() {
     setMessage("");
 
     try {
-      const res = await api.put(`${API_BASE}/api/users/me`, profile, { headers });
+      const res = await api.put(`/users/me`, profile, { headers });
       setProfile(res.data.user);
       login({ ...user, ...res.data.user, token });
       setMessage("✅ Profile updated successfully!");
@@ -97,7 +96,7 @@ function ClientProfile() {
     const updated = { ...profile, avatarUrl: data.fileUrl };
     setProfile(updated);
     try {
-      const res = await api.put(`${API_BASE}/api/users/me`, updated, { headers });
+      const res = await api.put(`/users/me`, updated, { headers });
       setProfile(res.data.user);
       login({ ...user, ...res.data.user, token });
       setMessage("✅ Avatar updated successfully!");

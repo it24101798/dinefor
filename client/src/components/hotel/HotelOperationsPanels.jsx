@@ -5,7 +5,7 @@ const toLines = (values = []) => (Array.isArray(values) ? values.join("\n") : ""
 const fromLines = (value = "") => value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
 const isVideoUrl = (url = "") => /\.(mp4|webm|ogg)(\?|$)/i.test(String(url));
 
-function UploadButton({ label, accept, multiple = false, headers, apiBase, onUploaded, onError, disabled = false }) {
+function UploadButton({ label, accept, multiple = false, headers, onUploaded, onError, disabled = false }) {
   const inputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
 
@@ -18,8 +18,8 @@ function UploadButton({ label, accept, multiple = false, headers, apiBase, onUpl
 
     try {
       setUploading(true);
-      const endpoint = multiple ? "/api/uploads/multiple" : "/api/uploads";
-      const { data } = await api.post(`${apiBase}${endpoint}`, formData, {
+      const endpoint = multiple ? "/uploads/multiple" : "/uploads";
+      const { data } = await api.post(endpoint, formData, {
         headers: { ...headers, "Content-Type": "multipart/form-data" },
       });
 
@@ -63,7 +63,7 @@ function MediaPreview({ url, alt, onRemove }) {
   );
 }
 
-export function HotelMediaWorkspace({ hotel, headers, apiBase, onUpdated, setMessage, setMessageType }) {
+export function HotelMediaWorkspace({ hotel, headers, onUpdated, setMessage, setMessageType }) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ logo: "", coverMediaUrl: "", coverMediaType: "image", galleryImages: [], videos: [] });
 
@@ -89,7 +89,7 @@ export function HotelMediaWorkspace({ hotel, headers, apiBase, onUpdated, setMes
         images: form.galleryImages,
         videos: form.videos,
       };
-      const { data } = await api.put(`${apiBase}/api/hotels/my-hotel`, payload, { headers });
+      const { data } = await api.put("/hotels/my-hotel", payload, { headers });
       onUpdated?.(data.hotel || { ...hotel, ...payload });
       setMessage("Hotel media saved successfully.");
       setMessageType("success");
@@ -121,7 +121,7 @@ export function HotelMediaWorkspace({ hotel, headers, apiBase, onUpdated, setMes
               <h3 className="font-headline-md text-headline-md text-text-deep-green">Hotel logo</h3>
               <p className="text-sm text-on-surface-variant mt-1">Recommended: square PNG, JPG or WEBP.</p>
             </div>
-            <UploadButton label="Upload Logo" accept="image/jpeg,image/png,image/webp" headers={headers} apiBase={apiBase} onError={handleUploadError} onUploaded={(files) => setForm((current) => ({ ...current, logo: files[0]?.fileUrl || current.logo }))} />
+            <UploadButton label="Upload Logo" accept="image/jpeg,image/png,image/webp" headers={headers} onError={handleUploadError} onUploaded={(files) => setForm((current) => ({ ...current, logo: files[0]?.fileUrl || current.logo }))} />
           </div>
           {form.logo && <div className="max-w-[220px]"><MediaPreview url={form.logo} alt="Hotel logo" onRemove={() => setForm((current) => ({ ...current, logo: "" }))} /></div>}
         </section>
@@ -132,7 +132,7 @@ export function HotelMediaWorkspace({ hotel, headers, apiBase, onUpdated, setMes
               <h3 className="font-headline-md text-headline-md text-text-deep-green">Cover media</h3>
               <p className="text-sm text-on-surface-variant mt-1">Use one premium hotel image or short MP4/WEBM/OGG video.</p>
             </div>
-            <UploadButton label="Upload Cover" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/ogg" headers={headers} apiBase={apiBase} onError={handleUploadError} onUploaded={(files) => {
+            <UploadButton label="Upload Cover" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/ogg" headers={headers} onError={handleUploadError} onUploaded={(files) => {
               const file = files[0];
               if (!file) return;
               setForm((current) => ({ ...current, coverMediaUrl: file.fileUrl, coverMediaType: file.mediaType }));
@@ -147,7 +147,7 @@ export function HotelMediaWorkspace({ hotel, headers, apiBase, onUpdated, setMes
               <h3 className="font-headline-md text-headline-md text-text-deep-green">Gallery images</h3>
               <p className="text-sm text-on-surface-variant mt-1">Upload up to eight images at a time.</p>
             </div>
-            <UploadButton label="Upload Gallery Images" accept="image/jpeg,image/png,image/webp" multiple headers={headers} apiBase={apiBase} onError={handleUploadError} onUploaded={(files) => setForm((current) => ({ ...current, galleryImages: [...current.galleryImages, ...files.map((file) => file.fileUrl).filter(Boolean)] }))} />
+            <UploadButton label="Upload Gallery Images" accept="image/jpeg,image/png,image/webp" multiple headers={headers} onError={handleUploadError} onUploaded={(files) => setForm((current) => ({ ...current, galleryImages: [...current.galleryImages, ...files.map((file) => file.fileUrl).filter(Boolean)] }))} />
           </div>
           {form.galleryImages.length > 0 && <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">{form.galleryImages.map((url, index) => <MediaPreview key={`${url}-${index}`} url={url} alt={`Gallery image ${index + 1}`} onRemove={() => setForm((current) => ({ ...current, galleryImages: current.galleryImages.filter((_, itemIndex) => itemIndex !== index) }))} />)}</div>}
         </section>
@@ -158,7 +158,7 @@ export function HotelMediaWorkspace({ hotel, headers, apiBase, onUpdated, setMes
               <h3 className="font-headline-md text-headline-md text-text-deep-green">Promotional videos</h3>
               <p className="text-sm text-on-surface-variant mt-1">Upload MP4, WEBM or OGG files. Maximum file size follows the existing server upload limit.</p>
             </div>
-            <UploadButton label="Upload Videos" accept="video/mp4,video/webm,video/ogg" multiple headers={headers} apiBase={apiBase} onError={handleUploadError} onUploaded={(files) => setForm((current) => ({ ...current, videos: [...current.videos, ...files.map((file) => file.fileUrl).filter(Boolean)] }))} />
+            <UploadButton label="Upload Videos" accept="video/mp4,video/webm,video/ogg" multiple headers={headers} onError={handleUploadError} onUploaded={(files) => setForm((current) => ({ ...current, videos: [...current.videos, ...files.map((file) => file.fileUrl).filter(Boolean)] }))} />
           </div>
           {form.videos.length > 0 && <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{form.videos.map((url, index) => <MediaPreview key={`${url}-${index}`} url={url} alt={`Hotel video ${index + 1}`} onRemove={() => setForm((current) => ({ ...current, videos: current.videos.filter((_, itemIndex) => itemIndex !== index) }))} />)}</div>}
         </section>
@@ -171,7 +171,7 @@ export function HotelMediaWorkspace({ hotel, headers, apiBase, onUpdated, setMes
   );
 }
 
-export function HotelProfileWorkspace({ hotel, headers, apiBase, onUpdated, setMessage, setMessageType }) {
+export function HotelProfileWorkspace({ hotel, headers, onUpdated, setMessage, setMessageType }) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ hotelName: "", location: "", address: "", city: "", district: "", province: "", country: "Sri Lanka", description: "", contactNumber: "", email: "", amenities: "", diningHighlights: "", latitude: "", longitude: "", googleMapUrl: "" });
 
@@ -214,7 +214,7 @@ export function HotelProfileWorkspace({ hotel, headers, apiBase, onUpdated, setM
         diningHighlights: fromLines(form.diningHighlights),
         mapLocation: { latitude: form.latitude, longitude: form.longitude, googleMapUrl: form.googleMapUrl.trim() },
       };
-      const { data } = await api.put(`${apiBase}/api/hotels/my-hotel`, payload, { headers });
+      const { data } = await api.put("/hotels/my-hotel", payload, { headers });
       onUpdated?.(data.hotel || { ...hotel, ...payload });
       setMessage("Hotel profile saved successfully.");
       setMessageType("success");
@@ -286,7 +286,7 @@ export function HotelProfileWorkspace({ hotel, headers, apiBase, onUpdated, setM
   );
 }
 
-export function HotelReviewReplyWorkspace({ reviews = [], headers, apiBase, refresh, setMessage, setMessageType }) {
+export function HotelReviewReplyWorkspace({ reviews = [], headers, refresh, setMessage, setMessageType }) {
   const [replyByReview, setReplyByReview] = useState({});
   const [savingId, setSavingId] = useState("");
 
@@ -299,7 +299,7 @@ export function HotelReviewReplyWorkspace({ reviews = [], headers, apiBase, refr
     }
     try {
       setSavingId(reviewId);
-      await api.put(`${apiBase}/api/hotel-portal/reviews/${reviewId}/reply`, { message }, { headers });
+      await api.put(`/hotel-portal/reviews/${reviewId}/reply`, { message }, { headers });
       setReplyByReview((current) => ({ ...current, [reviewId]: "" }));
       setMessage("Review reply published successfully.");
       setMessageType("success");
@@ -334,7 +334,7 @@ export function HotelReviewReplyWorkspace({ reviews = [], headers, apiBase, refr
   );
 }
 
-export function HotelSettingsWorkspace({ hotel, headers, apiBase, onUpdated, setMessage, setMessageType }) {
+export function HotelSettingsWorkspace({ hotel, headers, onUpdated, setMessage, setMessageType }) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ contactNumber: "", email: "", cancellationPolicy: "", refundPolicy: "", financeContactName: "", financeContactPhone: "", bankName: "", accountNumber: "", accountHolderName: "", bankBranch: "" });
 
@@ -347,7 +347,7 @@ export function HotelSettingsWorkspace({ hotel, headers, apiBase, onUpdated, set
     try {
       setSaving(true);
       const payload = { contactNumber: form.contactNumber.trim(), email: form.email.trim(), application: { ...(hotel?.application || {}), cancellationPolicy: form.cancellationPolicy.trim(), refundPolicy: form.refundPolicy.trim(), financeContactName: form.financeContactName.trim(), financeContactPhone: form.financeContactPhone.trim(), bankName: form.bankName.trim(), accountNumber: form.accountNumber.trim(), accountHolderName: form.accountHolderName.trim(), bankBranch: form.bankBranch.trim() } };
-      const { data } = await api.put(`${apiBase}/api/hotels/my-hotel`, payload, { headers });
+      const { data } = await api.put("/hotels/my-hotel", payload, { headers });
       onUpdated?.(data.hotel || { ...hotel, ...payload });
       setMessage("Hotel settings saved successfully.");
       setMessageType("success");

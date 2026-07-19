@@ -4,7 +4,6 @@ import MediaUploader from "../components/MediaUploader";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 const mealOptions = ["Breakfast", "Lunch", "Dinner", "Brunch", "High Tea", "Seafood Night", "BBQ Night", "Special Events"];
 const cuisineOptions = ["Sri Lankan", "Indian", "Chinese", "Italian", "Mexican", "Seafood", "Arabic", "International", "Vegetarian", "Halal"];
@@ -97,7 +96,7 @@ function HotelApply() {
 
     try {
       setLoading(true);
-      const res = await api.get(`${API_BASE}/api/hotels/my-hotel`, { headers });
+      const res = await api.get(`/hotels/my-hotel`, { headers });
       const h = res.data;
       setHotel(h);
       setFormData({
@@ -263,8 +262,8 @@ function HotelApply() {
     try {
       const payload = buildPayload();
       const res = hotel
-        ? await api.put(`${API_BASE}/api/hotels/my-hotel`, payload, { headers })
-        : await api.post(`${API_BASE}/api/hotels`, payload, { headers });
+        ? await api.put(`/hotels/my-hotel`, payload, { headers })
+        : await api.post(`/hotels`, payload, { headers });
 
       setMessage(res.data.message || "Hotel application saved successfully!");
       setMessageType("success");

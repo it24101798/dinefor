@@ -5,7 +5,6 @@ import FeedCard from "../components/FeedCard";
 import { useAuth } from "../context/AuthContext";
 import SkeletonCard from "../components/shared/SkeletonCard";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 // ============================================
 // MAIN COMPONENT

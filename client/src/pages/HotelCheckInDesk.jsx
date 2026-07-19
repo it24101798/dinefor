@@ -3,7 +3,6 @@ import api from "../services/api";
 import { Link, useNavigate } from "react-router-dom";
 import CheckInDesk from "../components/hotel/CheckInDesk";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 const formatDate = (date) => {
   if (!date) return "-";
@@ -76,7 +75,7 @@ function HotelCheckInDesk() {
     try {
       setLoading(true);
       setMessage("");
-      const res = await api.get(`${API_BASE}/api/bookings/hotel-bookings`, { headers });
+      const res = await api.get(`/bookings/hotel-bookings`, { headers });
       const data = Array.isArray(res.data) ? res.data : [];
       setBookings(data);
 
@@ -139,7 +138,7 @@ function HotelCheckInDesk() {
   const handleBookingAction = async (bookingId, action) => {
     try {
       const res = await api.put(
-        `${API_BASE}/api/bookings/${bookingId}/${action}`,
+        `/bookings/${bookingId}/${action}`,
         {},
         { headers }
       );

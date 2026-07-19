@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import api from "../../services/api";
+import api, { resolveMediaUrl } from "../../services/api";
 import MediaUploader from "../MediaUploader";
 
 const emptySlot = { startTime: "", endTime: "", totalSeats: "", availableSeats: "" };
@@ -31,12 +31,7 @@ const toDateInput = (value) => {
   return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
 };
 
-const mediaUrl = (value) => {
-  if (!value) return "";
-  if (value.startsWith("http") || value.startsWith("data:")) return value;
-  const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-  return `${base}${value}`;
-};
+const mediaUrl = (value) => resolveMediaUrl(value) || "";
 
 function HotelBuffetWorkspace({ headers, setMessage, setMessageType, onCreate, onChanged }) {
   const [buffets, setBuffets] = useState([]);

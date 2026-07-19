@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import api from "../services/api";
 import { Link, useNavigate } from "react-router-dom";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 function Register() {
   const navigate = useNavigate();
@@ -118,7 +117,7 @@ function Register() {
     }
 
     try {
-      const res = await api.post(`${API_BASE}/api/auth/register`, {
+      const res = await api.post(`/auth/register`, {
         name: formData.name,
         email: formData.email,
         password: formData.password,

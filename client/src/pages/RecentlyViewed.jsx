@@ -1,17 +1,16 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
-import api from "../services/api";
+import api, { resolveMediaUrl } from "../services/api";
 import SkeletonCard from "../components/shared/SkeletonCard";
 
-const API_ORIGIN = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/api\/?$/, "");
 
 const fallbackImage = "https://images.unsplash.com/photo-1555244162-803834f70033";
 
 const resolveMedia = (value) => {
   if (!value) return fallbackImage;
   if (value.startsWith("http") || value.startsWith("data:")) return value;
-  if (value.startsWith("/uploads")) return `${API_ORIGIN}${value}`;
-  if (value.startsWith("uploads")) return `${API_ORIGIN}/${value}`;
+  if (value.startsWith("/uploads")) return resolveMediaUrl(value);
+  if (value.startsWith("uploads")) return resolveMediaUrl(`/${value}`);
   return value;
 };
 

@@ -3,7 +3,6 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 const HotelApprovedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -20,7 +19,7 @@ const HotelApprovedRoute = ({ children }) => {
       try {
         const token = user.token;
         const headers = { Authorization: `Bearer ${token}` };
-        const res = await api.get(`${API_BASE}/api/hotels/my-hotel`, { headers });
+        const res = await api.get(`/hotels/my-hotel`, { headers });
         
         if (res.data) {
           setHotelStatus(res.data.status || "pending");

@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import api from "../services/api";
+import api, { resolveMediaUrl } from "../services/api";
 import ReviewForm from "../components/reviews/ReviewForm";
 import ReviewList from "../components/reviews/ReviewList";
 
-const API_ORIGIN = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/api\/?$/, "");
 
 const fallbackImage = "https://images.unsplash.com/photo-1555244162-803834f70033";
 
@@ -19,8 +18,8 @@ const resolveMedia = (value) => {
   if (!value) return fallbackImage;
   if (typeof value === "string") {
     if (value.startsWith("http") || value.startsWith("data:")) return value;
-    if (value.startsWith("/uploads")) return `${API_ORIGIN}${value}`;
-    if (value.startsWith("uploads")) return `${API_ORIGIN}/${value}`;
+    if (value.startsWith("/uploads")) return resolveMediaUrl(value);
+    if (value.startsWith("uploads")) return resolveMediaUrl(`/${value}`);
     return value;
   }
   return value.url || value.path || value.secure_url || fallbackImage;
