@@ -19,7 +19,7 @@ const app = express();
 |--------------------------------------------------------------------------
 | Reverse proxy support
 |--------------------------------------------------------------------------
-| Required later when DineFor runs behind Nginx or Cloudflare.
+| Required when DineFor runs behind Nginx, Cloudflare, or Wasmer.
 */
 app.set("trust proxy", 1);
 
@@ -38,12 +38,15 @@ if (!fs.existsSync(uploadsDir)) {
 |--------------------------------------------------------------------------
 | Allowed frontend origins
 |--------------------------------------------------------------------------
+| IMPORTANT: Add your Wasmer deployed URL here!
 */
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "https://dinefor.com",
   "https://www.dinefor.com",
+  "https://dinefor.wasmer.app",
+  "https://staticfile-it24101798.wasmer.app",
   process.env.CLIENT_URL,
 ].filter(Boolean);
 
@@ -51,8 +54,6 @@ const allowedOrigins = [
 |--------------------------------------------------------------------------
 | Security headers
 |--------------------------------------------------------------------------
-| crossOriginResourcePolicy is configured as cross-origin because the
-| frontend and uploaded images may be served from different subdomains.
 */
 app.use(
   helmet({
@@ -70,7 +71,6 @@ app.use(
 app.use(
   cors({
     origin(origin, callback) {
-      // Allow requests with no browser origin, such as Postman or server calls.
       if (!origin) {
         return callback(null, true);
       }
@@ -120,7 +120,6 @@ app.use(
 |--------------------------------------------------------------------------
 | General API rate limiter
 |--------------------------------------------------------------------------
-| Allows 300 API requests per IP every 15 minutes.
 */
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -138,7 +137,6 @@ app.use("/api", apiLimiter);
 |--------------------------------------------------------------------------
 | Stricter authentication rate limiter
 |--------------------------------------------------------------------------
-| Protects login and registration routes from repeated attempts.
 */
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -195,15 +193,39 @@ app.use("/api/payments", require("./routes/paymentRoutes"));
 app.use("/api/coupons", require("./routes/couponRoutes"));
 
 /*
+|==========================================================================
+| ⭐ SERVE REACT FRONTEND (PRODUCTION)
+|==========================================================================
+| Path: server/ → .. → root/ → client/dist
+| Must be AFTER all API routes but BEFORE 404 handler
+*/
+if (process.env.NODE_ENV === "production") {
+  const clientDistPath = path.join(__dirname, "..", "client", "dist");
+
+  if (fs.existsSync(clientDistPath)) {
+    app.use(express.static(clientDistPath));
+
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(clientDistPath, "index.html"));
+    });
+  } else {
+    console.warn("⚠️  client/dist not found. Run 'npm run build' first.");
+  }
+}
+
+/*
 |--------------------------------------------------------------------------
 | 404 handler
 |--------------------------------------------------------------------------
 */
 app.use((req, res) => {
-  res.status(404).json({
-    message: "API route not found.",
-    path: req.originalUrl,
-  });
+  if (req.path.startsWith("/api")) {
+    return res.status(404).json({
+      message: "API route not found.",
+      path: req.originalUrl,
+    });
+  }
+  res.status(404).send("Not Found");
 });
 
 /*
@@ -237,4 +259,5 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
 });

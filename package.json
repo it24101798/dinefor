@@ -1,0 +1,14 @@
+{
+  "name": "dinefor",
+  "version": "1.0.0",
+  "description": "DineFor fullstack application",
+  "scripts": {
+    "start": "cd server && node server.js",
+    "build": "cd client && npm install && npm run build",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm run dev"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
