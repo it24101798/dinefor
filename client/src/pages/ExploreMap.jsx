@@ -400,6 +400,7 @@ function ExploreMap() {
                 <MapView 
                   hotels={filteredHotels} 
                   selectedHotel={selectedHotel}
+                  onSelectHotel={selectHotel}
                 />
               )}
             </div>

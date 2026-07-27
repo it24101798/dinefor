@@ -184,10 +184,12 @@ exports.getMapHotels = async (req, res) => {
 exports.getMyHotel = async (req, res) => {
   try {
     const hotel = await Hotel.findOne({ owner: req.user.id }).populate("owner", "name email role");
-    if (!hotel) return res.status(404).json({ message: "Hotel profile not found." });
-    res.status(200).json(hotel);
+    if (!hotel) {
+      return res.status(200).json({ hotel: null, hasHotel: false, message: "No hotel application has been submitted yet." });
+    }
+    return res.status(200).json({ hotel, hasHotel: true });
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch hotel profile.", error: error.message });
+    return res.status(500).json({ message: "Failed to fetch hotel profile.", error: error.message });
   }
 };
 

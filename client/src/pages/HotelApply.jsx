@@ -73,8 +73,6 @@ function HotelApply() {
     application: emptyApplication,
   });
 
-  const headers = { Authorization: `Bearer ${token}` };
-
   const normalizeApplication = (application = {}) => ({
     ...emptyApplication,
     ...application,
@@ -96,8 +94,13 @@ function HotelApply() {
 
     try {
       setLoading(true);
-      const res = await api.get(`/hotels/my-hotel`, { headers });
-      const h = res.data;
+      const res = await api.get(`/hotels/my-hotel`);
+      const h = res.data?.hotel ?? res.data;
+      if (!h) {
+        setHotel(null);
+        setFormData((prev) => ({ ...prev, email: user?.email || "", application: { ...prev.application, managerEmail: user?.email || "" } }));
+        return;
+      }
       setHotel(h);
       setFormData({
         hotelName: h.hotelName || "",
@@ -136,7 +139,7 @@ function HotelApply() {
     } finally {
       setLoading(false);
     }
-  }, [token, headers, user, navigate]);
+  }, [token, user?.email, navigate]);
 
   useEffect(() => {
     fetchHotel();
@@ -261,9 +264,11 @@ function HotelApply() {
 
     try {
       const payload = buildPayload();
+      // Authentication is added automatically by the central Axios interceptor.
+      // Do not pass an undefined `headers` variable here.
       const res = hotel
-        ? await api.put(`/hotels/my-hotel`, payload, { headers })
-        : await api.post(`/hotels`, payload, { headers });
+        ? await api.put("/hotels/my-hotel", payload)
+        : await api.post("/hotels", payload);
 
       setMessage(res.data.message || "Hotel application saved successfully!");
       setMessageType("success");
@@ -276,7 +281,15 @@ function HotelApply() {
         setMessageType("success");
       }
     } catch (error) {
-      setMessage(error.response?.data?.message || "Failed to save hotel application.");
+      console.error(
+        "Hotel application submission failed:",
+        error.response?.data || error
+      );
+      setMessage(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to save hotel application."
+      );
       setMessageType("error");
     } finally {
       setSubmitting(false);

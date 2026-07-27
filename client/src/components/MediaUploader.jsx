@@ -1,24 +1,51 @@
 import React, { useRef, useState } from "react";
+import api from "../services/api";
 
-function MediaUploader({ onUpload, accept = "image/*", label = "Upload", multiple = false, maxFiles = 10 }) {
+function MediaUploader({
+  onUpload,
+  accept = "image/*,video/mp4,video/webm,video/ogg",
+  label = "Upload",
+  multiple = false,
+  maxFiles = 8,
+  maxSizeMb = 100,
+}) {
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [error, setError] = useState("");
+  const [progress, setProgress] = useState(0);
 
-  // ============================================
-  // HANDLERS
-  // ============================================
-  const handleFileChange = async (e) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  const uploadSingle = async (file) => {
+    if (file.size > maxSizeMb * 1024 * 1024) {
+      throw new Error(`File "${file.name}" exceeds the ${maxSizeMb}MB limit.`);
+    }
 
-    // Validate file count
+    const formData = new FormData();
+    formData.append("media", file);
+
+    const response = await api.post("/uploads", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress: (event) => {
+        if (event.total) setProgress(Math.round((event.loaded * 100) / event.total));
+      },
+    });
+
+    return {
+      ...response.data,
+      fileName: response.data.originalName || file.name,
+      fileSize: response.data.size || file.size,
+      fileType: file.type,
+    };
+  };
+
+  const handleFileChange = async (event) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+
     if (!multiple && files.length > 1) {
       setError("Please select only one file.");
       return;
     }
-
     if (files.length > maxFiles) {
       setError(`Maximum ${maxFiles} files allowed.`);
       return;
@@ -26,146 +53,50 @@ function MediaUploader({ onUpload, accept = "image/*", label = "Upload", multipl
 
     setUploading(true);
     setError("");
+    setProgress(0);
 
     try {
-      const uploadPromises = Array.from(files).map((file) => {
-        // Validate file size (max 10MB)
-        if (file.size > 10 * 1024 * 1024) {
-          throw new Error(`File "${file.name}" exceeds 10MB limit.`);
-        }
+      const results = [];
+      for (const file of files) results.push(await uploadSingle(file));
 
-        return new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            resolve({
-              fileUrl: reader.result,
-              mediaType: file.type.startsWith("video") ? "video" : "image",
-              fileName: file.name,
-              fileSize: file.size,
-              fileType: file.type,
-              file: file,
-            });
-          };
-          reader.readAsDataURL(file);
-        });
-      });
-
-      const results = await Promise.all(uploadPromises);
-
-      if (multiple) {
-        setUploadedFiles((prev) => [...prev, ...results]);
-        if (onUpload) onUpload(results);
-      } else {
-        const result = results[0];
-        setUploadedFiles([result]);
-        if (onUpload) onUpload(result);
-      }
-    } catch (err) {
-      setError(err.message || "Upload failed. Please try again.");
+      setUploadedFiles((current) => (multiple ? [...current, ...results] : results));
+      if (onUpload) onUpload(multiple ? results : results[0]);
+    } catch (uploadError) {
+      setError(uploadError.response?.data?.message || uploadError.message || "Upload failed. Please try again.");
     } finally {
       setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      setProgress(0);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
-  const removeFile = (index) => {
-    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
-  };
+  const removeFile = (index) => setUploadedFiles((current) => current.filter((_, itemIndex) => itemIndex !== index));
+  const formatFileSize = (bytes = 0) => bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 
-  const formatFileSize = (bytes) => {
-    if (bytes < 1024) return bytes + " B";
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
-  };
-
-  const getFileIcon = (fileType) => {
-    if (fileType?.startsWith("video")) return "videocam";
-    if (fileType?.startsWith("image")) return "image";
-    if (fileType?.includes("pdf")) return "picture_as_pdf";
-    return "insert_drive_file";
-  };
-
-  // ============================================
-  // RENDER
-  // ============================================
   return (
     <div className="space-y-3">
-      <div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={accept}
-          onChange={handleFileChange}
-          multiple={multiple}
-          className="hidden"
-        />
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-          className="btn-outline w-full flex items-center justify-center gap-2"
-        >
-          <span className="material-symbols-outlined text-[18px]">
-            {uploading ? "progress_activity" : "upload"}
-          </span>
-          {uploading ? "Uploading..." : label}
-        </button>
-      </div>
+      <input ref={fileInputRef} type="file" accept={accept} onChange={handleFileChange} multiple={multiple} className="hidden" />
+      <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="btn-outline w-full flex items-center justify-center gap-2">
+        <span className="material-symbols-outlined text-[18px]">{uploading ? "progress_activity" : "upload"}</span>
+        {uploading ? `Uploading${progress ? ` ${progress}%` : "..."}` : label}
+      </button>
 
-      {error && (
-        <div className="p-3 rounded-xl bg-error/10 text-error text-sm">
-          <span className="material-symbols-outlined text-[16px] align-middle mr-1">error</span>
-          {error}
-        </div>
-      )}
+      {error && <div className="p-3 rounded-xl bg-error/10 text-error text-sm">{error}</div>}
 
-      {/* Uploaded Files Preview */}
       {uploadedFiles.length > 0 && (
         <div className="space-y-2">
           {uploadedFiles.map((file, index) => (
-            <div
-              key={index}
-              className="flex items-center gap-3 p-3 rounded-xl border border-border-subtle bg-surface-container-low animate-fade-in"
-            >
-              {/* Preview */}
-              {file.mediaType === "image" && file.fileUrl ? (
-                <img
-                  src={file.fileUrl}
-                  alt={file.fileName || "Uploaded file"}
-                  className="w-12 h-12 rounded-lg object-cover"
-                />
+            <div key={`${file.fileUrl}-${index}`} className="flex items-center gap-3 p-3 rounded-xl border border-border-subtle bg-surface-container-low">
+              {file.mediaType === "video" ? (
+                <video src={file.fileUrl} className="w-14 h-14 rounded-lg object-cover" muted />
               ) : (
-                <div className="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center">
-                  <span className="material-symbols-outlined text-2xl text-outline">
-                    {getFileIcon(file.fileType)}
-                  </span>
-                </div>
+                <img src={file.fileUrl} alt={file.fileName || "Uploaded media"} className="w-14 h-14 rounded-lg object-cover" />
               )}
-
-              {/* File Info */}
               <div className="flex-1 min-w-0">
-                <p className="font-label-sm text-label-sm text-text-deep-green truncate">
-                  {file.fileName || "Uploaded file"}
-                </p>
-                <div className="flex items-center gap-2">
-                  <p className="font-label-xs text-label-sm text-on-surface-variant">
-                    {formatFileSize(file.fileSize)}
-                  </p>
-                  <span className="text-border-subtle">•</span>
-                  <p className="font-label-xs text-label-sm text-on-surface-variant">
-                    {file.mediaType === "image" ? "Image" : "Video"}
-                  </p>
-                </div>
+                <p className="font-label-sm text-text-deep-green truncate">{file.fileName || "Uploaded media"}</p>
+                <p className="text-xs text-on-surface-variant">{file.mediaType} · {formatFileSize(file.fileSize)}</p>
               </div>
-
-              {/* Remove Button */}
-              <button
-                type="button"
-                onClick={() => removeFile(index)}
-                className="text-on-surface-variant hover:text-error transition-colors"
-              >
+              <button type="button" onClick={() => removeFile(index)} aria-label="Remove preview" className="text-on-surface-variant hover:text-error">
                 <span className="material-symbols-outlined text-[18px]">close</span>
               </button>
             </div>

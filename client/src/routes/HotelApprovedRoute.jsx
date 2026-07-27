@@ -21,8 +21,9 @@ const HotelApprovedRoute = ({ children }) => {
         const headers = { Authorization: `Bearer ${token}` };
         const res = await api.get(`/hotels/my-hotel`, { headers });
         
-        if (res.data) {
-          setHotelStatus(res.data.status || "pending");
+        const hotel = res.data?.hotel ?? res.data;
+        if (hotel) {
+          setHotelStatus(hotel.status || "pending");
         } else {
           setHotelStatus("no_application");
         }

@@ -48,7 +48,8 @@ const upload = multer({
 });
 
 const buildFileResponse = (req, file) => {
-  const fileUrl = `${req.protocol}://${req.get("host")}/uploads/${file.filename}`;
+  const publicBase = (process.env.PUBLIC_API_URL || `${req.protocol}://${req.get("host")}`).replace(/\/+$/, "");
+  const fileUrl = `${publicBase}/uploads/${file.filename}`;
   return {
     fileUrl,
     mediaType: file.mimetype.startsWith("video") ? "video" : "image",

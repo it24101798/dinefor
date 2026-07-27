@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback, useRef } from "react"
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import FeedCard from "../components/FeedCard";
+import HeroMediaCarousel from "../components/HeroMediaCarousel";
 
 // ============================================
 // CONFIGURATION
@@ -402,16 +403,9 @@ function Home() {
 
   const renderHero = () => (
     <section className="relative w-full overflow-hidden" ref={heroRef}>
-      <div className="relative h-[500px] md:h-[600px] w-full bg-surface-dim">
-        <img
-          src={settings.heroMediaUrl}
-          alt="DineFor premium hotel buffet"
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            e.target.src = "https://images.unsplash.com/photo-1555244162-803834f70033?w=1400&h=600&fit=crop";
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-text-deep-green/70 via-text-deep-green/30 to-transparent" />
+      <div className="relative h-[540px] md:h-[600px] w-full bg-surface-dim">
+        <HeroMediaCarousel settings={settings} />
+        <div className="absolute inset-0 bg-gradient-to-t from-text-deep-green/75 via-text-deep-green/35 to-text-deep-green/10 pointer-events-none" />
       </div>
 
       <div className="absolute inset-0 flex items-center justify-center px-margin-mobile md:px-margin-desktop">
@@ -736,7 +730,7 @@ function Home() {
                     Rs. {Number(buffet.price || 0).toLocaleString()}
                   </p>
                   <span className="text-secondary font-label-sm text-label-sm group-hover:translate-x-1 transition-transform">
-                    Reserve →
+                    Reserve
                   </span>
                 </div>
               </div>

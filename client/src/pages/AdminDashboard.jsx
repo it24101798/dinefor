@@ -5,6 +5,7 @@ import HomeCMSPanel from "../components/admin/HomeCMSPanel";
 import ReviewModerationPanel from "../components/admin/ReviewModerationPanel";
 import AdminAnalyticsPanel from "../components/analytics/AdminAnalyticsPanel";
 import AdminFinancePanel from "../components/payments/AdminFinancePanel";
+import AdminUserManager from "../components/admin/AdminUserManager";
 
 const API_SERVER = getServerBaseUrl();
 
@@ -14,6 +15,7 @@ const API_SERVER = getServerBaseUrl();
 const adminSections = [
   { key: "overview", label: "Overview", icon: "dashboard", path: "/admin" },
   { key: "hotels", label: "Hotel Applications", icon: "domain_verification", path: "/admin/hotels" },
+  { key: "users", label: "Users", icon: "group", path: "/admin/users" },
   { key: "featured", label: "Featured Buffets", icon: "restaurant", path: "/admin/featured" },
   { key: "bookings", label: "Bookings", icon: "event_available", path: "/admin/bookings" },
   { key: "homepage", label: "Homepage CMS", icon: "web", path: "/admin/homepage" },
@@ -1115,6 +1117,7 @@ function AdminDashboard() {
 
           {currentSection.key === "overview" && renderOverview()}
           {currentSection.key === "hotels" && renderHotels()}
+          {currentSection.key === "users" && <AdminUserManager users={users} onChanged={fetchAll} />}
           {currentSection.key === "bookings" && renderBookings()}
           {currentSection.key === "featured" && renderFeatured()}
           {currentSection.key === "settings" && renderSettings()}

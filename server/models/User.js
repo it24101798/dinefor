@@ -113,10 +113,10 @@ const userSchema = new mongoose.Schema(
       city: { type: String, default: "" },
     },
 
-    isApproved: {
-      type: Boolean,
-      default: false,
-    },
+    isApproved: { type: Boolean, default: false },
+    isActive: { type: Boolean, default: true },
+    mustResetPassword: { type: Boolean, default: false },
+    passwordResetRequestedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

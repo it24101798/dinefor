@@ -18,6 +18,7 @@ function BuffetCreator({ hotel, headers, onCreated, setMessage }) {
   const [recurringDays, setRecurringDays] = useState([]);
   const [images, setImages] = useState([]);
   const [videos, setVideos] = useState([]);
+  const [coverMedia, setCoverMedia] = useState("");
   const [timeSlots, setTimeSlots] = useState([{ startTime: "", endTime: "", totalSeats: "" }]);
 
   const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -55,8 +56,10 @@ function BuffetCreator({ hotel, headers, onCreated, setMessage }) {
           availableFromDate: formData.buffetType === "regular" ? formData.availableFromDate : null,
           availableToDate: formData.buffetType === "regular" ? formData.availableToDate : null,
           specialDate: formData.buffetType === "special" ? formData.specialDate : null,
+          thumbnail: coverMedia || images[0] || "",
           images,
           videos: [...videos, ...urlVideos],
+          status: "active",
           timeSlots: formattedSlots,
         },
         { headers }
@@ -67,6 +70,7 @@ function BuffetCreator({ hotel, headers, onCreated, setMessage }) {
       setRecurringDays([]);
       setImages([]);
       setVideos([]);
+      setCoverMedia("");
       setTimeSlots([{ startTime: "", endTime: "", totalSeats: "" }]);
       onCreated();
     } catch (error) {
@@ -119,15 +123,32 @@ function BuffetCreator({ hotel, headers, onCreated, setMessage }) {
           <div>
             <h3>Upload Buffet Photos / Videos</h3>
             <MediaUploader
+              label="Upload cover image or video"
+              accept="image/*,video/mp4,video/webm"
               onUpload={(data) => {
-                if (data.mediaType === "video") setVideos((prev) => [...prev, data.fileUrl]);
-                else setImages((prev) => [...prev, data.fileUrl]);
+                if (data.mediaType === "video") {
+                  setVideos((prev) => [...prev, data.fileUrl]);
+                  if (!coverMedia) setCoverMedia(data.fileUrl);
+                } else {
+                  setImages((prev) => [...prev, data.fileUrl]);
+                  if (!coverMedia) setCoverMedia(data.fileUrl);
+                }
               }}
             />
+            <p className="text-sm text-on-surface-variant mt-2">The first uploaded item becomes the buffet cover. You can change it below.</p>
           </div>
           <div className="uploaded-list">
             <h3>Uploaded Media</h3>
             <p>{images.length} image(s), {videos.length} video(s)</p>
+            {(images.length > 0 || videos.length > 0) && (
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                {[...images, ...videos].map((url) => (
+                  <button key={url} type="button" onClick={() => setCoverMedia(url)} className={`rounded-xl overflow-hidden border-2 ${coverMedia === url ? "border-secondary" : "border-transparent"}`}>
+                    {videos.includes(url) ? <video src={url} muted className="w-full h-20 object-cover" /> : <img src={url} alt="Buffet media" className="w-full h-20 object-cover" />}
+                  </button>
+                ))}
+              </div>
+            )}
             <textarea name="videosText" placeholder="Optional external video URLs separated by commas" value={formData.videosText} onChange={handleChange} />
           </div>
         </div>

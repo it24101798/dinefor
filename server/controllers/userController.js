@@ -10,6 +10,7 @@ const safeUser = (user) => ({
   avatarUrl: user.avatarUrl || "",
   city: user.city || "",
   isApproved: user.isApproved,
+  isActive: user.isActive !== false,
   savedBuffets: user.savedBuffets || [],
 });
 
@@ -94,5 +95,48 @@ exports.getAllUsersAdmin = async (req, res) => {
     res.status(200).json(users);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch users.", error: error.message });
+  }
+};
+
+
+exports.updateUserAdmin = async (req, res) => {
+  try {
+    const allowed = ["name", "email", "phone", "city", "role", "isApproved", "isActive"];
+    const updates = {};
+    allowed.forEach((key) => { if (req.body[key] !== undefined) updates[key] = req.body[key]; });
+    if (updates.email) updates.email = String(updates.email).trim().toLowerCase();
+    if (String(req.params.id) === String(req.user.id) && updates.isActive === false) {
+      return res.status(400).json({ message: "You cannot disable your own admin account." });
+    }
+    const user = await User.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true }).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found." });
+    return res.status(200).json({ message: "User updated successfully.", user });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update user.", error: error.message });
+  }
+};
+
+exports.requestPasswordResetAdmin = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found." });
+    user.mustResetPassword = true;
+    user.passwordResetRequestedAt = new Date();
+    await user.save();
+    return res.status(200).json({ message: "The account has been marked for password reset. Passwords are never displayed to administrators." });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to request password reset.", error: error.message });
+  }
+};
+
+exports.deleteUserAdmin = async (req, res) => {
+  try {
+    if (String(req.params.id) === String(req.user.id)) return res.status(400).json({ message: "You cannot delete your own admin account." });
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found." });
+    await User.findByIdAndDelete(user._id);
+    return res.status(200).json({ message: "User deleted successfully." });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to delete user.", error: error.message });
   }
 };

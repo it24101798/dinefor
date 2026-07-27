@@ -118,39 +118,38 @@ app.use(
 
 /*
 |--------------------------------------------------------------------------
-| General API rate limiter
+| API rate limiting
 |--------------------------------------------------------------------------
-| Allows 300 API requests per IP every 15 minutes.
+| Dashboards legitimately load several resources at once. Preflight requests
+| and health checks are excluded, while authentication stays more restrictive.
 */
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 300,
+  limit: 2000,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.method === "OPTIONS" || req.path === "/health",
   message: {
-    message: "Too many requests. Please try again later.",
+    message: "Too many requests from this connection. Please wait a few minutes and try again.",
+    code: "RATE_LIMIT_EXCEEDED",
   },
 });
 
-app.use("/api", apiLimiter);
-
-/*
-|--------------------------------------------------------------------------
-| Stricter authentication rate limiter
-|--------------------------------------------------------------------------
-| Protects login and registration routes from repeated attempts.
-*/
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  skip: (req) => req.method === "OPTIONS",
   message: {
-    message: "Too many authentication attempts. Please try again later.",
+    message: "Too many unsuccessful authentication attempts. Please wait 15 minutes and try again.",
+    code: "AUTH_RATE_LIMIT_EXCEEDED",
   },
 });
 
 app.use("/api/auth", authLimiter);
+app.use("/api", apiLimiter);
 
 /*
 |--------------------------------------------------------------------------
