@@ -1,114 +1,84 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../../services/api";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  "http://localhost:5000/api";
-
-const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
-
-function getReviewImageUrl(image) {
-  if (!image) return "";
-
-  if (
-    image.startsWith("http://") ||
-    image.startsWith("https://") ||
-    image.startsWith("data:")
-  ) {
-    return image;
-  }
-
-  const normalizedPath = image.startsWith("/")
-    ? image
-    : `/${image}`;
-
-  return `${API_ORIGIN}${normalizedPath}`;
-}
-
-function HotelReviewsWorkspace({ headers, setMessage }) {
+export default function HotelReviewsWorkspace({
+  headers,
+  setMessage,
+}) {
   const [reviews, setReviews] = useState([]);
+  const [analytics, setAnalytics] = useState({});
   const [filters, setFilters] = useState({
-    status: "published",
+    status: "all",
     rating: "all",
   });
   const [replyText, setReplyText] = useState({});
   const [loading, setLoading] = useState(true);
-  const [savingReviewId, setSavingReviewId] = useState(null);
+  const [savingId, setSavingId] = useState("");
 
-  const queryString = useMemo(() => {
+  const query = useMemo(() => {
     const params = new URLSearchParams();
 
     Object.entries(filters).forEach(([key, value]) => {
-      if (value && value !== "all") {
-        params.append(key, value);
-      }
+      if (value !== "all") params.set(key, value);
     });
 
     return params.toString();
   }, [filters]);
 
-  const loadReviews = async () => {
+  const load = useCallback(async () => {
     try {
       setLoading(true);
-
-      const endpoint = queryString
-        ? `/hotel-portal/reviews?${queryString}`
-        : "/hotel-portal/reviews";
-
-      const response = await api.get(endpoint, { headers });
-
-      setReviews(
-        Array.isArray(response.data) ? response.data : []
+      const response = await api.get(
+        `/reviews/hotel-workspace/me${query ? `?${query}` : ""}`,
+        { headers }
       );
+      setReviews(response.data?.reviews || []);
+      setAnalytics(response.data?.analytics || {});
     } catch (error) {
-      console.error("Review loading error:", error);
-
       setMessage?.(
         error.response?.data?.message ||
-          "Failed to load reviews."
+          "Failed to load hotel reviews."
       );
     } finally {
       setLoading(false);
     }
-  };
+  }, [headers, query, setMessage]);
 
   useEffect(() => {
-    loadReviews();
-  }, [queryString]);
+    load();
+  }, [load]);
 
-  const saveReply = async (reviewId) => {
-    const reply = replyText[reviewId]?.trim();
+  const saveReply = async (review) => {
+    const message =
+      replyText[review._id]?.trim() ||
+      review.hotelReply?.message ||
+      "";
 
-    if (!reply) {
-      setMessage?.("Please enter a reply before saving.");
+    if (!message) {
+      setMessage?.("Write a reply before saving.");
       return;
     }
 
     try {
-      setSavingReviewId(reviewId);
-
+      setSavingId(review._id);
       await api.put(
-        `/hotel-portal/reviews/${reviewId}/reply`,
-        { reply },
+        `/reviews/${review._id}/reply`,
+        { message },
         { headers }
       );
-
+      setMessage?.("Hotel reply saved.");
       setReplyText((current) => ({
         ...current,
-        [reviewId]: "",
+        [review._id]: "",
       }));
-
-      setMessage?.("Review reply saved successfully.");
-      await loadReviews();
+      await load();
     } catch (error) {
-      console.error("Review reply error:", error);
-
       setMessage?.(
         error.response?.data?.message ||
-          "Failed to save reply."
+          "Reply could not be saved."
       );
     } finally {
-      setSavingReviewId(null);
+      setSavingId("");
     }
   };
 
@@ -116,154 +86,155 @@ function HotelReviewsWorkspace({ headers, setMessage }) {
     <section className="hotel-panel">
       <div className="hotel-panel-head">
         <div>
-          <span className="eyebrow">Guest Reviews</span>
-
-          <h2>Google Business style review workspace</h2>
-
+          <span className="eyebrow">Reputation</span>
+          <h2>Guest Reviews & Replies</h2>
           <p>
-            Read feedback, filter by rating, and reply
-            professionally as the hotel.
+            Track verified feedback, rating distribution and hotel response performance.
           </p>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        {[
+          ["Average Rating", Number(analytics.averageRating || 0).toFixed(1)],
+          ["Published", analytics.publishedReviews || 0],
+          ["Response Rate", `${analytics.responseRate || 0}%`],
+          ["Reports", analytics.pendingReports || 0],
+        ].map(([label, value]) => (
+          <div key={label} className="card-ambient p-4 text-center">
+            <strong className="text-2xl text-text-deep-green">
+              {value}
+            </strong>
+            <p className="text-sm text-on-surface-variant">
+              {label}
+            </p>
+          </div>
+        ))}
       </div>
 
       <div className="hotel-filter-bar">
         <select
           value={filters.status}
           onChange={(event) =>
-            setFilters((current) => ({
-              ...current,
+            setFilters({
+              ...filters,
               status: event.target.value,
-            }))
+            })
           }
         >
+          <option value="all">All statuses</option>
           <option value="published">Published</option>
+          <option value="pending">Pending moderation</option>
           <option value="hidden">Hidden</option>
-          <option value="all">All</option>
         </select>
 
         <select
           value={filters.rating}
           onChange={(event) =>
-            setFilters((current) => ({
-              ...current,
+            setFilters({
+              ...filters,
               rating: event.target.value,
-            }))
+            })
           }
         >
           <option value="all">All ratings</option>
-          <option value="5">5 stars</option>
-          <option value="4">4 stars</option>
-          <option value="3">3 stars</option>
-          <option value="2">2 stars</option>
-          <option value="1">1 star</option>
+          {[5, 4, 3, 2, 1].map((rating) => (
+            <option key={rating} value={rating}>
+              {rating} stars
+            </option>
+          ))}
         </select>
       </div>
 
       {loading ? (
-        <p className="muted">Loading reviews...</p>
-      ) : reviews.length === 0 ? (
-        <p className="empty-state">No reviews found.</p>
-      ) : (
+        <p className="muted">Loading reviews…</p>
+      ) : reviews.length ? (
         <div className="hotel-review-grid">
-          {reviews.map((review) => {
-            const rating = Math.max(
-              0,
-              Math.min(5, Number(review.rating || 0))
-            );
-
-            return (
-              <article
-                className="hotel-review-card"
-                key={review._id}
-              >
-                <div className="review-topline">
-                  <strong>
-                    {review.user?.name || "Guest"}
-                  </strong>
-
-                  <span aria-label={`${rating} out of 5 stars`}>
-                    {"★".repeat(rating)}
-                    {"☆".repeat(5 - rating)}
-                  </span>
+          {reviews.map((review) => (
+            <article className="hotel-review-card" key={review._id}>
+              <div className="review-topline">
+                <div>
+                  <strong>{review.user?.name || "Guest"}</strong>
+                  <p>
+                    {"★".repeat(Math.round(review.rating))}
+                    {"☆".repeat(5 - Math.round(review.rating))}
+                  </p>
                 </div>
 
-                <small>
-                  {review.buffet?.title || "Buffet"} ·{" "}
-                  {review.createdAt
-                    ? new Date(
-                        review.createdAt
-                      ).toLocaleDateString()
-                    : "-"}
-                </small>
+                <span className={`status ${review.status}`}>
+                  {review.status}
+                </span>
+              </div>
 
-                <p>
-                  {review.comment || "No written review."}
-                </p>
+              <small>
+                {review.buffet?.title || "Buffet"} ·{" "}
+                {new Date(review.createdAt).toLocaleDateString()}
+              </small>
 
-                {Array.isArray(review.images) &&
-                  review.images.length > 0 && (
-                    <div className="review-media-row">
-                      {review.images
-                        .slice(0, 4)
-                        .map((image, index) => {
-                          const imageUrl =
-                            getReviewImageUrl(image);
+              {review.title && <h3>{review.title}</h3>}
+              <p>{review.comment}</p>
 
-                          if (!imageUrl) return null;
+              <div className="flex flex-wrap gap-2">
+                <span className="badge-mint">Verified Booking</span>
+                <span className="badge">
+                  {review.helpfulVotes?.length || 0} helpful
+                </span>
+              </div>
 
-                          return (
-                            <img
-                              key={`${image}-${index}`}
-                              src={imageUrl}
-                              alt={`Review upload ${index + 1}`}
-                              loading="lazy"
-                              onError={(event) => {
-                                event.currentTarget.style.display =
-                                  "none";
-                              }}
-                            />
-                          );
-                        })}
-                    </div>
-                  )}
+              {review.images?.length > 0 && (
+                <div className="review-media-row">
+                  {review.images.slice(0, 4).map((image) => (
+                    <img
+                      src={image}
+                      alt="Review"
+                      key={image}
+                      loading="lazy"
+                    />
+                  ))}
+                </div>
+              )}
 
-                {review.hotelReply?.message && (
-                  <div className="hotel-reply">
-                    <strong>Your reply</strong>
-                    <p>{review.hotelReply.message}</p>
-                  </div>
-                )}
+              {review.hotelReply?.message && (
+                <div className="hotel-reply">
+                  <strong>Your public reply</strong>
+                  <p>{review.hotelReply.message}</p>
+                </div>
+              )}
 
-                <textarea
-                  placeholder="Write a professional reply..."
-                  value={replyText[review._id] || ""}
-                  onChange={(event) =>
-                    setReplyText((current) => ({
-                      ...current,
-                      [review._id]: event.target.value,
-                    }))
-                  }
-                  maxLength={1000}
-                />
+              <textarea
+                placeholder="Write a professional response…"
+                maxLength={1200}
+                value={
+                  replyText[review._id] ??
+                  review.hotelReply?.message ??
+                  ""
+                }
+                onChange={(event) =>
+                  setReplyText({
+                    ...replyText,
+                    [review._id]: event.target.value,
+                  })
+                }
+              />
 
-                <button
-                  type="button"
-                  className="mini-btn"
-                  disabled={savingReviewId === review._id}
-                  onClick={() => saveReply(review._id)}
-                >
-                  {savingReviewId === review._id
-                    ? "Saving..."
-                    : "Save Reply"}
-                </button>
-              </article>
-            );
-          })}
+              <button
+                type="button"
+                className="mini-btn"
+                disabled={savingId === review._id}
+                onClick={() => saveReply(review)}
+              >
+                {savingId === review._id
+                  ? "Saving…"
+                  : review.hotelReply?.message
+                    ? "Update Reply"
+                    : "Publish Reply"}
+              </button>
+            </article>
+          ))}
         </div>
+      ) : (
+        <p className="empty-state">No reviews match these filters.</p>
       )}
     </section>
   );
 }
-
-export default HotelReviewsWorkspace;

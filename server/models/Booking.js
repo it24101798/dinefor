@@ -140,6 +140,18 @@ const bookingSchema = new mongoose.Schema(
       trim: true,
     },
 
+    specialRequests: {
+      occasion: { type: String, enum: ["", "birthday", "anniversary", "business", "other"], default: "" },
+      seating: { type: String, enum: ["", "indoor", "outdoor", "window", "quiet", "accessible"], default: "" },
+      highChair: { type: Boolean, default: false },
+      wheelchairAccess: { type: Boolean, default: false },
+      dietaryNotes: { type: String, trim: true, maxlength: 500, default: "" },
+      additionalNotes: { type: String, trim: true, maxlength: 500, default: "" },
+    },
+
+    modificationCount: { type: Number, default: 0 },
+    lastModifiedAt: { type: Date, default: null },
+
     cancelledBy: {
       type: String,
       enum: ["customer", "hotel", "admin", null],
@@ -183,6 +195,13 @@ const bookingSchema = new mongoose.Schema(
       reminder24h: { type: Boolean, default: false },
       reminder3h: { type: Boolean, default: false },
       reviewRequest: { type: Boolean, default: false },
+    },
+
+    reminderFlags: {
+      dayBeforeSentAt: { type: Date, default: null },
+      hourBeforeSentAt: { type: Date, default: null },
+      startedSentAt: { type: Date, default: null },
+      completedSentAt: { type: Date, default: null },
     },
 
     statusTimeline: [

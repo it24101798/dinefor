@@ -1,4 +1,5 @@
 const Booking = require("../models/Booking");
+const User = require("../models/User");
 const Buffet = require("../models/Buffet");
 const Hotel = require("../models/Hotel");
 const BuffetSeatInventory = require("../models/BuffetSeatInventory");
@@ -7,6 +8,7 @@ const Coupon = require("../models/Coupon");
 const mongoose = require("mongoose");
 const { calculateTotals } = require("../utils/pricing");
 const { generateInvoiceNumber } = require("../utils/invoiceGenerator");
+const { communicateBookingEvent } = require("../services/bookingCommunicationService");
 
 const populateBooking = [
   { path: "user", select: "name email role" },
@@ -368,6 +370,12 @@ exports.createBooking = async (req, res) => {
       }
 
       const populatedBooking = await Booking.findById(booking._id).populate(populateBooking);
+      communicateBookingEvent({
+        booking: populatedBooking,
+        event: "confirmed",
+      }).catch((error) =>
+        console.error("Booking confirmation communication failed:", error.message)
+      );
       return res.status(201).json({
         message: "Reservation confirmed. Payment architecture, invoice, and QR are ready.",
         booking: populatedBooking,
@@ -476,6 +484,34 @@ exports.updateBookingStatus = async (req, res) => {
     if (bookingStatus === "cancelled" && !wasCancelled) await restoreSeatsForCancelledBooking(booking);
 
     const populatedBooking = await Booking.findById(booking._id).populate(populateBooking);
+
+    if (bookingStatus === "cancelled" && !wasCancelled) {
+      communicateBookingEvent({
+        booking: populatedBooking,
+        event: "cancelled",
+      }).catch((error) =>
+        console.error("Cancellation communication failed:", error.message)
+      );
+    }
+
+    if (paymentStatus === "paid") {
+      communicateBookingEvent({
+        booking: populatedBooking,
+        event: "payment_paid",
+      }).catch((error) =>
+        console.error("Payment communication failed:", error.message)
+      );
+    }
+
+    if (bookingStatus === "completed") {
+      communicateBookingEvent({
+        booking: populatedBooking,
+        event: "completed",
+      }).catch((error) =>
+        console.error("Completion communication failed:", error.message)
+      );
+    }
+
     res.status(200).json({ message: "Booking updated successfully.", booking: populatedBooking });
   } catch (error) {
     res.status(500).json({ message: "Failed to update booking.", error: error.message });
@@ -521,4 +557,57 @@ exports.checkInBooking = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: "Failed to check in booking.", error: error.message });
   }
+};
+
+
+exports.modifyMyBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findOne({ _id: req.params.id, user: req.user.id }).populate({ path: "buffet", populate: { path: "hotel" } });
+    if (!booking) return res.status(404).json({ message: "Booking not found." });
+    if (!["pending", "confirmed"].includes(booking.bookingStatus) || booking.qrUsed) return res.status(400).json({ message: "This booking can no longer be modified." });
+    if (booking.paymentStatus === "paid") return res.status(400).json({ message: "Paid bookings require hotel assistance for modifications." });
+    const buffet = booking.buffet;
+    const requestedDate = req.body.selectedDate ? normalizeDateKey(req.body.selectedDate) : normalizeDateKey(booking.selectedDate);
+    const requestedSlot = req.body.slotId ? findSlot(buffet, req.body.slotId) : buffet.timeSlots.find(slot => slot.startTime === booking.selectedTimeSlot.startTime && slot.endTime === booking.selectedTimeSlot.endTime);
+    const requestedSeats = req.body.seats !== undefined ? Number(req.body.seats) : Number(booking.seats);
+    if (!requestedDate || !requestedSlot || !Number.isInteger(requestedSeats) || requestedSeats < 1) return res.status(400).json({ message: "A valid date, time slot and guest count are required." });
+    const oldDateKey = normalizeDateKey(booking.selectedDate);
+    const oldSlot = buffet.timeSlots.find(slot => slot.startTime === booking.selectedTimeSlot.startTime && slot.endTime === booking.selectedTimeSlot.endTime);
+    const inventory = await ensureInventory({ buffet, dateKey: requestedDate, slot: requestedSlot });
+    const sameInventory = oldDateKey === requestedDate && oldSlot && String(oldSlot._id) === String(requestedSlot._id);
+    const extraNeeded = sameInventory ? requestedSeats - Number(booking.seats) : requestedSeats;
+    if (extraNeeded > 0 && Number(inventory.availableSeats) < extraNeeded) return res.status(409).json({ message: `Only ${inventory.availableSeats} additional seats are available.` });
+    if (sameInventory) {
+      inventory.availableSeats = Number(inventory.availableSeats) - extraNeeded;
+      await inventory.save();
+    } else {
+      if (oldSlot) await BuffetSeatInventory.findOneAndUpdate({ buffet: buffet._id, dateKey: oldDateKey, slotId: String(oldSlot._id) }, { $inc: { availableSeats: Number(booking.seats) } });
+      inventory.availableSeats = Number(inventory.availableSeats) - requestedSeats; await inventory.save();
+    }
+    booking.selectedDate = toUTCDate(requestedDate);
+    booking.selectedTimeSlot = { startTime: requestedSlot.startTime, endTime: requestedSlot.endTime };
+    booking.seats = requestedSeats;
+    booking.totalAmount = Number(buffet.price || 0) * requestedSeats;
+    booking.grandTotal = booking.totalAmount;
+    if (req.body.notes !== undefined) booking.notes = String(req.body.notes || "").slice(0, 1000);
+    if (req.body.specialRequests) booking.specialRequests = { ...booking.specialRequests?.toObject?.(), ...req.body.specialRequests };
+    booking.modificationCount = Number(booking.modificationCount || 0) + 1;
+    booking.lastModifiedAt = new Date();
+    booking.statusTimeline.push({ status: booking.bookingStatus, note: "Customer modified reservation details.", by: req.user.id, at: new Date() });
+    await booking.save();
+    await User.findByIdAndUpdate(req.user.id, { $push: { notifications: { $each: [{ title: "Reservation updated", message: `${buffet.title} was updated successfully.`, type: "booking", link: "/my-bookings" }], $position: 0, $slice: 50 } } });
+    res.json({ message: "Booking updated successfully.", booking: await Booking.findById(booking._id).populate(populateBooking) });
+  } catch (error) { res.status(500).json({ message: "Failed to modify booking.", error: error.message }); }
+};
+
+exports.downloadCalendar = async (req, res) => {
+  try {
+    const booking = await Booking.findOne({ _id: req.params.id, user: req.user.id }).populate({ path: "buffet", populate: { path: "hotel" } });
+    if (!booking) return res.status(404).json({ message: "Booking not found." });
+    const d = new Date(booking.selectedDate); const [sh,sm] = String(booking.selectedTimeSlot.startTime||"12:00").replace(/[^0-9:]/g,"").split(":");
+    const [eh,em] = String(booking.selectedTimeSlot.endTime||"14:00").replace(/[^0-9:]/g,"").split(":");
+    const pad=n=>String(n).padStart(2,"0"); const stamp=(date,h,m)=>`${date.getUTCFullYear()}${pad(date.getUTCMonth()+1)}${pad(date.getUTCDate())}T${pad(Number(h)||0)}${pad(Number(m)||0)}00`;
+    const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//DineFor//Reservation//EN","BEGIN:VEVENT",`UID:${booking._id}@dinefor.com`,`DTSTAMP:${stamp(new Date(),new Date().getUTCHours(),new Date().getUTCMinutes())}`,`DTSTART:${stamp(d,sh,sm)}`,`DTEND:${stamp(d,eh,em)}`,`SUMMARY:${booking.buffet.title} - DineFor`,`LOCATION:${booking.buffet.hotel?.hotelName||""} ${booking.buffet.hotel?.location||""}`,`DESCRIPTION:Booking code ${booking.bookingCode} for ${booking.seats} guest(s).`,`END:VEVENT`,`END:VCALENDAR`].join("\r\n");
+    res.setHeader("Content-Type","text/calendar; charset=utf-8"); res.setHeader("Content-Disposition",`attachment; filename=dinefor-${booking.bookingCode}.ics`); res.send(ics);
+  } catch (error) { res.status(500).json({ message: "Failed to create calendar file.", error: error.message }); }
 };

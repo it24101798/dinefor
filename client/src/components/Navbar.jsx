@@ -66,9 +66,13 @@ function Navbar() {
   const userMenuItems = [
     { to: "/customer", label: "Dashboard", icon: "dashboard" },
     { to: "/my-bookings", label: "My Bookings", icon: "event_seat" },
+    { to: "/recommendations", label: "For You", icon: "auto_awesome" },
+    { to: "/my-reviews", label: "My Reviews", icon: "rate_review" },
+    { to: "/notifications", label: "Notifications", icon: "notifications" },
     { to: "/saved", label: "Saved", icon: "bookmark" },
     { to: "/payments", label: "Payments", icon: "payments" },
     { to: "/profile", label: "Profile", icon: "person" },
+    { to: "/account-security", label: "Security", icon: "shield_lock" },
   ];
 
   const getInitials = (name) => {

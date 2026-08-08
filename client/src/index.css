@@ -1296,6 +1296,33 @@
 }
 
 
+/* Bundle 22: functional MVP stabilization */
+.leaflet-container { min-height: 100%; background: #e9eee9; font-family: inherit; }
+.leaflet-popup-content-wrapper { border-radius: 14px; }
+.df-reserve-button,
+.stitch-primary-btn,
+a[data-action="reserve"] {
+  border-radius: 999px !important;
+  background: #97dbc4 !important;
+  color: #173b2a !important;
+  font-weight: 700 !important;
+  border: 0 !important;
+  box-shadow: 0 8px 20px rgba(30, 91, 66, .12);
+}
+
+@media (max-width: 640px) {
+  body { overflow-x: hidden; }
+  .hero-search-panel,
+  .home-search-panel,
+  [class*="search-panel"] { width: calc(100% - 1.5rem); margin-inline: auto; }
+  .card-ambient, .card-ambient-hover { border-radius: 1.15rem; }
+  .font-headline-lg { line-height: 1.08 !important; }
+  .btn-primary, .btn-secondary, .btn-outline { min-height: 44px; }
+  .leaflet-control-zoom a { width: 38px; height: 38px; line-height: 38px; }
+  main { max-width: 100vw; overflow-x: hidden; }
+}
+
+
 /* =========================================
    DINEFOR HOMEPAGE RESPONSIVE ENHANCEMENTS
    ========================================= */

@@ -131,7 +131,7 @@ function BuffetDetails() {
   const fetchReviews = useCallback(async () => {
     try {
       const res = await api.get(`/reviews/buffet/${id}`);
-      setReviews(Array.isArray(res.data) ? res.data : []);
+      setReviews(Array.isArray(res.data) ? res.data : res.data?.reviews || []);
     } catch (error) {
       console.error("Failed to fetch reviews:", error);
       setReviews([]);

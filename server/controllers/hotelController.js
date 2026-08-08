@@ -1,4 +1,9 @@
 const Hotel = require("../models/Hotel");
+const User = require("../models/User");
+const {
+  communicateHotelApplicationSubmitted,
+  communicateHotelStatusChanged,
+} = require("../services/hotelCommunicationService");
 let ActivityLog;
 try {
   ActivityLog = require("../models/ActivityLog");
@@ -111,6 +116,14 @@ exports.createHotel = async (req, res) => {
 
     const hotel = await Hotel.create(payload);
     await writeActivity(req, "hotel_application_submitted", hotel, `${hotel.hotelName} submitted a hotel application.`);
+
+    const owner = await User.findById(req.user.id).select("name email");
+    communicateHotelApplicationSubmitted({
+      hotel,
+      owner,
+    }).catch((error) =>
+      console.error("Hotel application communication failed:", error.message)
+    );
 
     res.status(201).json({
       message: `Hotel application submitted successfully. Application No: ${hotel.application.applicationNumber}`,
@@ -240,6 +253,16 @@ const moderateHotel = async (req, res, status, defaultNote) => {
 
     await hotel.save();
     await writeActivity(req, `hotel_${status}`, hotel, `${hotel.hotelName} status changed to ${status}.`, { note });
+
+    const owner = await User.findById(hotel.owner).select("name email");
+    communicateHotelStatusChanged({
+      hotel,
+      owner,
+      status,
+      note,
+    }).catch((error) =>
+      console.error("Hotel moderation communication failed:", error.message)
+    );
 
     const label = status.replace(/_/g, " ");
     res.status(200).json({ message: `Hotel marked as ${label}.`, hotel });

@@ -263,39 +263,15 @@ exports.duplicateBuffet = async (req, res) => {
 };
 
 exports.getReviews = async (req, res) => {
-  try {
-    const hotel = await getMyHotel(req);
-    if (!hotel) return res.status(404).json({ message: "Hotel profile not found." });
-
-    const filter = { hotel: hotel._id };
-    if (req.query.status && req.query.status !== "all") filter.status = req.query.status;
-    if (req.query.rating && req.query.rating !== "all") filter.rating = Number(req.query.rating);
-
-    const reviews = await Review.find(filter).populate("user", "name email").populate("buffet", "title").sort({ createdAt: -1 });
-    res.status(200).json(reviews);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to load hotel reviews.", error: error.message });
-  }
+  const reviewController = require("./reviewController");
+  return reviewController.getHotelReviewWorkspace(req, res);
 };
 
 exports.replyToReview = async (req, res) => {
-  try {
-    const hotel = await getMyHotel(req);
-    if (!hotel) return res.status(404).json({ message: "Hotel profile not found." });
-
-    const review = await Review.findOneAndUpdate(
-      { _id: req.params.id, hotel: hotel._id },
-      { hotelReply: { message: req.body.reply || "", repliedAt: new Date(), repliedBy: req.user.id } },
-      { new: true }
-    ).populate("user", "name email").populate("buffet", "title");
-
-    if (!review) return res.status(404).json({ message: "Review not found for your hotel." });
-    res.status(200).json({ message: "Review reply saved.", review });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to save review reply.", error: error.message });
-  }
+  const reviewController = require("./reviewController");
+  req.body.message = req.body.message || req.body.reply;
+  return reviewController.replyToReview(req, res);
 };
-
 
 exports.getPayments = async (req, res) => {
   try {

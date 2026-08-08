@@ -1,724 +1,503 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../services/api";
-import { Link, useNavigate } from "react-router-dom";
 
-const APP_URL = import.meta.env.VITE_CLIENT_URL || "http://localhost:5173";
-
-const formatDate = (date) => {
-  if (!date) return "-";
-  return new Date(date).toLocaleDateString("en-US", { 
-    year: "numeric", 
-    month: "short", 
-    day: "numeric" 
-  });
+const statusStyle = {
+  pending: "bg-highlight-gold/15 text-highlight-gold",
+  confirmed: "bg-secondary-container/30 text-secondary",
+  checked_in: "bg-primary-container/15 text-primary",
+  dining: "bg-primary-container/15 text-primary",
+  completed: "bg-secondary-container/30 text-secondary",
+  cancelled: "bg-error/10 text-error",
+  no_show: "bg-error/10 text-error",
+  expired: "bg-surface-container-high text-on-surface-variant",
 };
 
-const formatTime = (date) => {
-  if (!date) return "-";
-  return new Date(date).toLocaleTimeString("en-US", { 
-    hour: "2-digit", 
-    minute: "2-digit" 
-  });
-};
+const formatDate = (value) =>
+  new Intl.DateTimeFormat("en", {
+    dateStyle: "medium",
+  }).format(new Date(value));
 
-const getStatusColor = (status) => {
-  const colors = {
-    confirmed: "approved",
-    checked_in: "approved",
-    completed: "approved",
-    cancelled: "rejected",
-    no_show: "rejected",
-    pending: "pending",
-    paid: "approved",
-    unpaid: "pending",
-    refunded: "rejected",
-  };
-  return colors[status] || "pending";
-};
+const parseDateTime = (dateValue, timeText) => {
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return null;
 
-const getStatusLabel = (status) => {
-  const labels = {
-    confirmed: "✅ Confirmed",
-    checked_in: "🔄 Checked In",
-    completed: "✅ Completed",
-    cancelled: "❌ Cancelled",
-    no_show: "🚫 No Show",
-    pending: "⏳ Pending",
-    paid: "💳 Paid",
-    unpaid: "💰 Unpaid",
-    refunded: "↩️ Refunded",
-  };
-  return labels[status] || status;
-};
+  const value = String(timeText || "").trim();
+  const twelve = value.match(
+    /^(\d{1,2})(?::(\d{2}))?\s*(A\.?M\.?|P\.?M\.?)$/i
+  );
+  const twentyFour = value.match(/^(\d{1,2}):(\d{2})$/);
 
-const buildQrUrl = (booking) => `${APP_URL}/check-in/${booking.bookingCode}`;
-const getQrImage = (booking) => 
-  `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(buildQrUrl(booking))}`;
+  let hours = 12;
+  let minutes = 0;
 
-// ============================================
-// MAIN COMPONENT
-// ============================================
-function MyBookings() {
-  const navigate = useNavigate();
-  
-  // ============================================
-  // STATE
-  // ============================================
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState("info");
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedBooking, setSelectedBooking] = useState(null);
-  const [showQRModal, setShowQRModal] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [cancelTarget, setCancelTarget] = useState(null);
-  const [cancelling, setCancelling] = useState(false);
-
-  const storedUser = JSON.parse(localStorage.getItem("dineforUser") || "null");
-  const token = storedUser?.token;
-  const headers = { Authorization: `Bearer ${token}` };
-
-  // ============================================
-  // FETCH DATA
-  // ============================================
-  const fetchBookings = useCallback(async () => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setMessage("");
-      const res = await api.get(`/bookings/my-bookings`, { headers });
-      setBookings(Array.isArray(res.data) ? res.data : []);
-    } catch (error) {
-      const errorMsg = error.response?.data?.message || "Failed to load bookings.";
-      setMessage(errorMsg);
-      setMessageType("error");
-      
-      if (error.response?.status === 401) {
-        navigate("/login");
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [token, navigate]);
-
-  useEffect(() => {
-    fetchBookings();
-  }, [fetchBookings]);
-
-  // ============================================
-  // COMPUTED DATA
-  // ============================================
-  const filteredBookings = useMemo(() => {
-    let result = [...bookings];
-
-    // Filter by status
-    if (activeFilter !== "all") {
-      result = result.filter((b) => b.bookingStatus === activeFilter);
-    }
-
-    // Filter by search
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      result = result.filter((b) =>
-        [b.bookingCode, b.buffet?.title, b.buffet?.hotel?.hotelName, b.user?.name]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(q)
-      );
-    }
-
-    // Sort by date (newest first)
-    result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-
-    return result;
-  }, [bookings, activeFilter, searchQuery]);
-
-  const upcomingBookings = useMemo(() => {
-    return filteredBookings.filter(
-      (b) => !["cancelled", "no_show", "completed", "checked_in"].includes(b.bookingStatus)
-    );
-  }, [filteredBookings]);
-
-  const historyBookings = useMemo(() => {
-    return filteredBookings.filter(
-      (b) => ["cancelled", "no_show", "completed", "checked_in"].includes(b.bookingStatus)
-    );
-  }, [filteredBookings]);
-
-  const stats = useMemo(() => {
-    const total = bookings.length;
-    const confirmed = bookings.filter((b) => b.bookingStatus === "confirmed").length;
-    const completed = bookings.filter((b) => b.bookingStatus === "completed").length;
-    const cancelled = bookings.filter((b) => b.bookingStatus === "cancelled").length;
-    const checkedIn = bookings.filter((b) => b.bookingStatus === "checked_in").length;
-    const totalSpent = bookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0);
-
-    return { total, confirmed, completed, cancelled, checkedIn, totalSpent };
-  }, [bookings]);
-
-  // ============================================
-  // HANDLERS
-  // ============================================
-  const cancelBooking = async () => {
-    if (!cancelTarget) return;
-
-    setCancelling(true);
-    try {
-      const res = await api.put(
-        `/bookings/my-bookings/${cancelTarget}/cancel`,
-        {},
-        { headers }
-      );
-      setMessage(res.data.message || "Booking cancelled successfully.");
-      setMessageType("success");
-      setShowCancelModal(false);
-      setCancelTarget(null);
-      await fetchBookings();
-    } catch (error) {
-      const errorMsg = error.response?.data?.message || "Failed to cancel booking.";
-      setMessage(errorMsg);
-      setMessageType("error");
-    } finally {
-      setCancelling(false);
-    }
-  };
-
-  const downloadBill = (booking) => {
-    const qrSrc = getQrImage(booking);
-    const fileName = `${booking.bookingCode || "dinefor-booking"}-reservation-bill.html`;
-    const hotelName = booking.buffet?.hotel?.hotelName || "Hotel";
-    const buffetTitle = booking.buffet?.title || "Buffet Reservation";
-    
-    const billHtml = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DineFor - ${booking.bookingCode}</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { 
-      font-family: 'Inter', Arial, sans-serif; 
-      background: #f5f3ef; 
-      padding: 40px 20px; 
-      color: #1b1c1a;
-    }
-    .bill {
-      max-width: 800px;
-      margin: 0 auto;
-      background: #ffffff;
-      border-radius: 24px;
-      padding: 40px;
-      border: 1px solid #e5e1d8;
-      box-shadow: 0 8px 30px rgba(26, 48, 33, 0.04);
-    }
-    .header {
-      border-bottom: 2px solid #e5e1d8;
-      padding-bottom: 20px;
-      margin-bottom: 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .header h1 {
-      font-family: 'Playfair Display', serif;
-      color: #1A3021;
-      font-size: 28px;
-    }
-    .header .code {
-      font-size: 14px;
-      color: #737972;
-      background: #f5f3ef;
-      padding: 8px 16px;
-      border-radius: 8px;
-    }
-    .status {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-    .status.confirmed { background: #aff0d8; color: #07513f; }
-    .status.checked_in { background: #aff0d8; color: #07513f; }
-    .status.completed { background: #cfe9d2; color: #0a2012; }
-    .status.cancelled { background: #ffdad6; color: #93000a; }
-    .status.pending { background: #ffe088; color: #574500; }
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin: 20px 0;
-    }
-    .grid-item {
-      padding: 12px;
-      background: #fbf9f5;
-      border-radius: 12px;
-    }
-    .grid-item label {
-      font-size: 11px;
-      text-transform: uppercase;
-      color: #737972;
-      letter-spacing: 0.05em;
-      display: block;
-      margin-bottom: 4px;
-    }
-    .grid-item value {
-      font-size: 16px;
-      font-weight: 600;
-      color: #1A3021;
-    }
-    .qr-section {
-      text-align: center;
-      margin: 24px 0;
-      padding: 24px;
-      background: #fbf9f5;
-      border-radius: 16px;
-      border: 2px dashed #e5e1d8;
-    }
-    .qr-section img {
-      width: 180px;
-      height: 180px;
-      background: white;
-      padding: 12px;
-      border-radius: 12px;
-    }
-    .qr-section p {
-      margin-top: 12px;
-      font-size: 14px;
-      color: #434843;
-    }
-    .total {
-      font-size: 24px;
-      font-weight: 700;
-      color: #D4AF37;
-      text-align: right;
-      padding: 16px 0;
-      border-top: 2px solid #e5e1d8;
-      margin-top: 16px;
-    }
-    .footer {
-      margin-top: 24px;
-      padding-top: 16px;
-      border-top: 1px solid #e5e1d8;
-      font-size: 12px;
-      color: #737972;
-      text-align: center;
-    }
-    @media (max-width: 600px) {
-      .grid { grid-template-columns: 1fr; }
-      .header { flex-direction: column; gap: 12px; text-align: center; }
-    }
-  </style>
-</head>
-<body>
-  <div class="bill">
-    <div class="header">
-      <h1>🍽️ DineFor</h1>
-      <span class="code">${booking.bookingCode}</span>
-    </div>
-    
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-      <div>
-        <h2 style="font-size: 20px; color: #1A3021;">${buffetTitle}</h2>
-        <p style="color: #434843;">${hotelName}</p>
-      </div>
-      <span class="status ${booking.bookingStatus}">${getStatusLabel(booking.bookingStatus)}</span>
-    </div>
-
-    <div class="grid">
-      <div class="grid-item">
-        <label>Date</label>
-        <value>${formatDate(booking.selectedDate)}</value>
-      </div>
-      <div class="grid-item">
-        <label>Time Slot</label>
-        <value>${booking.selectedTimeSlot?.startTime} - ${booking.selectedTimeSlot?.endTime}</value>
-      </div>
-      <div class="grid-item">
-        <label>Seats</label>
-        <value>${booking.seats} guest${booking.seats > 1 ? "s" : ""}</value>
-      </div>
-      <div class="grid-item">
-        <label>Invoice</label>
-        <value>${booking.invoiceNumber || "Pending"}</value>
-      </div>
-      <div class="grid-item">
-        <label>Payment</label>
-        <value>${booking.paymentStatus} / ${booking.paymentMethod || "pay_at_hotel"}</value>
-      </div>
-      <div class="grid-item">
-        <label>QR Status</label>
-        <value>${booking.qrUsed ? "Used ✅" : "Active 🔓"}</value>
-      </div>
-    </div>
-
-    <div class="qr-section">
-      <img src="${qrSrc}" alt="QR Code" />
-      <p><strong>Scan this QR at the hotel for check-in</strong></p>
-      <p style="font-size: 12px; margin-top: 4px;">${buildQrUrl(booking)}</p>
-    </div>
-
-    <div class="total">
-      Total: Rs. ${(booking.grandTotal || booking.totalAmount || 0).toLocaleString()}
-    </div>
-
-    <div class="footer">
-      Generated by DineFor • ${new Date().toLocaleString()}
-    </div>
-  </div>
-</body>
-</html>`;
-
-    const blob = new Blob([billHtml], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  };
-
-  // ============================================
-  // RENDER HELPERS
-  // ============================================
-  const renderMessage = () => {
-    if (!message) return null;
-
-    const styles = {
-      success: "bg-secondary-container/30 text-secondary border border-secondary/30",
-      error: "bg-error/10 text-error border border-error/20",
-      warning: "bg-tertiary-container/20 text-tertiary border border-tertiary-container/30",
-      info: "bg-primary-container/10 text-primary border border-primary-container/20",
-    };
-
-    return (
-      <div className={`p-4 rounded-xl text-sm font-medium mb-6 ${styles[messageType] || styles.info}`}>
-        {message}
-        <button
-          onClick={() => setMessage("")}
-          className="float-right text-inherit opacity-70 hover:opacity-100"
-        >
-          <span className="material-symbols-outlined text-[18px]">close</span>
-        </button>
-      </div>
-    );
-  };
-
-  const renderBookingCard = (booking) => {
-    const isActive = !["cancelled", "no_show", "completed", "checked_in"].includes(booking.bookingStatus);
-    const qrSrc = getQrImage(booking);
-
-    return (
-      <div key={booking._id} className="card-ambient overflow-hidden hover:shadow-ambient-lg transition-shadow">
-        <div className="flex flex-col md:flex-row">
-          {/* Image */}
-          <div className="md:w-48 h-48 md:h-auto relative">
-            <img
-              src={booking.buffet?.images?.[0] || "https://images.unsplash.com/photo-1555244162-803834f70033?w=300&h=300&fit=crop"}
-              alt={booking.buffet?.title || "Buffet"}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute top-2 left-2">
-              <span className={`status-pill ${getStatusColor(booking.bookingStatus)}`}>
-                {booking.bookingStatus}
-              </span>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 p-4 md:p-6">
-            <div className="flex flex-col md:flex-row justify-between items-start gap-4">
-              <div>
-                <p className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
-                  {booking.buffet?.hotel?.hotelName || "Hotel"}
-                </p>
-                <h3 className="font-headline-md text-headline-md text-text-deep-green">
-                  {booking.buffet?.title || "Buffet Reservation"}
-                </h3>
-                <div className="flex flex-wrap items-center gap-3 mt-2">
-                  <span className="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[16px]">calendar_today</span>
-                    {formatDate(booking.selectedDate)}
-                  </span>
-                  <span className="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[16px]">schedule</span>
-                    {booking.selectedTimeSlot?.startTime} - {booking.selectedTimeSlot?.endTime}
-                  </span>
-                  <span className="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[16px]">group</span>
-                    {booking.seats} guests
-                  </span>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="font-headline-md text-headline-md text-highlight-gold">
-                  Rs. {Number(booking.grandTotal || booking.totalAmount || 0).toLocaleString()}
-                </p>
-                <p className="font-label-sm text-label-sm text-on-surface-variant">
-                  {booking.bookingCode}
-                </p>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-border-subtle">
-              <button
-                onClick={() => downloadBill(booking)}
-                className="btn-outline text-sm flex items-center gap-1"
-              >
-                <span className="material-symbols-outlined text-[16px]">download</span>
-                Bill
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedBooking(booking);
-                  setShowQRModal(true);
-                }}
-                className="btn-outline text-sm flex items-center gap-1"
-              >
-                <span className="material-symbols-outlined text-[16px]">qr_code</span>
-                QR Code
-              </button>
-              {isActive && booking.bookingStatus !== "checked_in" && (
-                <button
-                  onClick={() => {
-                    setCancelTarget(booking._id);
-                    setShowCancelModal(true);
-                  }}
-                  className="text-error text-sm flex items-center gap-1 hover:underline"
-                >
-                  <span className="material-symbols-outlined text-[16px]">cancel</span>
-                  Cancel
-                </button>
-              )}
-              {booking.bookingStatus === "confirmed" && (
-                <Link
-                  to={`/check-in/${booking.bookingCode}`}
-                  className="btn-secondary text-sm flex items-center gap-1"
-                >
-                  <span className="material-symbols-outlined text-[16px]">login</span>
-                  Check In
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // ============================================
-  // MODALS
-  // ============================================
-  const renderQRModal = () => {
-    if (!showQRModal || !selectedBooking) return null;
-
-    const qrSrc = getQrImage(selectedBooking);
-
-    return (
-      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowQRModal(false)}>
-        <div className="bg-surface-container-lowest rounded-2xl p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-headline-md text-headline-md text-text-deep-green">QR Code</h3>
-            <button onClick={() => setShowQRModal(false)} className="text-on-surface-variant hover:text-text-deep-green">
-              <span className="material-symbols-outlined">close</span>
-            </button>
-          </div>
-          <div className="text-center">
-            <img
-              src={qrSrc}
-              alt="QR Code"
-              className="w-48 h-48 mx-auto bg-white p-2 rounded-xl border border-border-subtle"
-            />
-            <p className="font-label-md text-label-md text-text-deep-green mt-3">{selectedBooking.bookingCode}</p>
-            <p className="font-label-sm text-label-sm text-on-surface-variant">
-              {selectedBooking.buffet?.title}
-            </p>
-            <p className="font-label-sm text-label-sm text-on-surface-variant">
-              {formatDate(selectedBooking.selectedDate)} • {selectedBooking.selectedTimeSlot?.startTime}
-            </p>
-            <button
-              onClick={() => downloadBill(selectedBooking)}
-              className="btn-secondary w-full mt-4 flex items-center justify-center gap-2"
-            >
-              <span className="material-symbols-outlined text-[18px]">download</span>
-              Download Bill
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderCancelModal = () => {
-    if (!showCancelModal) return null;
-
-    return (
-      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowCancelModal(false)}>
-        <div className="bg-surface-container-lowest rounded-2xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-          <h3 className="font-headline-md text-headline-md text-text-deep-green mb-2">Cancel Booking</h3>
-          <p className="font-body-md text-body-md text-on-surface-variant mb-4">
-            Are you sure you want to cancel this booking? This action cannot be undone and your seats will be released.
-          </p>
-          <div className="flex gap-3">
-            <button onClick={() => setShowCancelModal(false)} className="btn-outline flex-1">Keep Booking</button>
-            <button
-              onClick={cancelBooking}
-              disabled={cancelling}
-              className="bg-error text-white px-4 py-2 rounded-full hover:bg-error/80 flex-1"
-            >
-              {cancelling ? "Cancelling..." : "Cancel Booking"}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // ============================================
-  // MAIN RENDER
-  // ============================================
-  if (!token) {
-    return (
-      <main className="min-h-screen bg-surface-cream pt-20">
-        <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
-          <div className="text-center py-16">
-            <span className="material-symbols-outlined text-6xl text-outline mb-4">lock</span>
-            <h3 className="font-headline-md text-headline-md text-text-deep-green">Please Login</h3>
-            <p className="font-body-md text-body-md text-on-surface-variant mt-2">
-              You need to be logged in to view your bookings.
-            </p>
-            <Link to="/login" className="btn-primary inline-flex items-center gap-2 mt-6">
-              Login
-              <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-            </Link>
-          </div>
-        </div>
-      </main>
-    );
+  if (twelve) {
+    hours = Number(twelve[1]);
+    minutes = Number(twelve[2] || 0);
+    const period = twelve[3].toUpperCase();
+    if (period.startsWith("P") && hours !== 12) hours += 12;
+    if (period.startsWith("A") && hours === 12) hours = 0;
+  } else if (twentyFour) {
+    hours = Number(twentyFour[1]);
+    minutes = Number(twentyFour[2]);
   }
 
+  date.setHours(hours, minutes, 0, 0);
+  return date;
+};
+
+const getCountdown = (booking) => {
+  if (
+    ["cancelled", "completed", "no_show", "expired"].includes(
+      booking.bookingStatus
+    )
+  ) {
+    return "";
+  }
+
+  const start = parseDateTime(
+    booking.selectedDate,
+    booking.selectedTimeSlot?.startTime
+  );
+  if (!start) return "";
+
+  const difference = start.getTime() - Date.now();
+
+  if (difference <= 0) return "Reservation time reached";
+
+  const days = Math.floor(difference / 86400000);
+  const hours = Math.floor((difference % 86400000) / 3600000);
+  const minutes = Math.floor((difference % 3600000) / 60000);
+
+  if (days > 0) return `${days}d ${hours}h remaining`;
+  if (hours > 0) return `${hours}h ${minutes}m remaining`;
+  return `${minutes}m remaining`;
+};
+
+const escapeIcs = (value) =>
+  String(value || "")
+    .replace(/\\/g, "\\\\")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;")
+    .replace(/\n/g, "\\n");
+
+const toIcsDate = (date) =>
+  date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+
+const downloadCalendar = (booking) => {
+  const start = parseDateTime(
+    booking.selectedDate,
+    booking.selectedTimeSlot?.startTime
+  );
+  const end =
+    parseDateTime(
+      booking.selectedDate,
+      booking.selectedTimeSlot?.endTime
+    ) || new Date(start.getTime() + 2 * 60 * 60 * 1000);
+
+  if (!start) return;
+
+  const hotelName =
+    booking.buffet?.hotel?.hotelName || "DineFor Hotel";
+  const title = booking.buffet?.title || "DineFor Buffet";
+
+  const content = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//DineFor//Reservation//EN",
+    "BEGIN:VEVENT",
+    `UID:${booking._id}@dinefor.com`,
+    `DTSTAMP:${toIcsDate(new Date())}`,
+    `DTSTART:${toIcsDate(start)}`,
+    `DTEND:${toIcsDate(end)}`,
+    `SUMMARY:${escapeIcs(title)}`,
+    `LOCATION:${escapeIcs(hotelName)}`,
+    `DESCRIPTION:${escapeIcs(
+      `DineFor booking ${booking.bookingCode}. Guests: ${booking.seats}.`
+    )}`,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+
+  const blob = new Blob([content], {
+    type: "text/calendar;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `dinefor-${booking.bookingCode}.ics`;
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
+function Timeline({ booking }) {
+  const defaultTimeline = [
+    {
+      status: "confirmed",
+      note: "Reservation confirmed.",
+      at: booking.createdAt,
+    },
+  ];
+
+  const timeline =
+    booking.statusTimeline?.length > 0
+      ? booking.statusTimeline
+      : defaultTimeline;
+
   return (
-    <main className="min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20">
-      <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="font-headline-lg text-headline-lg text-text-deep-green">My Bookings</h1>
-          <p className="font-body-md text-body-md text-on-surface-variant">
-            View and manage all your reservations
-          </p>
-        </div>
-
-        {renderMessage()}
-        {renderQRModal()}
-        {renderCancelModal()}
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-          <div className="p-3 rounded-xl bg-surface-container-low text-center">
-            <p className="font-label-sm text-label-sm text-on-surface-variant">Total</p>
-            <p className="font-headline-md text-headline-md text-text-deep-green">{stats.total}</p>
+    <div className="space-y-4">
+      {timeline.map((entry, index) => (
+        <div
+          key={`${entry.status}-${entry.at}-${index}`}
+          className="flex gap-3"
+        >
+          <div className="flex flex-col items-center">
+            <span className="w-3 h-3 rounded-full bg-secondary mt-1" />
+            {index < timeline.length - 1 && (
+              <span className="w-px flex-1 bg-border-subtle mt-1" />
+            )}
           </div>
-          <div className="p-3 rounded-xl bg-secondary-container/10 text-center">
-            <p className="font-label-sm text-label-sm text-on-surface-variant">Confirmed</p>
-            <p className="font-headline-md text-headline-md text-secondary">{stats.confirmed}</p>
-          </div>
-          <div className="p-3 rounded-xl bg-primary-container/10 text-center">
-            <p className="font-label-sm text-label-sm text-on-surface-variant">Checked In</p>
-            <p className="font-headline-md text-headline-md text-primary">{stats.checkedIn}</p>
-          </div>
-          <div className="p-3 rounded-xl bg-tertiary-container/10 text-center">
-            <p className="font-label-sm text-label-sm text-on-surface-variant">Completed</p>
-            <p className="font-headline-md text-headline-md text-tertiary">{stats.completed}</p>
-          </div>
-          <div className="p-3 rounded-xl bg-error/10 text-center">
-            <p className="font-label-sm text-label-sm text-on-surface-variant">Total Spent</p>
-            <p className="font-headline-md text-headline-md text-highlight-gold">Rs. {stats.totalSpent.toLocaleString()}</p>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap gap-3 mb-6">
-          <div className="flex flex-wrap gap-2">
-            {["all", "confirmed", "pending", "checked_in", "completed", "cancelled"].map((status) => (
-              <button
-                key={status}
-                onClick={() => setActiveFilter(status)}
-                className={`px-4 py-2 rounded-full font-label-sm text-label-sm transition-all ${
-                  activeFilter === status
-                    ? "bg-secondary text-surface-cream"
-                    : "border border-border-subtle hover:border-secondary"
-                }`}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-                {status !== "all" && (
-                  <span className="ml-1 text-xs opacity-70">
-                    ({bookings.filter((b) => b.bookingStatus === status).length})
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-          <div className="flex-1 min-w-[200px]">
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search bookings..."
-              className="form-input w-full"
-            />
-          </div>
-        </div>
-
-        {/* Results */}
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="card-ambient h-48 animate-pulse bg-surface-container-low" />
-            ))}
-          </div>
-        ) : filteredBookings.length === 0 ? (
-          <div className="text-center py-16">
-            <span className="material-symbols-outlined text-6xl text-outline mb-4">event_busy</span>
-            <h3 className="font-headline-md text-headline-md text-text-deep-green">No bookings found</h3>
-            <p className="font-body-md text-body-md text-on-surface-variant mt-2">
-              {searchQuery || activeFilter !== "all"
-                ? "Try adjusting your filters or search terms."
-                : "Start exploring buffets and make your first reservation!"}
+          <div className="pb-4">
+            <p className="font-semibold capitalize text-text-deep-green">
+              {String(entry.status || "").replaceAll("_", " ")}
             </p>
-            <Link to="/feed" className="btn-primary inline-flex items-center gap-2 mt-4">
-              Browse Buffets
-              <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {upcomingBookings.length > 0 && (
-              <div>
-                <h3 className="font-headline-md text-headline-md text-text-deep-green mb-3">Upcoming</h3>
-                {upcomingBookings.map(renderBookingCard)}
-              </div>
-            )}
-            {historyBookings.length > 0 && (
-              <div>
-                <h3 className="font-headline-md text-headline-md text-text-deep-green mb-3">History</h3>
-                {historyBookings.map(renderBookingCard)}
-              </div>
+            <p className="text-sm text-on-surface-variant">
+              {entry.note || "Booking status updated."}
+            </p>
+            {entry.at && (
+              <p className="text-xs text-outline mt-1">
+                {new Date(entry.at).toLocaleString()}
+              </p>
             )}
           </div>
-        )}
-      </div>
-    </main>
+        </div>
+      ))}
+    </div>
   );
 }
 
-export default MyBookings;
+export default function MyBookings() {
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("upcoming");
+  const [message, setMessage] = useState("");
+  const [selected, setSelected] = useState(null);
+  const [, forceCountdownRefresh] = useState(0);
+
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await api.get("/bookings/my-bookings");
+      setBookings(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      setMessage(
+        error.response?.data?.message || "Failed to load bookings."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useEffect(() => {
+    const timer = setInterval(
+      () => forceCountdownRefresh((value) => value + 1),
+      60000
+    );
+    return () => clearInterval(timer);
+  }, []);
+
+  const filtered = useMemo(() => {
+    const now = new Date();
+
+    return bookings.filter((booking) => {
+      const date = new Date(booking.selectedDate);
+      const finalStatus = [
+        "completed",
+        "cancelled",
+        "no_show",
+        "expired",
+      ].includes(booking.bookingStatus);
+
+      if (filter === "upcoming") {
+        return !finalStatus && date >= new Date(now.toDateString());
+      }
+
+      if (filter === "history") {
+        return finalStatus || date < new Date(now.toDateString());
+      }
+
+      return true;
+    });
+  }, [bookings, filter]);
+
+  const cancel = async (booking) => {
+    const confirmed = window.confirm(
+      `Cancel booking ${booking.bookingCode}?`
+    );
+    if (!confirmed) return;
+
+    try {
+      const response = await api.put(
+        `/bookings/my-bookings/${booking._id}/cancel`
+      );
+      setMessage(response.data?.message || "Booking cancelled.");
+      await load();
+    } catch (error) {
+      setMessage(
+        error.response?.data?.message ||
+          "Booking could not be cancelled."
+      );
+    }
+  };
+
+  return (
+    <main className="min-h-screen bg-surface-cream pt-24 sm:pt-28 pb-12 px-4">
+      <div className="max-w-6xl mx-auto">
+        <div>
+          <span className="badge-gold">Reservations</span>
+          <h1 className="font-headline-lg text-headline-lg text-text-deep-green mt-2">
+            My Bookings
+          </h1>
+          <p className="text-on-surface-variant">
+            Track upcoming reservations, status history and calendar details.
+          </p>
+        </div>
+
+        {message && (
+          <div className="mt-5 p-3 rounded-xl bg-secondary-container/20 text-secondary">
+            {message}
+          </div>
+        )}
+
+        <div className="flex gap-2 mt-6 overflow-x-auto hide-scrollbar">
+          {[
+            ["upcoming", "Upcoming"],
+            ["history", "History"],
+            ["all", "All"],
+          ].map(([value, label]) => (
+            <button
+              type="button"
+              key={value}
+              onClick={() => setFilter(value)}
+              className={`chip ${
+                filter === value ? "chip-active" : ""
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {loading ? (
+          <div className="grid md:grid-cols-2 gap-5 mt-6">
+            {[1, 2, 3, 4].map((item) => (
+              <div
+                key={item}
+                className="card-ambient h-72 animate-pulse"
+              />
+            ))}
+          </div>
+        ) : filtered.length ? (
+          <div className="grid md:grid-cols-2 gap-5 mt-6">
+            {filtered.map((booking) => {
+              const hotel =
+                booking.buffet?.hotel?.hotelName || "Hotel";
+              const title =
+                booking.buffet?.title || "Buffet Reservation";
+              const countdown = getCountdown(booking);
+              const canCancel = ![
+                "cancelled",
+                "checked_in",
+                "completed",
+                "no_show",
+                "expired",
+              ].includes(booking.bookingStatus);
+
+              return (
+                <article
+                  key={booking._id}
+                  className="card-ambient p-5 flex flex-col"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-label-sm text-label-sm text-secondary uppercase tracking-wider">
+                        {hotel}
+                      </p>
+                      <h2 className="font-headline-md text-headline-md text-text-deep-green mt-1">
+                        {title}
+                      </h2>
+                    </div>
+
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${
+                        statusStyle[booking.bookingStatus] ||
+                        statusStyle.pending
+                      }`}
+                    >
+                      {String(booking.bookingStatus).replaceAll(
+                        "_",
+                        " "
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mt-5">
+                    <div className="p-3 rounded-xl bg-surface-container-low">
+                      <p className="text-xs text-on-surface-variant">
+                        Date
+                      </p>
+                      <p className="font-semibold">
+                        {formatDate(booking.selectedDate)}
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-surface-container-low">
+                      <p className="text-xs text-on-surface-variant">
+                        Time
+                      </p>
+                      <p className="font-semibold">
+                        {booking.selectedTimeSlot?.startTime} -{" "}
+                        {booking.selectedTimeSlot?.endTime}
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-surface-container-low">
+                      <p className="text-xs text-on-surface-variant">
+                        Guests
+                      </p>
+                      <p className="font-semibold">{booking.seats}</p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-surface-container-low">
+                      <p className="text-xs text-on-surface-variant">
+                        Total
+                      </p>
+                      <p className="font-semibold">
+                        Rs.{" "}
+                        {Number(
+                          booking.grandTotal ||
+                            booking.totalAmount ||
+                            0
+                        ).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {countdown && (
+                    <div className="mt-4 p-3 rounded-xl bg-highlight-gold/10 text-highlight-gold flex items-center gap-2">
+                      <span className="material-symbols-outlined">
+                        timer
+                      </span>
+                      <span className="font-semibold">{countdown}</span>
+                    </div>
+                  )}
+
+                  <div className="mt-4 text-sm text-on-surface-variant">
+                    <p>
+                      Booking code:{" "}
+                      <strong className="text-text-deep-green">
+                        {booking.bookingCode}
+                      </strong>
+                    </p>
+                    <p>
+                      Payment:{" "}
+                      <strong className="capitalize">
+                        {booking.paymentStatus}
+                      </strong>
+                    </p>
+                  </div>
+
+                  <div className="mt-auto pt-5 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelected(booking)}
+                      className="btn-outline"
+                    >
+                      Timeline
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => downloadCalendar(booking)}
+                      className="btn-secondary inline-flex items-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">
+                        calendar_add_on
+                      </span>
+                      Add to Calendar
+                    </button>
+
+                    {canCancel && (
+                      <button
+                        type="button"
+                        onClick={() => cancel(booking)}
+                        className="px-4 py-2 rounded-full border border-error/30 text-error hover:bg-error/10"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <section className="card-ambient p-10 text-center mt-6">
+            <span className="material-symbols-outlined text-5xl text-outline">
+              event_busy
+            </span>
+            <h2 className="font-headline-md text-headline-md text-text-deep-green mt-3">
+              No bookings found
+            </h2>
+            <p className="text-on-surface-variant mt-2">
+              Your buffet reservations will appear here.
+            </p>
+          </section>
+        )}
+      </div>
+
+      {selected && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+          onMouseDown={() => setSelected(null)}
+        >
+          <section
+            className="w-full max-w-lg max-h-[85vh] overflow-y-auto bg-surface-container-lowest rounded-2xl shadow-ambient-lg p-6"
+            onMouseDown={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-secondary text-sm font-semibold">
+                  {selected.bookingCode}
+                </p>
+                <h2 className="font-headline-md text-headline-md text-text-deep-green">
+                  Booking Timeline
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelected(null)}
+                className="w-10 h-10 rounded-full grid place-items-center hover:bg-surface-container-low"
+                aria-label="Close timeline"
+              >
+                <span className="material-symbols-outlined">
+                  close
+                </span>
+              </button>
+            </div>
+
+            <div className="mt-6">
+              <Timeline booking={selected} />
+            </div>
+          </section>
+        </div>
+      )}
+    </main>
+  );
+}

@@ -3,9 +3,12 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node --dns-result-order=ipv4first server.js",
     "server": "nodemon server.js",
-    "dev": "nodemon server.js"
+    "dev": "node --dns-result-order=ipv4first ./node_modules/nodemon/bin/nodemon.js server.js",
+    "reminders": "node scripts/run-booking-reminders.js",
+    "smtp:test": "node --dns-result-order=ipv4first scripts/test-email.js",
+    "maintenance": "node --dns-result-order=ipv4first scripts/run-release2-maintenance.js"
   },
   "dependencies": {
     "bcryptjs": "latest",
@@ -14,11 +17,13 @@
     "dotenv": "latest",
     "express": "latest",
     "express-rate-limit": "^8.5.2",
+    "google-auth-library": "^10.3.0",
     "helmet": "^8.3.0",
     "jsonwebtoken": "latest",
     "mongoose": "latest",
     "morgan": "latest",
-    "multer": "latest"
+    "multer": "latest",
+    "nodemailer": "^7.0.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
