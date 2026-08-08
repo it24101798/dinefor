@@ -176,6 +176,7 @@ app.get("/api/health", (req, res) => {
 */
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/hotels", require("./routes/hotelRoutes"));
+app.use("/api/partnership", require("./routes/partnershipRoutes"));
 app.use(
   "/api/hotel-experience",
   require("./routes/hotelExperienceRoutes")
@@ -185,13 +186,10 @@ app.use("/api/discovery", require("./routes/discoveryRoutes"));
 app.use("/api/buffets", require("./routes/buffetRoutes"));
 app.use("/api/bookings", require("./routes/bookingRoutes"));
 app.use("/api/reviews", require("./routes/reviewRoutes"));
-app.use("/api/recommendations", require("./routes/recommendationRoutes"));
 app.use("/api/site-settings", require("./routes/siteSettingRoutes"));
 app.use("/api/uploads", require("./routes/uploadRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/customer", require("./routes/customerExperienceRoutes"));
-app.use("/api/notifications", require("./routes/notificationRoutes"));
-app.use("/api/activity-logs", require("./routes/activityLogRoutes"));
 app.use("/api/analytics", require("./routes/analyticsRoutes"));
 app.use("/api/payments", require("./routes/paymentRoutes"));
 app.use("/api/coupons", require("./routes/couponRoutes"));

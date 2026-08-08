@@ -14,7 +14,9 @@ function useMediaQuery(query) {
 
 export default function useResponsive() {
   return {
+    isSmallMobile: useMediaQuery("(max-width: 374px)"),
     isMobile: useMediaQuery("(max-width: 767px)"),
+    isLargeMobile: useMediaQuery("(min-width: 375px) and (max-width: 767px)"),
     isTablet: useMediaQuery("(min-width: 768px) and (max-width: 1023px)"),
     isDesktop: useMediaQuery("(min-width: 1024px)"),
     prefersReducedMotion: useMediaQuery("(prefers-reduced-motion: reduce)"),

@@ -7,6 +7,7 @@ import api from "../services/api";
 const HotelApprovedRoute = ({ children }) => {
   const { user, loading } = useAuth();
   const [hotelStatus, setHotelStatus] = useState(null);
+  const [partnershipStatus, setPartnershipStatus] = useState(null);
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
@@ -24,6 +25,7 @@ const HotelApprovedRoute = ({ children }) => {
         const hotel = res.data?.hotel ?? res.data;
         if (hotel) {
           setHotelStatus(hotel.status || "pending");
+          setPartnershipStatus(hotel.partnershipStatus || null);
         } else {
           setHotelStatus("no_application");
         }
@@ -59,7 +61,7 @@ const HotelApprovedRoute = ({ children }) => {
     return <Navigate to="/" replace />;
   }
 
-  if (hotelStatus === "approved") {
+  if (hotelStatus === "approved" || ["active", "active_legacy"].includes(partnershipStatus)) {
     return children;
   }
 

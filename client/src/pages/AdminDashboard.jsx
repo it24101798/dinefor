@@ -808,7 +808,7 @@ function AdminDashboard() {
                   <td className="p-4 text-on-surface-variant">{h.contactNumber || "-"}</td>
                   <td className="p-4"><span className={`status-pill ${getStatusColor(hotelStatus(h))}`}>{statusLabels[hotelStatus(h)] || hotelStatus(h)}</span></td>
                   <td className="p-4">
-                    <button onClick={() => setSelectedHotel(h)} className="text-secondary hover:underline text-sm">Review</button>
+                    <div className="flex flex-wrap gap-3"><button onClick={() => setSelectedHotel(h)} className="text-secondary hover:underline text-sm">Review</button><button onClick={() => navigate(`/admin/partnership/${h._id}`)} className="text-secondary hover:underline text-sm">Compliance</button></div>
                   </td>
                 </tr>
               ))}
@@ -1110,7 +1110,14 @@ function AdminDashboard() {
         </aside>
 
         {/* Main Content */}
-        <div className="flex-1 md:ml-64 p-6 md:p-8">
+        <div className="flex-1 md:ml-64 p-4 sm:p-6 md:p-8">
+          <nav className="df-mobile-section-tabs md:hidden" aria-label="Admin sections">
+            {adminSections.map((section) => (
+              <NavLink key={section.key} to={section.path} end={section.path === "/admin"} className={({ isActive }) => `df-mobile-section-tab ${isActive ? "is-active" : ""}`}>
+                <span className="material-symbols-outlined">{section.icon}</span><span>{section.label}</span>
+              </NavLink>
+            ))}
+          </nav>
           {renderMessage()}
           {renderHotelModal()}
           {renderDeleteConfirmModal()}

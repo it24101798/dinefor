@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import HotelApprovedRoute from "./routes/HotelApprovedRoute";
+import MobileBottomNav from "./mobile/navigation/MobileBottomNav";
 
 import Home from "./pages/Home";
 import Feed from "./pages/Feed";
@@ -33,6 +34,8 @@ import CustomerDashboard from "./pages/CustomerDashboard";
 import BookingSummary from "./pages/BookingSummary";
 import PaymentHistory from "./pages/PaymentHistory";
 import RecentlyViewed from "./pages/RecentlyViewed";
+import PartnershipCompliance from "./pages/PartnershipCompliance";
+import AdminPartnershipReview from "./pages/AdminPartnershipReview";
 
 export default function App() {
   return (
@@ -205,6 +208,14 @@ export default function App() {
         />
 
         <Route
+          path="/hotel-partnership"
+          element={
+            <ProtectedRoute allowedRoles={["hotel", "admin"]}>
+              <PartnershipCompliance />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/hotel-apply"
           element={
             <ProtectedRoute allowedRoles={["hotel", "admin"]}>
@@ -246,6 +257,14 @@ export default function App() {
         />
 
         <Route
+          path="/admin/partnership/:hotelId"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminPartnershipReview />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/admin/*"
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
@@ -263,6 +282,7 @@ export default function App() {
           }
         />
       </Routes>
+      <MobileBottomNav />
     </>
   );
 }

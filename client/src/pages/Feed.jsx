@@ -134,9 +134,9 @@ function Feed() {
   const displayBuffets = filteredBuffets;
 
   return (
-    <main className="min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20">
+    <main className="df-discovery-page min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20">
       {/* HERO */}
-      <section className="relative bg-primary-container py-12 md:py-20 px-margin-mobile md:px-margin-desktop">
+      <section className="df-discovery-hero relative bg-primary-container py-12 md:py-20 px-margin-mobile md:px-margin-desktop">
         <div className="max-w-container-max mx-auto text-center">
           <span className="font-label-md text-label-md text-highlight-gold uppercase tracking-wider">
             Discover
@@ -148,7 +148,7 @@ function Feed() {
             Curated culinary experiences from the finest establishments, designed for the discerning palate.
           </p>
 
-          <div className="search-bar max-w-4xl mx-auto mt-8">
+          <div className="df-discovery-search search-bar max-w-4xl mx-auto mt-8">
             <div className="flex items-center gap-4">
               <span className="material-symbols-outlined text-on-surface-variant">search</span>
               <input
@@ -200,7 +200,10 @@ function Feed() {
 
       {/* Filters */}
       {showFilters && (
-        <section className="px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-6 border-b border-border-subtle">
+        <>
+        <button type="button" className="df-mobile-filter-backdrop md:hidden" onClick={() => setShowFilters(false)} aria-label="Close filters" />
+        <section className="df-mobile-filter-panel md:static px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto py-6 border-b border-border-subtle">
+          <div className="md:hidden flex items-center justify-between mb-4"><div><span className="badge-gold">Filters</span><h3 className="font-headline-md text-text-deep-green mt-1">Refine results</h3></div><button type="button" className="df-mobile-icon-button" onClick={() => setShowFilters(false)} aria-label="Close filters"><span className="material-symbols-outlined">close</span></button></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <h4 className="font-label-md text-label-md text-text-deep-green uppercase tracking-wider mb-3">
@@ -307,6 +310,7 @@ function Feed() {
             </div>
           </div>
         </section>
+        </>
       )}
 
       {/* Results */}

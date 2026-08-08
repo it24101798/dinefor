@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState, useCallback, useRef } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom";
 import api, { resolveMediaUrl } from "../services/api";
 import ReviewForm from "../components/reviews/ReviewForm";
+import useResponsive from "../hooks/useResponsive";
+import MobileBottomSheet from "../mobile/components/MobileBottomSheet";
 import ReviewList from "../components/reviews/ReviewList";
 
 
@@ -60,6 +62,7 @@ const getUrgencyLabel = (slot) => {
 // MAIN COMPONENT
 // ============================================
 function BuffetDetails() {
+  const { isMobile } = useResponsive();
   const { id } = useParams();
   const navigate = useNavigate();
   const bookingRef = useRef(null);
@@ -81,6 +84,7 @@ function BuffetDetails() {
   const [messageType, setMessageType] = useState("info");
   const [activeImage, setActiveImage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [mobileBookingOpen, setMobileBookingOpen] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -736,11 +740,23 @@ function BuffetDetails() {
             {renderSimilar()}
           </div>
 
-          <div className="lg:col-span-1">
+          <div className="hidden lg:block lg:col-span-1">
             {renderBookingPanel()}
           </div>
         </div>
       </div>
+
+      {isMobile && (
+        <>
+          <div className="df-mobile-booking-bar">
+            <div><strong>{formatPrice(buffet?.price)}</strong><span>per person</span></div>
+            <button type="button" className="btn-secondary" onClick={() => setMobileBookingOpen(true)}>Reserve</button>
+          </div>
+          <MobileBottomSheet open={mobileBookingOpen} onClose={() => setMobileBookingOpen(false)} title="Reserve this buffet">
+            <div className="df-mobile-booking-sheet">{renderBookingPanel()}</div>
+          </MobileBottomSheet>
+        </>
+      )}
 
       {lightboxOpen && (
         <div

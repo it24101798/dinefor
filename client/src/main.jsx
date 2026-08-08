@@ -6,6 +6,9 @@ import App from "./App";
 
 // ===== SINGLE CSS IMPORT =====
 import "./index.css";
+import "./mobile/styles/foundation.css";
+import "./mobile/styles/navigation.css";
+import "./mobile/styles/surfaces.css";
 
 
 ReactDOM.createRoot(document.getElementById("root")).render(

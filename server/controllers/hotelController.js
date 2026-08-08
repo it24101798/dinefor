@@ -1,9 +1,4 @@
 const Hotel = require("../models/Hotel");
-const User = require("../models/User");
-const {
-  communicateHotelApplicationSubmitted,
-  communicateHotelStatusChanged,
-} = require("../services/hotelCommunicationService");
 let ActivityLog;
 try {
   ActivityLog = require("../models/ActivityLog");
@@ -109,6 +104,7 @@ exports.createHotel = async (req, res) => {
     payload.owner = req.user.id;
     payload.isApproved = false;
     payload.status = "pending";
+    payload.partnershipStatus = "under_review";
     payload.application.submittedAt = new Date();
     payload.application.history = [
       { status: "pending", note: "Application submitted by hotel partner.", by: req.user.id, at: new Date() },
@@ -116,14 +112,6 @@ exports.createHotel = async (req, res) => {
 
     const hotel = await Hotel.create(payload);
     await writeActivity(req, "hotel_application_submitted", hotel, `${hotel.hotelName} submitted a hotel application.`);
-
-    const owner = await User.findById(req.user.id).select("name email");
-    communicateHotelApplicationSubmitted({
-      hotel,
-      owner,
-    }).catch((error) =>
-      console.error("Hotel application communication failed:", error.message)
-    );
 
     res.status(201).json({
       message: `Hotel application submitted successfully. Application No: ${hotel.application.applicationNumber}`,
@@ -244,6 +232,15 @@ const moderateHotel = async (req, res, status, defaultNote) => {
 
     hotel.status = status;
     hotel.isApproved = isApproved;
+    const partnershipMap = {
+      approved: "active_legacy",
+      rejected: "rejected",
+      suspended: "suspended",
+      need_more_info: "additional_information_required",
+      hold: "under_review",
+      pending: "under_review",
+    };
+    hotel.partnershipStatus = partnershipMap[status] || hotel.partnershipStatus;
     hotel.application.reviewedAt = new Date();
     hotel.application.reviewNote = note;
     hotel.application.history = [
@@ -253,16 +250,6 @@ const moderateHotel = async (req, res, status, defaultNote) => {
 
     await hotel.save();
     await writeActivity(req, `hotel_${status}`, hotel, `${hotel.hotelName} status changed to ${status}.`, { note });
-
-    const owner = await User.findById(hotel.owner).select("name email");
-    communicateHotelStatusChanged({
-      hotel,
-      owner,
-      status,
-      note,
-    }).catch((error) =>
-      console.error("Hotel moderation communication failed:", error.message)
-    );
 
     const label = status.replace(/_/g, " ");
     res.status(200).json({ message: `Hotel marked as ${label}.`, hotel });

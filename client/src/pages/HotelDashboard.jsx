@@ -20,6 +20,7 @@ const hotelSections = [
   { key: "finance", label: "Finance", icon: "payments", path: "/hotel/finance" },
   { key: "check-in", label: "QR Check-In Desk", icon: "qr_code_scanner", path: "/hotel/check-in" },
   { key: "profile", label: "Hotel Profile", icon: "business", path: "/hotel/profile" },
+  { key: "partnership", label: "Partnership & Compliance", icon: "verified_user", path: "/hotel-partnership" },
   { key: "settings", label: "Settings", icon: "settings", path: "/hotel/settings" },
 ];
 
@@ -889,7 +890,7 @@ function HotelDashboard() {
           <div>
             <h1 className="font-headline-lg text-headline-lg text-text-deep-green">Welcome Back!</h1>
             <p className="font-body-md text-body-md text-on-surface-variant">
-              {hotel?.hotelName || "Hotel"} • {formatDate(new Date())}
+              {hotel?.hotelName || "Hotel"} â€¢ {formatDate(new Date())}
             </p>
           </div>
           <div className="flex gap-3">
@@ -930,7 +931,7 @@ function HotelDashboard() {
         <div className="card-ambient p-4 text-center hover:shadow-ambient-lg transition-shadow">
           <p className="font-label-sm text-label-sm text-on-surface-variant">Reviews</p>
           <p className="font-headline-lg text-headline-lg text-text-deep-green">{summary.reviews}</p>
-          <p className="font-label-sm text-label-sm text-secondary">⭐ {summary.avgRating.toFixed(1)} avg</p>
+          <p className="font-label-sm text-label-sm text-secondary">â­ {summary.avgRating.toFixed(1)} avg</p>
         </div>
         <div className="card-ambient p-4 text-center hover:shadow-ambient-lg transition-shadow">
           <p className="font-label-sm text-label-sm text-on-surface-variant">Customers</p>
@@ -956,7 +957,7 @@ function HotelDashboard() {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="font-label-md text-label-md text-text-deep-green">{b.buffet?.title || "Buffet"}</p>
-                  <p className="font-label-sm text-label-sm text-on-surface-variant">{b.user?.name || "Guest"} • {formatDate(b.selectedDate)}</p>
+                  <p className="font-label-sm text-label-sm text-on-surface-variant">{b.user?.name || "Guest"} â€¢ {formatDate(b.selectedDate)}</p>
                   <p className="font-label-sm text-label-sm text-on-surface-variant">{b.bookingCode}</p>
                 </div>
                 <div className="text-right">
@@ -989,6 +990,10 @@ function HotelDashboard() {
               <button onClick={() => navigate("/hotel/profile")} className="btn-outline flex items-center justify-center gap-2 p-4">
                 <span className="material-symbols-outlined text-[20px]">settings</span>
                 Profile
+              </button>
+              <button onClick={() => navigate("/hotel-partnership")} className="btn-outline flex items-center justify-center gap-2 p-4 col-span-2">
+                <span className="material-symbols-outlined text-[20px]">verified_user</span>
+                Partnership & Compliance
               </button>
             </div>
           </div>
@@ -1235,9 +1240,9 @@ function HotelDashboard() {
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                 <div>
                   <h3 className="font-headline-md text-headline-md text-text-deep-green">{review.user?.name || "Guest"}</h3>
-                  <p className="text-sm text-on-surface-variant">{review.buffet?.title || "Hotel review"} • {formatDate(review.createdAt)}</p>
+                  <p className="text-sm text-on-surface-variant">{review.buffet?.title || "Hotel review"} â€¢ {formatDate(review.createdAt)}</p>
                 </div>
-                <span className="badge-gold">★ {Number(review.rating || 0).toFixed(1)}</span>
+                <span className="badge-gold">â˜… {Number(review.rating || 0).toFixed(1)}</span>
               </div>
               <p className="mt-4 text-on-surface-variant leading-relaxed">{review.comment || review.reviewText || "No written comment."}</p>
               {review.hotelReply?.message && (
@@ -1283,7 +1288,7 @@ function HotelDashboard() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[650px]">
                 <thead><tr className="text-left bg-surface-container-low"><th className="p-4">Buffet</th><th className="p-4">Bookings</th><th className="p-4">Seats</th><th className="p-4">Revenue</th><th className="p-4">Rating</th></tr></thead>
-                <tbody>{analytics.buffetPerformance.map((item) => <tr key={item.buffetId} className="border-t border-border-subtle"><td className="p-4 font-medium">{item.title}</td><td className="p-4">{item.bookings}</td><td className="p-4">{item.seats}</td><td className="p-4">{money(item.revenue)}</td><td className="p-4">★ {Number(item.rating || 0).toFixed(1)}</td></tr>)}</tbody>
+                <tbody>{analytics.buffetPerformance.map((item) => <tr key={item.buffetId} className="border-t border-border-subtle"><td className="p-4 font-medium">{item.title}</td><td className="p-4">{item.bookings}</td><td className="p-4">{item.seats}</td><td className="p-4">{money(item.revenue)}</td><td className="p-4">â˜… {Number(item.rating || 0).toFixed(1)}</td></tr>)}</tbody>
               </table>
             </div>
           </div>
@@ -1347,8 +1352,16 @@ function HotelDashboard() {
             <span className={`status-pill ${getStatusColor(hotel?.status || "pending")}`}>
               {hotel?.status || "Draft"}
             </span>
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <span className="badge-gold">{summary.activeBuffets} active buffets</span>
+              <button
+                type="button"
+                onClick={() => navigate("/hotel-partnership")}
+                className="text-xs font-semibold px-2.5 py-1 rounded-full border border-secondary/20 bg-secondary-container/10 text-secondary hover:bg-secondary-container/20 transition-colors"
+                title="Open Partnership & Compliance"
+              >
+                Partnership: {(hotel?.partnershipStatus || (hotel?.isApproved ? "active_legacy" : hotel?.status || "application_draft")).replace(/_/g, " ")}
+              </button>
             </div>
           </div>
           <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
@@ -1385,7 +1398,14 @@ function HotelDashboard() {
         </aside>
 
         {/* Main Content */}
-        <div className="flex-1 md:ml-64 p-6 md:p-8">
+        <div className="flex-1 md:ml-64 p-4 sm:p-6 md:p-8">
+          <nav className="df-mobile-section-tabs md:hidden" aria-label="Hotel portal sections">
+            {hotelSections.map((section) => (
+              <NavLink key={section.key} to={section.path} end={section.path === "/hotel"} className={({ isActive }) => `df-mobile-section-tab ${isActive ? "is-active" : ""}`}>
+                <span className="material-symbols-outlined">{section.icon}</span><span>{section.label}</span>
+              </NavLink>
+            ))}
+          </nav>
           {renderMessage()}
           {renderDeleteConfirmModal()}
           {renderCreateBuffetModal()}

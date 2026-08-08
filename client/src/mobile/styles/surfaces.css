@@ -1,0 +1,99 @@
+/* Reusable mobile interaction patterns */
+.df-mobile-sheet-shell { position: fixed; inset: 0; z-index: 120; display: flex; align-items: flex-end; justify-content: center; }
+.df-mobile-sheet-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: rgba(5,27,14,.44); backdrop-filter: blur(3px); }
+.df-mobile-sheet-panel { position: relative; width: min(100%, 560px); max-height: min(86dvh, 760px); overflow: hidden; border-radius: 26px 26px 0 0; background: var(--color-surface-container-lowest); box-shadow: 0 -22px 70px rgba(5,27,14,.18); padding-bottom: var(--df-safe-bottom); }
+.df-mobile-sheet-handle { width: 44px; height: 5px; margin: 9px auto 3px; border-radius: 999px; background: var(--color-outline-variant); }
+.df-mobile-sheet-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 18px 10px; border-bottom: 1px solid var(--color-border-subtle); }
+.df-mobile-sheet-header h2 { margin: 0; font-family: "Playfair Display", Georgia, serif; color: var(--color-text-deep-green); font-size: 1.45rem; }
+.df-mobile-sheet-content { max-height: calc(86dvh - 150px); overflow-y: auto; padding: 18px; overscroll-behavior: contain; }
+.df-mobile-sheet-footer { padding: 12px 18px 16px; border-top: 1px solid var(--color-border-subtle); background: var(--color-surface-container-lowest); }
+.df-mobile-icon-button { width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 999px; color: var(--color-on-surface-variant); background: var(--color-surface-container-low); }
+
+@media (max-width: 767px) {
+  .df-mobile-horizontal-rail { display: grid !important; grid-auto-flow: column; grid-auto-columns: minmax(0, 84vw); grid-template-columns: none !important; gap: 14px !important; overflow-x: auto; overflow-y: visible; scroll-snap-type: x mandatory; overscroll-behavior-inline: contain; padding: 2px 8vw 12px 0; scrollbar-width: none; }
+  .df-mobile-horizontal-rail::-webkit-scrollbar { display: none; }
+  .df-mobile-horizontal-rail > * { scroll-snap-align: start; min-width: 0; }
+  .df-mobile-horizontal-rail.df-compact-rail { grid-auto-columns: minmax(0, 72vw); }
+
+  .df-mobile-section-head { text-align: left !important; margin-bottom: 22px !important; }
+  .df-mobile-section-head .mx-auto { margin-left: 0 !important; }
+
+  .df-mobile-compact-search { width: 100%; max-width: 520px; margin: 0 auto; padding: 12px; border: 1px solid rgba(255,255,255,.32); border-radius: 22px; background: rgba(253,251,247,.96); box-shadow: 0 18px 50px rgba(5,27,14,.22); color: var(--color-text-deep-green); text-align: left; backdrop-filter: blur(14px); }
+  .df-mobile-search-primary { min-height: 50px; width: 100%; display: flex; align-items: center; gap: 11px; padding: 0 12px; border: 0; border-radius: 15px; background: var(--color-surface-container-low); color: var(--color-text-deep-green); }
+  .df-mobile-search-primary strong { display: block; font-size: .95rem; }
+  .df-mobile-search-primary small { display: block; color: var(--color-on-surface-variant); margin-top: 2px; }
+  .df-mobile-search-meta { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 7px; margin-top: 8px; }
+  .df-mobile-search-meta button { min-width: 0; min-height: 44px; border: 1px solid var(--color-border-subtle); border-radius: 13px; background: white; color: var(--color-on-surface-variant); padding: 6px 5px; font-size: 11px; }
+  .df-mobile-search-meta span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .df-mobile-form-stack { display: grid; gap: 14px; }
+  .df-mobile-form-stack label { display: grid; gap: 6px; color: var(--color-on-surface-variant); font-size: 13px; font-weight: 650; }
+  .df-mobile-form-stack input, .df-mobile-form-stack select { min-height: 48px; width: 100%; border: 1px solid var(--color-border-subtle); border-radius: 14px; background: white; color: var(--color-text-deep-green); padding: 0 13px; }
+
+  .df-mobile-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
+  .df-mobile-stats-grid > * { padding: 14px 10px !important; min-height: 104px; display: flex; flex-direction: column; justify-content: center; }
+  .df-mobile-stats-grid .text-display-lg { font-size: clamp(1.65rem, 8vw, 2.15rem) !important; }
+
+  .df-mobile-filter-panel { position: fixed; z-index: 115; left: 8px; right: 8px; bottom: max(8px, var(--df-safe-bottom)); max-height: 78dvh; overflow-y: auto; border: 1px solid var(--color-border-subtle); border-radius: 24px; background: white; box-shadow: 0 24px 70px rgba(5,27,14,.22); padding: 18px !important; }
+  .df-mobile-filter-backdrop { position: fixed; z-index: 110; inset: 0; border: 0; background: rgba(5,27,14,.42); }
+
+  .df-mobile-map-shell { height: calc(100dvh - var(--df-mobile-topbar) - var(--df-mobile-bottom-nav) - 34px) !important; min-height: 520px; }
+
+  .df-mobile-booking-bar { position: fixed; z-index: 88; left: 8px; right: 8px; bottom: calc(var(--df-mobile-bottom-nav) + var(--df-safe-bottom) + 16px); min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 16px; border: 1px solid var(--color-border-subtle); border-radius: 20px; background: rgba(255,255,255,.97); box-shadow: 0 14px 42px rgba(5,27,14,.18); backdrop-filter: blur(18px); }
+  .df-mobile-booking-bar strong { display: block; color: var(--color-highlight-gold); font-family: "Playfair Display", Georgia, serif; font-size: 1.28rem; line-height: 1.1; }
+  .df-mobile-booking-bar span { color: var(--color-on-surface-variant); font-size: 11px; }
+  .df-mobile-booking-bar button { min-width: 132px; min-height: 48px; }
+
+  .df-mobile-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
+  .df-mobile-card-grid img { aspect-ratio: 4 / 3; height: auto !important; object-fit: cover; }
+}
+
+@media (max-width: 350px) {
+  .df-mobile-horizontal-rail { grid-auto-columns: minmax(0, 88vw); }
+  .df-mobile-card-grid { grid-template-columns: 1fr !important; }
+  .df-mobile-search-meta { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 767px) {
+  /* Home mobile recomposition */
+  .df-home-hero { min-height: 0; }
+  .df-home-hero > div:first-child { height: min(72svh, 620px) !important; min-height: 500px; }
+  .df-home-hero .animate-fade-in-down > p { display: none; }
+  .df-home-hero .animate-fade-in-down > span { margin-bottom: 10px !important; font-size: 10px !important; }
+  .df-home-hero .animate-fade-in-down > h1 { margin-bottom: 20px !important; }
+  .df-home-hero .flex.flex-wrap.items-center.justify-center.gap-4.mt-8 { margin-top: 14px !important; gap: 8px !important; }
+  .df-home-hero .flex.flex-wrap.items-center.justify-center.gap-4.mt-8 a { min-height: 42px; padding: 9px 13px !important; font-size: 11px !important; }
+
+  /* Discovery becomes compact and touch-first. */
+  .df-discovery-hero { padding-top: 32px !important; padding-bottom: 30px !important; }
+  .df-discovery-hero h1 { font-size: clamp(2rem, 10vw, 2.7rem) !important; }
+  .df-discovery-hero p { font-size: 15px !important; }
+  .df-discovery-search { margin-top: 20px !important; padding: 8px !important; border-radius: 18px !important; }
+  .df-discovery-search > div { gap: 8px !important; }
+  .df-discovery-search button { min-width: 44px; padding-inline: 12px !important; }
+  .df-discovery-search button span span:last-child { display: none; }
+  .df-discovery-results { gap: 14px !important; }
+
+  /* Map: map first, results become a compact follow-on list in Release 3.1. Advanced pins are Release 3.2. */
+  .df-map-page > div { padding-top: 14px !important; }
+  .df-map-page h1 { font-size: 1.85rem !important; }
+  .df-map-page .card-ambient.p-4.mb-6 { padding: 12px !important; margin-bottom: 12px !important; }
+  .df-map-page .grid.grid-cols-2.md\:grid-cols-4 { display: none; }
+  .df-map-page .flex.flex-wrap.gap-2.mb-6 { overflow-x: auto; flex-wrap: nowrap !important; padding-bottom: 4px; scrollbar-width: none; }
+  .df-map-page .flex.flex-wrap.gap-2.mb-6::-webkit-scrollbar { display: none; }
+  .df-map-page .flex.flex-wrap.gap-2.mb-6 button { flex: 0 0 auto; min-height: 44px; }
+  .df-map-layout { gap: 12px !important; }
+  .df-map-results-panel .card-ambient { height: auto !important; max-height: 48dvh; }
+
+  /* Hotel/Admin portal: horizontal operational section navigation, no compressed sidebar. */
+  .df-mobile-section-tabs { display: flex; gap: 8px; overflow-x: auto; margin: -4px -4px 16px; padding: 4px 4px 8px; scroll-snap-type: x proximity; scrollbar-width: none; }
+  .df-mobile-section-tabs::-webkit-scrollbar { display: none; }
+  .df-mobile-section-tab { flex: 0 0 auto; min-height: 46px; display: inline-flex; align-items: center; gap: 7px; padding: 0 13px; border: 1px solid var(--color-border-subtle); border-radius: 999px; background: white; color: var(--color-on-surface-variant); font-size: 12px; font-weight: 700; scroll-snap-align: start; }
+  .df-mobile-section-tab .material-symbols-outlined { font-size: 19px; }
+  .df-mobile-section-tab.is-active { border-color: rgba(41,105,86,.35); background: rgba(175,240,216,.25); color: var(--color-secondary); }
+
+  /* Existing wide operational tables get contained scrolling rather than body overflow. */
+  .df-mobile-nav-present .overflow-x-auto { max-width: calc(100vw - (var(--df-mobile-gutter) * 2)); border-radius: 16px; }
+  .df-mobile-nav-present table { font-size: 13px; }
+  .df-mobile-nav-present th, .df-mobile-nav-present td { padding: 10px !important; }
+}

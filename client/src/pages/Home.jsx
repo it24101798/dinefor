@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import FeedCard from "../components/FeedCard";
 import HeroMediaCarousel from "../components/HeroMediaCarousel";
+import useResponsive from "../hooks/useResponsive";
+import MobileBottomSheet from "../mobile/components/MobileBottomSheet";
 
 // ============================================
 // CONFIGURATION
@@ -149,6 +151,7 @@ const faqs = [
 // ============================================
 function Home() {
   const navigate = useNavigate();
+  const { isMobile } = useResponsive();
   const heroRef = useRef(null);
   const featuresRef = useRef(null);
   const stepsRef = useRef(null);
@@ -380,7 +383,7 @@ function Home() {
 
   const renderStatsSection = () => (
     <section className="py-8 md:py-12 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="df-mobile-stats-grid grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card-ambient p-4 md:p-6 text-center hover:shadow-ambient-lg transition-shadow">
           <p className="font-display-lg text-display-lg text-highlight-gold">{stats.totalBuffets}+</p>
           <p className="font-label-sm text-label-sm text-on-surface-variant">Premium Buffets</p>
@@ -402,7 +405,7 @@ function Home() {
   );
 
   const renderHero = () => (
-    <section className="relative w-full overflow-hidden" ref={heroRef}>
+    <section className="df-home-hero relative w-full overflow-hidden" ref={heroRef}>
       <div className="relative h-[540px] md:h-[600px] w-full bg-surface-dim">
         <HeroMediaCarousel settings={settings} />
         <div className="absolute inset-0 bg-gradient-to-t from-text-deep-green/75 via-text-deep-green/35 to-text-deep-green/10 pointer-events-none" />
@@ -422,94 +425,35 @@ function Home() {
             </p>
           </div>
 
-          {/* Search Bar */}
-          <form
-            onSubmit={handleSearch}
-            className="search-bar flex flex-col md:flex-row items-center gap-4 max-w-5xl mx-auto"
-          >
-            <div className="search-field">
-              <span className="material-symbols-outlined text-on-surface-variant">search</span>
-              <div className="flex flex-col w-full text-left">
-                <label className="search-field-label">Location</label>
-                <input
-                  value={search.location}
-                  onChange={(e) => setSearch({ ...search, location: e.target.value })}
-                  placeholder="Colombo, Galle, Kandy"
-                  className="search-field-input"
-                />
+          {/* Search experience: desktop remains unchanged; mobile uses a native compact entry + bottom sheet. */}
+          {isMobile ? (
+            <div className="df-mobile-compact-search">
+              <button type="button" className="df-mobile-search-primary" onClick={() => setShowSearchMobile(true)}>
+                <span className="material-symbols-outlined text-secondary">search</span>
+                <span className="min-w-0 flex-1">
+                  <strong>Where would you like to dine?</strong>
+                  <small>{search.location || "Colombo, Galle, Kandy"}</small>
+                </span>
+                <span className="material-symbols-outlined text-on-surface-variant">arrow_forward</span>
+              </button>
+              <div className="df-mobile-search-meta">
+                <button type="button" onClick={() => setShowSearchMobile(true)}><span>📅</span><span>{search.date || "Date"}</span></button>
+                <button type="button" onClick={() => setShowSearchMobile(true)}><span>🍽️</span><span>{search.meal || "Meal"}</span></button>
+                <button type="button" onClick={() => setShowSearchMobile(true)}><span>👥</span><span>{search.guests} guests</span></button>
               </div>
             </div>
-
-            <div className="search-divider" />
-            <div className="search-divider-mobile" />
-
-            <div className="search-field">
-              <span className="material-symbols-outlined text-on-surface-variant">calendar_month</span>
-              <div className="flex flex-col w-full text-left">
-                <label className="search-field-label">Date</label>
-                <input
-                  type="date"
-                  value={search.date}
-                  onChange={(e) => setSearch({ ...search, date: e.target.value })}
-                  className="search-field-input"
-                />
-              </div>
-            </div>
-
-            <div className="search-divider" />
-            <div className="search-divider-mobile" />
-
-            <div className="search-field">
-              <span className="material-symbols-outlined text-on-surface-variant">restaurant</span>
-              <div className="flex flex-col w-full text-left">
-                <label className="search-field-label">Meal</label>
-                <select
-                  value={search.meal}
-                  onChange={(e) => {
-                    setSearch({ ...search, meal: e.target.value });
-                    setActiveCategory(e.target.value);
-                  }}
-                  className="search-field-input appearance-none cursor-pointer"
-                >
-                  <option value="">Any</option>
-                  <option>Breakfast</option>
-                  <option>Lunch</option>
-                  <option>Dinner</option>
-                  <option>High Tea</option>
-                  <option>Seafood</option>
-                  <option>Weekend Buffet</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="search-divider" />
-            <div className="search-divider-mobile" />
-
-            <div className="search-field">
-              <span className="material-symbols-outlined text-on-surface-variant">group</span>
-              <div className="flex flex-col w-full text-left">
-                <label className="search-field-label">Guests</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={search.guests}
-                  onChange={(e) => setSearch({ ...search, guests: e.target.value })}
-                  className="search-field-input"
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full md:w-auto btn-primary flex items-center justify-center gap-2 group"
-            >
-              Search
-              <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">
-                arrow_forward
-              </span>
-            </button>
-          </form>
+          ) : (
+            <form onSubmit={handleSearch} className="search-bar flex flex-col md:flex-row items-center gap-4 max-w-5xl mx-auto">
+              <div className="search-field"><span className="material-symbols-outlined text-on-surface-variant">search</span><div className="flex flex-col w-full text-left"><label className="search-field-label">Location</label><input value={search.location} onChange={(e) => setSearch({ ...search, location: e.target.value })} placeholder="Colombo, Galle, Kandy" className="search-field-input" /></div></div>
+              <div className="search-divider" />
+              <div className="search-field"><span className="material-symbols-outlined text-on-surface-variant">calendar_month</span><div className="flex flex-col w-full text-left"><label className="search-field-label">Date</label><input type="date" value={search.date} onChange={(e) => setSearch({ ...search, date: e.target.value })} className="search-field-input" /></div></div>
+              <div className="search-divider" />
+              <div className="search-field"><span className="material-symbols-outlined text-on-surface-variant">restaurant</span><div className="flex flex-col w-full text-left"><label className="search-field-label">Meal</label><select value={search.meal} onChange={(e) => { setSearch({ ...search, meal: e.target.value }); setActiveCategory(e.target.value); }} className="search-field-input appearance-none cursor-pointer"><option value="">Any</option><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>High Tea</option><option>Seafood</option><option>Weekend Buffet</option></select></div></div>
+              <div className="search-divider" />
+              <div className="search-field"><span className="material-symbols-outlined text-on-surface-variant">group</span><div className="flex flex-col w-full text-left"><label className="search-field-label">Guests</label><input type="number" min="1" max="20" value={search.guests} onChange={(e) => setSearch({ ...search, guests: e.target.value })} className="search-field-input" /></div></div>
+              <button type="submit" className="w-full md:w-auto btn-primary flex items-center justify-center gap-2 group">Search<span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span></button>
+            </form>
+          )}
 
           <div className="flex flex-wrap items-center justify-center gap-4 mt-8">
             <Link
@@ -571,7 +515,7 @@ function Home() {
 
   const renderFeaturedBuffets = () => (
     <section className="py-12 md:py-16 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
-      <div className="text-center max-w-2xl mx-auto mb-12">
+      <div className="df-mobile-section-head text-center max-w-2xl mx-auto mb-12">
         <span className="font-label-md text-label-md text-highlight-gold uppercase tracking-wider">
           Featured This Week
         </span>
@@ -587,7 +531,7 @@ function Home() {
       {loading ? (
         renderLoadingSkeleton()
       ) : featuredBuffets.length ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+        <div className="df-mobile-horizontal-rail grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
           {featuredBuffets.map((buffet, index) => (
             <div
               key={buffet._id}
@@ -615,7 +559,7 @@ function Home() {
 
   const renderTopRated = () => (
     <section className="py-12 md:py-16 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto bg-surface-container-low/50 rounded-3xl">
-      <div className="text-center max-w-2xl mx-auto mb-12">
+      <div className="df-mobile-section-head text-center max-w-2xl mx-auto mb-12">
         <span className="font-label-md text-label-md text-highlight-gold uppercase tracking-wider">
           Top Rated
         </span>
@@ -631,7 +575,7 @@ function Home() {
       {loading ? (
         renderLoadingSkeleton()
       ) : topRatedBuffets.length ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="df-mobile-horizontal-rail df-compact-rail grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {topRatedBuffets.map((buffet) => (
             <Link
               key={buffet._id}
@@ -693,7 +637,7 @@ function Home() {
       {loading ? (
         renderLoadingSkeleton()
       ) : latestBuffets.length ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="df-mobile-horizontal-rail df-compact-rail grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {latestBuffets.map((buffet) => (
             <Link
               key={buffet._id}
@@ -837,7 +781,7 @@ function Home() {
         <div className="w-20 h-1 bg-highlight-gold mx-auto mt-4 rounded-full" />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="df-mobile-card-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {howItWorksSteps.map((step, index) => (
           <div
             key={step.title}
@@ -878,7 +822,7 @@ function Home() {
         <div className="w-20 h-1 bg-highlight-gold mx-auto mt-4 rounded-full" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="df-mobile-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {trustPoints.map((point, index) => (
           <div
             key={point.title}
@@ -1167,6 +1111,20 @@ function Home() {
       {renderHotelPartnerCTA()}
       {renderNewsletter()}
       {renderFinalCTA()}
+
+      <MobileBottomSheet
+        open={isMobile && showSearchMobile}
+        onClose={() => setShowSearchMobile(false)}
+        title="Find your buffet"
+        footer={<button type="button" className="btn-primary w-full" onClick={(event) => { setShowSearchMobile(false); handleSearch(event); }}>Search Buffets</button>}
+      >
+        <div className="df-mobile-form-stack">
+          <label>Location<input value={search.location} onChange={(e) => setSearch({ ...search, location: e.target.value })} placeholder="Colombo, Galle, Kandy" /></label>
+          <label>Date<input type="date" value={search.date} onChange={(e) => setSearch({ ...search, date: e.target.value })} /></label>
+          <label>Meal<select value={search.meal} onChange={(e) => { setSearch({ ...search, meal: e.target.value }); setActiveCategory(e.target.value); }}><option value="">Any meal</option><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>High Tea</option><option>Seafood</option><option>Weekend Buffet</option></select></label>
+          <label>Guests<input type="number" min="1" max="20" value={search.guests} onChange={(e) => setSearch({ ...search, guests: e.target.value })} /></label>
+        </div>
+      </MobileBottomSheet>
 
       {/* Scroll to Top Button */}
       {showScrollTop && (
