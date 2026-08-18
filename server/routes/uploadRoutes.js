@@ -2,7 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-const { protect } = require("../middleware/authMiddleware");
+const { protect, authorize } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -41,11 +41,15 @@ const fileFilter = (req, file, cb) => {
   cb(new Error("Only JPG, PNG, WEBP, MP4, WEBM, or OGG files are allowed."));
 };
 
-const upload = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: 100 * 1024 * 1024 },
-});
+const createUploader = (maxSizeMb) =>
+  multer({
+    storage,
+    fileFilter,
+    limits: { fileSize: maxSizeMb * 1024 * 1024 },
+  });
+
+const upload = createUploader(100);
+const heroUpload = createUploader(Number(process.env.HERO_MEDIA_MAX_MB || 500));
 
 const buildFileResponse = (req, file) => {
   const publicBase = (process.env.PUBLIC_API_URL || `${req.protocol}://${req.get("host")}`).replace(/\/+$/, "");
@@ -58,6 +62,17 @@ const buildFileResponse = (req, file) => {
     size: file.size,
   };
 };
+
+// Homepage hero media is an admin-only CMS operation. It receives a larger,
+ // separately configurable limit so normal user/hotel uploads remain constrained.
+router.post("/hero", protect, authorize("admin"), heroUpload.single("media"), (req, res) => {
+  if (!req.file) return res.status(400).json({ message: "No hero media uploaded." });
+
+  res.status(201).json({
+    message: "Hero media uploaded successfully.",
+    ...buildFileResponse(req, req.file),
+  });
+});
 
 router.post("/", protect, upload.single("media"), (req, res) => {
   if (!req.file) return res.status(400).json({ message: "No file uploaded." });
@@ -81,6 +96,11 @@ router.post("/multiple", protect, upload.array("media", 8), (req, res) => {
 
 router.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {
+    if (error.code === "LIMIT_FILE_SIZE") {
+      const isHero = req.path === "/hero";
+      const limit = isHero ? Number(process.env.HERO_MEDIA_MAX_MB || 500) : 100;
+      return res.status(413).json({ message: `File exceeds the ${limit}MB upload limit.` });
+    }
     return res.status(400).json({ message: error.message });
   }
 

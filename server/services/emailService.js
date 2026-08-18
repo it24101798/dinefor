@@ -456,6 +456,34 @@ const sendHotelBookingEmail = ({
   });
 };
 
+
+const sendPartnershipAgreementEmail = ({
+  to,
+  name,
+  hotelName,
+  agreementNumber,
+  version,
+}) =>
+  sendBrandedEmail({
+    to,
+    subject: `DineFor partnership agreement ${agreementNumber}`,
+    heading: "Your DineFor partnership agreement is ready",
+    intro: `Hello ${name || "Hotel Partner"}, the partnership agreement for ${hotelName} is ready for review.`,
+    rows: [
+      ["Hotel", hotelName],
+      ["Agreement", agreementNumber],
+      ["Version", version],
+      ["Next step", "Review, acknowledge and submit the signed agreement"],
+    ],
+    actionLabel: "Review Agreement",
+    actionUrl: `${(process.env.CLIENT_URL || "http://localhost:5173").replace(
+      /\/+$/,
+      ""
+    )}/hotel-partnership`,
+    footer:
+      "The agreement version and commercial terms are recorded by DineFor. Submit a signed agreement only through the protected Partnership & Compliance portal.",
+  });
+
 module.exports = {
   sendAccountEmail,
   sendOtpEmail,
@@ -469,4 +497,5 @@ module.exports = {
   sendHotelStatusEmail,
   sendAdminHotelApplicationEmail,
   sendHotelBookingEmail,
+  sendPartnershipAgreementEmail,
 };

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import api from "../services/api";
-import FeedCard from "../components/FeedCard";
+import BuffetCard from "../components/buffet/BuffetCard";
 
 
 const sortOptions = [
@@ -573,11 +573,11 @@ function Listings() {
           renderEmpty()
         ) : (
           <div className={viewMode === "grid" 
-            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            ? "df-buffet-grid"
             : "space-y-4"
           }>
             {filteredBuffets.map((buffet) => (
-              <FeedCard key={buffet._id} buffet={buffet} />
+              <BuffetCard key={buffet._id} buffet={buffet} />
             ))}
           </div>
         )}

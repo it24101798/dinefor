@@ -8,6 +8,7 @@ function MediaUploader({
   multiple = false,
   maxFiles = 8,
   maxSizeMb = 100,
+  uploadEndpoint = "/uploads",
 }) {
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
@@ -23,8 +24,11 @@ function MediaUploader({
     const formData = new FormData();
     formData.append("media", file);
 
-    const response = await api.post("/uploads", formData, {
+    const response = await api.post(uploadEndpoint, formData, {
       headers: { "Content-Type": "multipart/form-data" },
+      // Large hero videos can legitimately take several minutes on slower uplinks.
+      // Do not inherit the API client's general 30-second timeout for media uploads.
+      timeout: 0,
       onUploadProgress: (event) => {
         if (event.total) setProgress(Math.round((event.loaded * 100) / event.total));
       },

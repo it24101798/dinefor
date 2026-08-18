@@ -12,24 +12,31 @@ const parseSlotDateTime = (dateValue, timeText) => {
   return date;
 };
 
-const inWindow = (target, now, windowMinutes = 8) =>
-  target &&
-  Math.abs(target.getTime() - now.getTime()) <=
-    windowMinutes * 60 * 1000;
+const between = (value, start, end) =>
+  value >= start && value < end;
 
 const processBookingReminders = async () => {
   const now = new Date();
+  const lookBehind = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+  const lookAhead = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+
   const bookings = await Booking.find({
-    bookingStatus: { $in: ["confirmed", "checked_in"] },
+    bookingStatus: {
+      $in: ["confirmed", "checked_in", "dining"],
+    },
     selectedDate: {
-      $gte: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
-      $lte: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000),
+      $gte: lookBehind,
+      $lte: lookAhead,
     },
   })
-    .populate("user", "name email preferences")
+    .populate("user", "name email role preferences")
     .populate({
       path: "buffet",
-      populate: { path: "hotel", select: "hotelName" },
+      populate: {
+        path: "hotel",
+        select: "hotelName owner",
+        populate: { path: "owner", select: "name email preferences" },
+      },
     });
 
   let processed = 0;
@@ -43,59 +50,83 @@ const processBookingReminders = async () => {
       booking.selectedDate,
       booking.selectedTimeSlot?.endTime
     );
-    if (!start || !end) continue;
+
+    if (!start || !end || end <= start) continue;
 
     booking.reminderFlags = booking.reminderFlags || {};
-
-    const events = [
-      {
-        key: "dayBeforeSentAt",
-        event: "reminder_24h",
-        target: new Date(start.getTime() - 24 * 60 * 60 * 1000),
-      },
-      {
-        key: "hourBeforeSentAt",
-        event: "reminder_1h",
-        target: new Date(start.getTime() - 60 * 60 * 1000),
-      },
-      {
-        key: "startedSentAt",
-        event: "started",
-        target: start,
-      },
-      {
-        key: "completedSentAt",
-        event: "completed",
-        target: end,
-      },
-    ];
-
     let changed = false;
 
-    for (const item of events) {
-      if (!booking.reminderFlags[item.key] && inWindow(item.target, now)) {
-        await communicateBookingEvent({
-          booking,
-          event: item.event,
-        });
-        booking.reminderFlags[item.key] = now;
-        changed = true;
-        processed += 1;
-      }
+    const dayBefore = new Date(start.getTime() - 24 * 60 * 60 * 1000);
+    const hourBefore = new Date(start.getTime() - 60 * 60 * 1000);
+
+    // A delayed scheduler should not completely miss a reminder, but it also
+    // should not send a "24-hour" reminder when the one-hour reminder is due.
+    if (
+      !booking.reminderFlags.dayBeforeSentAt &&
+      between(now, dayBefore, hourBefore)
+    ) {
+      await communicateBookingEvent({
+        booking,
+        event: "reminder_24h",
+      });
+      booking.reminderFlags.dayBeforeSentAt = now;
+      changed = true;
+      processed += 1;
     }
 
     if (
-      !booking.reminderFlags.completedSentAt &&
-      now > end &&
-      booking.bookingStatus === "checked_in"
+      !booking.reminderFlags.hourBeforeSentAt &&
+      between(now, hourBefore, start)
     ) {
-      booking.bookingStatus = "completed";
-      booking.completedAt = now;
+      await communicateBookingEvent({
+        booking,
+        event: "reminder_1h",
+      });
+      booking.reminderFlags.hourBeforeSentAt = now;
+      changed = true;
+      processed += 1;
+    }
+
+    if (
+      !booking.reminderFlags.startedSentAt &&
+      between(now, start, end)
+    ) {
+      await communicateBookingEvent({
+        booking,
+        event: "started",
+      });
+      booking.reminderFlags.startedSentAt = now;
+
+      if (["confirmed", "checked_in"].includes(booking.bookingStatus)) {
+        booking.bookingStatus = "dining";
+        booking.statusTimeline.push({
+          status: "dining",
+          note: "Buffet service window started automatically.",
+          at: now,
+        });
+      }
+
+      changed = true;
+      processed += 1;
+    }
+
+    if (!booking.reminderFlags.completedSentAt && now >= end) {
       await communicateBookingEvent({
         booking,
         event: "completed",
       });
       booking.reminderFlags.completedSentAt = now;
+
+      if (["checked_in", "dining"].includes(booking.bookingStatus)) {
+        booking.bookingStatus = "completed";
+        booking.completedAt = now;
+        booking.statusTimeline.push({
+          status: "completed",
+          note: "Buffet service window completed.",
+          at: now,
+        });
+      }
+
       changed = true;
       processed += 1;
     }
@@ -106,4 +137,4 @@ const processBookingReminders = async () => {
   return { processed, checked: bookings.length };
 };
 
-module.exports = { processBookingReminders };
+module.exports = { processBookingReminders, parseSlotDateTime };

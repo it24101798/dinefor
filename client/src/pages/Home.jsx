@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
-import FeedCard from "../components/FeedCard";
+import BuffetCard from "../components/buffet/BuffetCard";
 import HeroMediaCarousel from "../components/HeroMediaCarousel";
 import useResponsive from "../hooks/useResponsive";
 import MobileBottomSheet from "../mobile/components/MobileBottomSheet";
+import MobileHeroSearch from "../mobile/home/MobileHeroSearch";
 
 // ============================================
 // CONFIGURATION
@@ -427,21 +428,7 @@ function Home() {
 
           {/* Search experience: desktop remains unchanged; mobile uses a native compact entry + bottom sheet. */}
           {isMobile ? (
-            <div className="df-mobile-compact-search">
-              <button type="button" className="df-mobile-search-primary" onClick={() => setShowSearchMobile(true)}>
-                <span className="material-symbols-outlined text-secondary">search</span>
-                <span className="min-w-0 flex-1">
-                  <strong>Where would you like to dine?</strong>
-                  <small>{search.location || "Colombo, Galle, Kandy"}</small>
-                </span>
-                <span className="material-symbols-outlined text-on-surface-variant">arrow_forward</span>
-              </button>
-              <div className="df-mobile-search-meta">
-                <button type="button" onClick={() => setShowSearchMobile(true)}><span>📅</span><span>{search.date || "Date"}</span></button>
-                <button type="button" onClick={() => setShowSearchMobile(true)}><span>🍽️</span><span>{search.meal || "Meal"}</span></button>
-                <button type="button" onClick={() => setShowSearchMobile(true)}><span>👥</span><span>{search.guests} guests</span></button>
-              </div>
-            </div>
+            <MobileHeroSearch search={search} onOpen={() => setShowSearchMobile(true)} />
           ) : (
             <form onSubmit={handleSearch} className="search-bar flex flex-col md:flex-row items-center gap-4 max-w-5xl mx-auto">
               <div className="search-field"><span className="material-symbols-outlined text-on-surface-variant">search</span><div className="flex flex-col w-full text-left"><label className="search-field-label">Location</label><input value={search.location} onChange={(e) => setSearch({ ...search, location: e.target.value })} placeholder="Colombo, Galle, Kandy" className="search-field-input" /></div></div>
@@ -531,14 +518,14 @@ function Home() {
       {loading ? (
         renderLoadingSkeleton()
       ) : featuredBuffets.length ? (
-        <div className="df-mobile-horizontal-rail grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+        <div className="df-buffet-grid">
           {featuredBuffets.map((buffet, index) => (
             <div
               key={buffet._id}
               className="animate-fade-in-up"
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              <FeedCard buffet={buffet} />
+              <BuffetCard buffet={buffet} />
             </div>
           ))}
         </div>
@@ -575,41 +562,9 @@ function Home() {
       {loading ? (
         renderLoadingSkeleton()
       ) : topRatedBuffets.length ? (
-        <div className="df-mobile-horizontal-rail df-compact-rail grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="df-buffet-grid">
           {topRatedBuffets.map((buffet) => (
-            <Link
-              key={buffet._id}
-              to={`/buffets/${buffet._id}`}
-              className="card-ambient-hover p-4 text-center group"
-            >
-              <div className="relative h-40 rounded-xl overflow-hidden">
-                <img
-                  src={buffet.thumbnail || buffet.images?.[0] || "https://images.unsplash.com/photo-1555244162-803834f70033?w=300&h=200&fit=crop"}
-                  alt={buffet.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute top-2 right-2 bg-highlight-gold text-text-deep-green px-2 py-1 rounded-full text-xs font-bold">
-                  ★ {buffet.averageRating?.toFixed(1) || "4.5"}
-                </div>
-                {buffet.isFeatured && (
-                  <div className="absolute top-2 left-2 bg-secondary text-surface-cream px-2 py-1 rounded-full text-xs font-bold">
-                    Featured
-                  </div>
-                )}
-              </div>
-              <h3 className="font-label-md text-label-md text-text-deep-green mt-3 group-hover:text-secondary transition-colors">
-                {buffet.title}
-              </h3>
-              <p className="font-label-sm text-label-sm text-on-surface-variant">
-                {buffet.hotel?.hotelName}
-              </p>
-              <p className="font-headline-md text-headline-md text-highlight-gold mt-2">
-                Rs. {Number(buffet.price || 0).toLocaleString()}
-              </p>
-              <p className="font-label-sm text-label-sm text-secondary mt-1">
-                {buffet.totalReviews || 0} reviews
-              </p>
-            </Link>
+            <BuffetCard key={buffet._id} buffet={buffet} />
           ))}
         </div>
       ) : (
@@ -637,48 +592,9 @@ function Home() {
       {loading ? (
         renderLoadingSkeleton()
       ) : latestBuffets.length ? (
-        <div className="df-mobile-horizontal-rail df-compact-rail grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="df-buffet-grid">
           {latestBuffets.map((buffet) => (
-            <Link
-              key={buffet._id}
-              to={`/buffets/${buffet._id}`}
-              className="card-ambient-hover overflow-hidden group"
-            >
-              <div className="relative h-48 overflow-hidden">
-                <img
-                  src={buffet.thumbnail || buffet.images?.[0] || "https://images.unsplash.com/photo-1555244162-803834f70033?w=400&h=300&fit=crop"}
-                  alt={buffet.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                {buffet.isNew && (
-                  <span className="absolute top-3 left-3 bg-secondary text-surface-cream px-3 py-1 rounded-full font-label-sm text-label-sm">
-                    New
-                  </span>
-                )}
-                {buffet.averageRating > 0 && (
-                  <span className="absolute top-3 right-3 bg-surface-cream/90 backdrop-blur-sm px-3 py-1 rounded-full font-label-sm text-label-sm flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px] text-highlight-gold">star</span>
-                    {buffet.averageRating.toFixed(1)}
-                  </span>
-                )}
-              </div>
-              <div className="p-4">
-                <h3 className="font-label-md text-label-md text-text-deep-green group-hover:text-secondary transition-colors">
-                  {buffet.title}
-                </h3>
-                <p className="font-label-sm text-label-sm text-on-surface-variant">
-                  {buffet.hotel?.hotelName}
-                </p>
-                <div className="flex justify-between items-center mt-2">
-                  <p className="font-headline-md text-headline-md text-highlight-gold">
-                    Rs. {Number(buffet.price || 0).toLocaleString()}
-                  </p>
-                  <span className="text-secondary font-label-sm text-label-sm group-hover:translate-x-1 transition-transform">
-                    Reserve
-                  </span>
-                </div>
-              </div>
-            </Link>
+            <BuffetCard key={buffet._id} buffet={buffet} />
           ))}
         </div>
       ) : (

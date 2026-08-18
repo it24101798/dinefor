@@ -213,7 +213,7 @@ function RecentlyViewed() {
     </div>
   );
 
-  const renderItemCard = (item) => {
+  const renderItemCard = (item, reactKey) => {
     const isBuffet = item.itemType === "buffet";
     const imageUrl = isBuffet
       ? resolveMedia(item.item?.thumbnail || item.item?.images?.[0])
@@ -225,7 +225,7 @@ function RecentlyViewed() {
     const link = isBuffet ? `/buffets/${item.item?._id}` : `/hotels/${item.item?._id}`;
 
     return (
-      <div className="card-ambient-hover overflow-hidden group">
+      <div key={reactKey} className="card-ambient-hover overflow-hidden group relative">
         <Link to={link}>
           <div className="relative h-48 overflow-hidden">
             <img
@@ -387,7 +387,12 @@ function RecentlyViewed() {
           renderEmpty()
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredItems.map((item) => renderItemCard(item))}
+            {filteredItems.map((item, index) => {
+              const stableKey =
+                item?._id ||
+                `${item?.itemType || "item"}-${item?.item?._id || item?.item || "unknown"}-${item?.viewedAt || index}`;
+              return renderItemCard(item, stableKey);
+            })}
           </div>
         )}
       </div>

@@ -1,0 +1,215 @@
+.df-buffet-grid {
+  display: grid;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.df-desktop-buffet-card {
+  min-width: 0;
+}
+
+.df-mobile-buffet-card {
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(225, 222, 214, 0.92);
+  border-radius: 18px;
+  background: var(--color-surface-container-lowest, #fff);
+  color: inherit;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(5, 27, 14, 0.08);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.df-mobile-buffet-card:active {
+  transform: scale(0.985);
+}
+
+.df-mobile-buffet-card__media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 0.82;
+  overflow: hidden;
+  background: var(--color-surface-container-low, #f5f3ed);
+}
+
+.df-mobile-buffet-card__media img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.df-mobile-buffet-card__featured,
+.df-mobile-buffet-card__rating {
+  position: absolute;
+  top: 8px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  min-height: 25px;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(5, 27, 14, 0.11);
+}
+
+.df-mobile-buffet-card__featured {
+  left: 8px;
+  padding: 0 8px;
+  background: var(--color-highlight-gold, #d7ad29);
+  color: var(--color-text-deep-green, #143125);
+}
+
+.df-mobile-buffet-card__rating {
+  right: 8px;
+  gap: 3px;
+  padding: 0 7px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--color-text-deep-green, #143125);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.df-mobile-buffet-card__rating .material-symbols-outlined {
+  font-size: 13px;
+  color: var(--color-highlight-gold, #d7ad29);
+}
+
+.df-mobile-buffet-card__rating small {
+  font-size: 9px;
+  opacity: 0.72;
+}
+
+.df-mobile-buffet-card__content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 11px;
+}
+
+.df-mobile-buffet-card__hotel {
+  min-width: 0;
+  margin: 0 0 3px;
+  overflow: hidden;
+  color: var(--color-secondary, #296956);
+  font-size: 9px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.df-mobile-buffet-card__title {
+  display: -webkit-box;
+  min-height: 38px;
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-text-deep-green, #143125);
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 16px;
+  line-height: 1.12;
+  font-weight: 700;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.df-mobile-buffet-card__footer {
+  margin-top: auto;
+  padding-top: 10px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 7px;
+}
+
+.df-mobile-buffet-card__footer strong {
+  display: block;
+  overflow: hidden;
+  color: var(--color-highlight-gold, #d7ad29);
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: clamp(15px, 4.4vw, 18px);
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.df-mobile-buffet-card__footer small {
+  display: block;
+  margin-top: 3px;
+  color: var(--color-on-surface-variant, #667269);
+  font-size: 9px;
+  line-height: 1;
+}
+
+.df-mobile-buffet-card__open {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(142, 216, 192, 0.38);
+  color: var(--color-text-deep-green, #143125);
+}
+
+.df-mobile-buffet-card__open .material-symbols-outlined {
+  font-size: 17px;
+}
+
+@media (max-width: 767px) {
+  .df-buffet-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  .df-buffet-grid > * {
+    min-width: 0;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .df-buffet-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 20px !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .df-buffet-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 24px !important;
+  }
+}
+
+@media (max-width: 340px) {
+  .df-mobile-buffet-card__content {
+    padding: 9px;
+  }
+
+  .df-mobile-buffet-card__title {
+    min-height: 34px;
+    font-size: 14px;
+  }
+
+  .df-mobile-buffet-card__footer strong {
+    font-size: 14px;
+  }
+
+  .df-mobile-buffet-card__open {
+    flex-basis: 28px;
+    width: 28px;
+    height: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .df-mobile-buffet-card {
+    transition: none;
+  }
+}

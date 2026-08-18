@@ -63,7 +63,7 @@ export default function HomeCMSPanel() {
         <select name="heroMediaType" value={settings.heroMediaType || "image"} onChange={change}><option value="image">Single image</option><option value="video">Single video</option><option value="carousel">Image slideshow</option><option value="mixed">Mixed slideshow</option></select>
         <input name="heroMediaUrl" placeholder="Legacy/single hero media URL" value={settings.heroMediaUrl || ""} onChange={change} />
         <input name="fallbackHeroImage" placeholder="Fallback hero image URL" value={settings.fallbackHeroImage || ""} onChange={change} />
-        <div className="span-2"><MediaUploader multiple maxFiles={8} label="Upload hero images or videos" onUpload={addMedia} /></div>
+        <div className="span-2"><MediaUploader multiple maxFiles={8} maxSizeMb={500} uploadEndpoint="/uploads/hero" label="Upload hero images or videos" onUpload={addMedia} /></div>
         <div className="span-2 space-y-3">
           {(settings.heroMediaItems || []).map((item, index) => (
             <div key={item._id || `${item.url}-${index}`} className="card-ambient p-3 flex flex-col md:flex-row gap-3 items-start md:items-center">
