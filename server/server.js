@@ -194,6 +194,12 @@ app.use("/api/customer", require("./routes/customerExperienceRoutes"));
 app.use("/api/analytics", require("./routes/analyticsRoutes"));
 app.use("/api/payments", require("./routes/paymentRoutes"));
 app.use("/api/coupons", require("./routes/couponRoutes"));
+app.use("/api/seo", require("./routes/seoRoutes"));
+
+// Search-engine endpoints are exposed on the public site path when the API host is used directly.
+const seoController = require("./controllers/seoController");
+app.get("/robots.txt", seoController.getRobots);
+app.get("/sitemap.xml", seoController.getSitemap);
 
 /*
 |--------------------------------------------------------------------------

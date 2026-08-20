@@ -36,6 +36,7 @@ import PaymentHistory from "./pages/PaymentHistory";
 import RecentlyViewed from "./pages/RecentlyViewed";
 import PartnershipCompliance from "./pages/PartnershipCompliance";
 import AdminPartnershipReview from "./pages/AdminPartnershipReview";
+import SeoLandingPage from "./pages/seo/SeoLandingPage";
 
 export default function App() {
   return (
@@ -51,6 +52,18 @@ export default function App() {
         <Route path="/buffets" element={<Listings />} />
         <Route path="/buffets/:id" element={<BuffetDetails />} />
         <Route path="/hotels/:id" element={<HotelProfile />} />
+
+        {/* Release 4.1 public SEO landing pages */}
+        <Route path="/best-buffets-in-colombo" element={<SeoLandingPage slug="best-buffets-in-colombo" />} />
+        <Route path="/best-buffets-in-galle" element={<SeoLandingPage slug="best-buffets-in-galle" />} />
+        <Route path="/best-buffets-in-kandy" element={<SeoLandingPage slug="best-buffets-in-kandy" />} />
+        <Route path="/most-popular-buffets" element={<SeoLandingPage slug="most-popular-buffets" />} />
+        <Route path="/top-rated-buffets" element={<SeoLandingPage slug="top-rated-buffets" />} />
+        <Route path="/latest-buffets" element={<SeoLandingPage slug="latest-buffets" />} />
+        <Route path="/best-high-tea-in-colombo" element={<SeoLandingPage slug="best-high-tea-in-colombo" />} />
+        <Route path="/best-dinner-buffets-in-colombo" element={<SeoLandingPage slug="best-dinner-buffets-in-colombo" />} />
+        <Route path="/best-lunch-buffets-in-colombo" element={<SeoLandingPage slug="best-lunch-buffets-in-colombo" />} />
+        <Route path="/best-seafood-buffets-in-colombo" element={<SeoLandingPage slug="best-seafood-buffets-in-colombo" />} />
 
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

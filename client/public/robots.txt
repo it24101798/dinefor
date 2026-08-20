@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /hotel/
+Disallow: /customer/
+Disallow: /account-security
+Disallow: /payments
+
+Sitemap: https://dinefor.com/sitemap.xml
