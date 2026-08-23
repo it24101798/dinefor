@@ -1,10 +1,12 @@
 const mongoose = require("mongoose");
+const { buildDocumentSlug } = require("../utils/seoSlug");
 
 const hotelSchema = new mongoose.Schema(
   {
     owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
     hotelName: { type: String, required: true, trim: true },
+    slug: { type: String, trim: true, lowercase: true, unique: true, sparse: true, index: true },
     location: { type: String, required: true, trim: true },
     address: { type: String, default: "" },
     city: { type: String, default: "", trim: true },
@@ -120,5 +122,10 @@ const hotelSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+hotelSchema.pre("validate", function ensureSeoSlug(next) {
+  if (!this.slug && this.hotelName) this.slug = buildDocumentSlug(this.hotelName, this._id);
+  next();
+});
 
 module.exports = mongoose.model("Hotel", hotelSchema);

@@ -48,7 +48,7 @@ export default function SeoLandingPage({ slug: fixedSlug }) {
         "@type": "ListItem",
         position: index + 1,
         name: item.title,
-        url: `https://dinefor.com/buffets/${item._id}`,
+        url: `https://dinefor.com/buffets/${item.slug || item._id}`,
       })),
     },
   }), [items, preset, slug]);
@@ -63,7 +63,7 @@ export default function SeoLandingPage({ slug: fixedSlug }) {
         <h1>{preset.title}</h1>
         <p>{preset.intro}</p>
         <div className="seo-links">
-          <Link to="/discover">Discover all</Link><Link to="/map">Explore map</Link><Link to="/most-popular-buffets">Popular buffets</Link><Link to="/top-rated-buffets">Top rated</Link>
+          <Link to="/discover">Discover all</Link><Link to="/map">Explore map</Link><Link to="/destinations/colombo">Colombo guide</Link><Link to="/destinations/galle">Galle guide</Link><Link to="/most-popular-buffets">Popular buffets</Link><Link to="/top-rated-buffets">Top rated</Link>
         </div>
       </header>
       <section className="seo-results" aria-labelledby="seo-results-title">

@@ -37,6 +37,8 @@ import RecentlyViewed from "./pages/RecentlyViewed";
 import PartnershipCompliance from "./pages/PartnershipCompliance";
 import AdminPartnershipReview from "./pages/AdminPartnershipReview";
 import SeoLandingPage from "./pages/seo/SeoLandingPage";
+import DestinationPage from "./pages/seo/DestinationPage";
+import PriceCollectionPage from "./pages/seo/PriceCollectionPage";
 
 export default function App() {
   return (
@@ -64,6 +66,13 @@ export default function App() {
         <Route path="/best-dinner-buffets-in-colombo" element={<SeoLandingPage slug="best-dinner-buffets-in-colombo" />} />
         <Route path="/best-lunch-buffets-in-colombo" element={<SeoLandingPage slug="best-lunch-buffets-in-colombo" />} />
         <Route path="/best-seafood-buffets-in-colombo" element={<SeoLandingPage slug="best-seafood-buffets-in-colombo" />} />
+
+        {/* Release 4.2 destination + programmatic SEO architecture */}
+        <Route path="/destinations/:citySlug" element={<DestinationPage />} />
+        <Route path="/destinations/:citySlug/:categorySlug" element={<DestinationPage />} />
+        <Route path="/buffets-under-5000" element={<PriceCollectionPage slug="buffets-under-5000" />} />
+        <Route path="/buffets-under-7500" element={<PriceCollectionPage slug="buffets-under-7500" />} />
+        <Route path="/buffets-under-10000" element={<PriceCollectionPage slug="buffets-under-10000" />} />
 
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

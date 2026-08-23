@@ -1,6 +1,7 @@
 const Hotel = require("../models/Hotel");
 const Buffet = require("../models/Buffet");
 const Review = require("../models/Review");
+const { findByIdentifier } = require("../utils/seoSlug");
 
 const getMediaUrl = (url) => url || "";
 
@@ -45,7 +46,8 @@ const calculateReviewSummary = (reviews) => {
 
 exports.getHotelExperience = async (req, res) => {
   try {
-    const hotel = await Hotel.findById(req.params.id).populate("owner", "name email role");
+    const hotelQuery = await findByIdentifier(Hotel, req.params.id);
+    const hotel = hotelQuery ? await hotelQuery.populate("owner", "name email role") : null;
 
     if (!hotel) {
       return res.status(404).json({ message: "Hotel not found." });

@@ -1,4 +1,5 @@
 const Buffet = require("../models/Buffet");
+const { findByIdentifier } = require("../utils/seoSlug");
 const Hotel = require("../models/Hotel");
 
 // Create buffet
@@ -121,7 +122,8 @@ exports.getBuffets = async (req, res) => {
 // Public - single buffet
 exports.getBuffetById = async (req, res) => {
   try {
-    const buffet = await Buffet.findById(req.params.id).populate("hotel");
+    const buffetQuery = await findByIdentifier(Buffet, req.params.id);
+    const buffet = buffetQuery ? await buffetQuery.populate("hotel") : null;
 
     if (!buffet) {
       return res.status(404).json({ message: "Buffet not found." });

@@ -1,4 +1,5 @@
 const Hotel = require("../models/Hotel");
+const { findByIdentifier } = require("../utils/seoSlug");
 let ActivityLog;
 try {
   ActivityLog = require("../models/ActivityLog");
@@ -267,7 +268,8 @@ exports.reopenHotel = (req, res) => moderateHotel(req, res, "pending", "Applicat
 
 exports.getHotelById = async (req, res) => {
   try {
-    const hotel = await Hotel.findById(req.params.id).populate("owner", "name email role");
+    const hotelQuery = await findByIdentifier(Hotel, req.params.id);
+    const hotel = hotelQuery ? await hotelQuery.populate("owner", "name email role") : null;
     if (!hotel) return res.status(404).json({ message: "Hotel not found." });
 
     if (hotel.status !== "approved" && req.user?.role !== "admin" && String(hotel.owner?._id || hotel.owner) !== String(req.user?.id)) {

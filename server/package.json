@@ -8,7 +8,8 @@
     "dev": "node --dns-result-order=ipv4first ./node_modules/nodemon/bin/nodemon.js server.js",
     "reminders": "node scripts/run-booking-reminders.js",
     "smtp:test": "node --dns-result-order=ipv4first scripts/test-email.js",
-    "maintenance": "node --dns-result-order=ipv4first scripts/run-release2-maintenance.js"
+    "maintenance": "node --dns-result-order=ipv4first scripts/run-release2-maintenance.js",
+    "seo:backfill-slugs": "node scripts/backfill-seo-slugs.js"
   },
   "dependencies": {
     "bcryptjs": "latest",

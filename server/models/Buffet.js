@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { buildDocumentSlug } = require("../utils/seoSlug");
 
 const timeSlotSchema = new mongoose.Schema(
   {
@@ -40,6 +41,8 @@ const buffetSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+
+    slug: { type: String, trim: true, lowercase: true, unique: true, sparse: true, index: true },
 
     buffetType: {
       type: String,
@@ -168,5 +171,10 @@ const buffetSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+buffetSchema.pre("validate", function ensureSeoSlug(next) {
+  if (!this.slug && this.title) this.slug = buildDocumentSlug(this.title, this._id);
+  next();
+});
 
 module.exports = mongoose.model("Buffet", buffetSchema);
