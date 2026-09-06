@@ -221,12 +221,26 @@ exports.getBuffetAvailability = async (req, res) => {
           startTime: slot.startTime,
           endTime: slot.endTime,
           totalSeats: Number(inventory.totalSeats || slot.totalSeats || 0),
-          availableSeats: Number(inventory.availableSeats || 0),
+          availableSeats: inventory.isClosed ? 0 : Number(inventory.availableSeats || 0),
+          isClosed: Boolean(inventory.isClosed),
+          isSoldOut: Boolean(inventory.isClosed) || Number(inventory.availableSeats || 0) <= 0,
+          overrideReason: inventory.overrideReason || "",
         };
       })
     );
 
-    return res.status(200).json({ dateKey, isAvailableDate: true, slots });
+    return res.status(200).json({
+      dateKey,
+      isAvailableDate: slots.some((slot) => Number(slot.availableSeats) > 0),
+      reservationPolicy: {
+        mode: buffet.reservationMode || "auto_confirm",
+        instantConfirmation: (buffet.reservationMode || "auto_confirm") === "auto_confirm",
+        maxGuestsPerBooking: Number(buffet.maxGuestsPerBooking || 20),
+        advanceBookingHours: Number(buffet.advanceBookingHours || 0),
+        bookingWindowDays: Number(buffet.bookingWindowDays || 90),
+      },
+      slots,
+    });
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch seat availability.", error: error.message });
   }
@@ -270,6 +284,23 @@ exports.createBooking = async (req, res) => {
     if (!buffet) return res.status(404).json({ message: "Buffet not found." });
     if (!buffet.isActive) return res.status(400).json({ message: "This buffet is not active." });
 
+    const maxGuestsPerBooking = Math.max(1, Number(buffet.maxGuestsPerBooking || 20));
+    if (seatCount > maxGuestsPerBooking) {
+      return res.status(400).json({
+        message: `Online reservations are limited to ${maxGuestsPerBooking} guests per booking. Please contact DineFor for larger groups.`,
+      });
+    }
+
+    const today = new Date();
+    const bookingWindowDays = Math.max(1, Number(buffet.bookingWindowDays || 90));
+    const latestBookable = new Date(today);
+    latestBookable.setDate(latestBookable.getDate() + bookingWindowDays);
+    if (bookingDate > latestBookable) {
+      return res.status(400).json({
+        message: `This buffet currently accepts reservations up to ${bookingWindowDays} days ahead.`,
+      });
+    }
+
     if (buffet.hotel?.status && buffet.hotel.status !== "approved") {
       return res.status(400).json({ message: "This hotel is not approved for public reservations yet." });
     }
@@ -303,6 +334,7 @@ exports.createBooking = async (req, res) => {
         buffet: buffet._id,
         dateKey,
         slotId: String(selectedSlot._id),
+        isClosed: { $ne: true },
         availableSeats: { $gte: seatCount },
       },
       { $inc: { availableSeats: -seatCount } },
@@ -313,6 +345,10 @@ exports.createBooking = async (req, res) => {
 
     try {
       const invoiceNumber = generateInvoiceNumber();
+      const reservationMode = buffet.reservationMode || "auto_confirm";
+      const initialBookingStatus =
+        reservationMode === "manual_request" ? "pending" : "confirmed";
+
       const booking = await Booking.create({
         user: req.user.id,
         buffet: buffetId,
@@ -331,12 +367,20 @@ exports.createBooking = async (req, res) => {
         couponCode: normalizedCouponCode,
         bookingCode: `DF-${Date.now()}-${Math.floor(Math.random() * 9999)}`,
         invoiceNumber,
-        bookingStatus: "confirmed",
+        bookingStatus: initialBookingStatus,
         paymentStatus: paymentMethod === "pay_at_hotel" ? "pending" : "unpaid",
         paymentMethod,
         notes,
         statusTimeline: [
-          { status: "confirmed", note: "Reservation created and awaiting payment collection/check-in.", by: req.user.id, at: new Date() },
+          {
+            status: initialBookingStatus,
+            note:
+              initialBookingStatus === "confirmed"
+                ? "Reservation automatically confirmed within hotel-defined DineFor inventory."
+                : "Reservation request created and awaiting hotel confirmation.",
+            by: req.user.id,
+            at: new Date(),
+          },
         ],
       });
 
@@ -377,7 +421,10 @@ exports.createBooking = async (req, res) => {
         console.error("Booking confirmation communication failed:", error.message)
       );
       return res.status(201).json({
-        message: "Reservation confirmed. Payment architecture, invoice, and QR are ready.",
+        message:
+          initialBookingStatus === "confirmed"
+            ? "Reservation confirmed instantly. No additional hotel confirmation is required."
+            : "Reservation request received. DineFor will notify you when the hotel confirms it.",
         booking: populatedBooking,
         availability: inventory,
       });

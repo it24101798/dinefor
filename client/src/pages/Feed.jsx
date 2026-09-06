@@ -44,7 +44,7 @@ function Feed() {
       try {
         setLoading(true);
         setError("");
-        const res = await api.get(`/buffets`, {
+        const res = await api.get(`/discovery/search?limit=100`, {
           timeout: 10000,
         });
         

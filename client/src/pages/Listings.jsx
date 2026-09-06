@@ -67,8 +67,8 @@ function Listings() {
     try {
       setLoading(true);
       setError("");
-      const res = await api.get(`/buffets`, { timeout: 10000 });
-      setBuffets(Array.isArray(res.data) ? res.data : []);
+      const res = await api.get(`/discovery/search?limit=100`, { timeout: 10000 });
+      setBuffets(Array.isArray(res.data) ? res.data : (res.data?.buffets || res.data?.data || []));
     } catch (err) {
       setError(err.message || "Failed to load buffets. Please try again.");
     } finally {

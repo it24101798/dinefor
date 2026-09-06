@@ -1,0 +1,106 @@
+.df-availability-strip-wrap {
+  width: 100%;
+}
+
+.df-availability-strip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--color-on-surface-variant);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.df-availability-strip-header small {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--color-secondary);
+  font-size: 10px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.df-availability-strip-header .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.df-availability-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(82px, 1fr);
+  gap: 7px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x proximity;
+  padding: 1px 1px 6px;
+}
+
+.df-availability-date {
+  min-height: 70px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2px;
+  scroll-snap-align: start;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  background: var(--color-surface-container-lowest);
+  color: var(--color-text-deep-green);
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.df-availability-date strong {
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.df-availability-date > span {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.df-availability-date small {
+  color: var(--color-on-surface-variant);
+  font-size: 9px;
+}
+
+.df-availability-date.is-available:hover {
+  border-color: var(--color-secondary);
+  transform: translateY(-1px);
+}
+
+.df-availability-date.is-selected {
+  border-color: var(--color-secondary);
+  background: rgba(142, 216, 192, .18);
+  box-shadow: 0 0 0 1px var(--color-secondary);
+}
+
+.df-availability-date.is-unavailable {
+  opacity: .44;
+  cursor: not-allowed;
+}
+
+.df-availability-strip__loading {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  color: var(--color-on-surface-variant);
+  font-size: 12px;
+}
+
+@media (max-width: 767px) {
+  .df-availability-strip {
+    grid-auto-columns: 84px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .df-availability-date {
+    transition: none;
+  }
+}

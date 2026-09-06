@@ -73,6 +73,37 @@ const buffetSchema = new mongoose.Schema(
       min: 0,
     },
 
+    // Release 4.4 — reservation automation policy.
+    // auto_confirm is the business-default: hotels define inventory once and
+    // DineFor confirms normal reservations without manual hotel intervention.
+    reservationMode: {
+      type: String,
+      enum: ["auto_confirm", "manual_request"],
+      default: "auto_confirm",
+      index: true,
+    },
+
+    maxGuestsPerBooking: {
+      type: Number,
+      default: 20,
+      min: 1,
+      max: 100,
+    },
+
+    advanceBookingHours: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 720,
+    },
+
+    bookingWindowDays: {
+      type: Number,
+      default: 90,
+      min: 1,
+      max: 365,
+    },
+
     thumbnail: {
       type: String,
       default: "",
@@ -176,5 +207,10 @@ buffetSchema.pre("validate", function ensureSeoSlug(next) {
   if (!this.slug && this.title) this.slug = buildDocumentSlug(this.title, this._id);
   next();
 });
+
+// Release 4.3 discovery indexes.
+buffetSchema.index({ status: 1, isActive: 1, category: 1, price: 1 });
+buffetSchema.index({ hotel: 1, status: 1, createdAt: -1 });
+buffetSchema.index({ averageRating: -1, totalReviews: -1 });
 
 module.exports = mongoose.model("Buffet", buffetSchema);

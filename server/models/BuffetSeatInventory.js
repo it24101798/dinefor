@@ -42,6 +42,33 @@ const buffetSeatInventorySchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+
+    // A hotel normally does not need to touch daily inventory. These fields
+    // exist for exceptions such as private events, maintenance or a revised
+    // capacity for one date/slot.
+    isClosed: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    overrideReason: {
+      type: String,
+      trim: true,
+      maxlength: 300,
+      default: "",
+    },
+
+    overrideUpdatedAt: {
+      type: Date,
+      default: null,
+    },
+
+    overrideUpdatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
   { timestamps: true }
 );

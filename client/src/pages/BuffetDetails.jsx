@@ -5,6 +5,7 @@ import ReviewForm from "../components/reviews/ReviewForm";
 import useResponsive from "../hooks/useResponsive";
 import MobileBottomSheet from "../mobile/components/MobileBottomSheet";
 import ReviewList from "../components/reviews/ReviewList";
+import AvailabilityDateStrip from "../components/booking/AvailabilityDateStrip";
 
 
 const fallbackImage = "https://images.unsplash.com/photo-1555244162-803834f70033";
@@ -557,6 +558,14 @@ function BuffetDetails() {
         </div>
 
         <div className="space-y-4">
+          <AvailabilityDateStrip
+            buffetId={buffet?._id}
+            selectedDate={selectedDate}
+            guests={seats}
+            onSelect={setSelectedDate}
+            days={14}
+          />
+
           <div>
             <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Select Date</label>
             <input
@@ -632,11 +641,15 @@ function BuffetDetails() {
               <input
                 type="number"
                 min="1"
-                max={selectedSlot?.availableSeats || 1}
+                max={Math.min(
+                  Number(selectedSlot?.availableSeats || 1),
+                  Number(availability?.reservationPolicy?.maxGuestsPerBooking || 20)
+                )}
                 value={seats}
                 onChange={(e) => {
                   const val = Math.min(
                     Number(selectedSlot?.availableSeats || 1),
+                    Number(availability?.reservationPolicy?.maxGuestsPerBooking || 20),
                     Math.max(1, Number(e.target.value) || 1)
                   );
                   setSeats(val);
@@ -644,7 +657,15 @@ function BuffetDetails() {
                 className="form-input w-20 text-center"
               />
               <button
-                onClick={() => setSeats((v) => Math.min(Number(selectedSlot?.availableSeats || 1), v + 1))}
+                onClick={() =>
+                  setSeats((v) =>
+                    Math.min(
+                      Number(selectedSlot?.availableSeats || 1),
+                      Number(availability?.reservationPolicy?.maxGuestsPerBooking || 20),
+                      v + 1
+                    )
+                  )
+                }
                 className="w-10 h-10 rounded-full border border-border-subtle flex items-center justify-center hover:bg-surface-container-low transition-colors"
               >
                 <span className="material-symbols-outlined">add</span>
@@ -687,7 +708,9 @@ function BuffetDetails() {
             )}
           </button>
           <p className="font-label-sm text-label-sm text-on-surface-variant text-center">
-            You'll receive a QR confirmation after booking
+            {availability?.reservationPolicy?.instantConfirmation
+              ? "Instant confirmation — no hotel callback is required."
+              : "This hotel reviews reservation requests before confirmation."}
           </p>
         </div>
       </div>
