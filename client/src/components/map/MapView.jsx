@@ -1,42 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { GOOGLE_MAPS_KEY, loadGoogleMaps, loadLeaflet } from "./mapProviders";
+import DiscoveryCard from "../../discovery/DiscoveryCard";
 
 const DEFAULT_CENTER = [7.8731, 80.7718];
-const LEAFLET_CSS = "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css";
-const LEAFLET_JS = "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js";
-let leafletPromise;
-
-const loadLeaflet = () => {
-  if (window.L) return Promise.resolve(window.L);
-  if (leafletPromise) return leafletPromise;
-
-  leafletPromise = new Promise((resolve, reject) => {
-    if (!document.querySelector(`link[href="${LEAFLET_CSS}"]`)) {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = LEAFLET_CSS;
-      document.head.appendChild(link);
-    }
-
-    const existing = document.querySelector(`script[src="${LEAFLET_JS}"]`);
-    if (existing) {
-      if (window.L) return resolve(window.L);
-      existing.addEventListener("load", () => resolve(window.L), { once: true });
-      existing.addEventListener("error", reject, { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = LEAFLET_JS;
-    script.async = true;
-    script.onload = () => resolve(window.L);
-    script.onerror = () => reject(new Error("Unable to load the map library."));
-    document.body.appendChild(script);
-  });
-
-  return leafletPromise;
-};
-
 const priceText = (value) => {
   const price = Number(value || 0);
   return price > 0 ? `LKR ${price.toLocaleString("en-LK")}` : "View buffets";
@@ -50,9 +16,12 @@ const markerText = (hotel, meta, metric) => {
 };
 
 const coordinates = (hotel) => {
+  if (hotel?.mapLocation?.latitude == null || hotel?.mapLocation?.longitude == null) return null;
   const latitude = Number(hotel?.mapLocation?.latitude);
   const longitude = Number(hotel?.mapLocation?.longitude);
-  return Number.isFinite(latitude) && Number.isFinite(longitude)
+  return Number.isFinite(latitude) && Number.isFinite(longitude) &&
+    latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180 &&
+    !(latitude === 0 && longitude === 0)
     ? [latitude, longitude]
     : null;
 };
@@ -71,11 +40,17 @@ export default function MapView({
   markerMetric = "price",
   selectedHotel,
   onSelectHotel,
+  visible = true,
+  position,
+  date,
+  guests,
 }) {
   const rootRef = useRef(null);
   const mapRef = useRef(null);
   const layerRef = useRef(null);
   const [mapError, setMapError] = useState("");
+  const googleRef = useRef(null);
+  const googleMarkersRef = useRef([]);
 
   const mappedHotels = useMemo(
     () => hotels.filter((hotel) => coordinates(hotel)),
@@ -83,6 +58,60 @@ export default function MapView({
   );
 
   useEffect(() => {
+    if (!GOOGLE_MAPS_KEY) return undefined;
+    let cancelled = false;
+    loadGoogleMaps().then((maps) => {
+      if (cancelled || !rootRef.current) return;
+      if (!googleRef.current) {
+        googleRef.current = new maps.Map(rootRef.current, {
+          center: { lat: DEFAULT_CENTER[0], lng: DEFAULT_CENTER[1] },
+          zoom: 7, mapTypeControl: false, streetViewControl: false,
+          fullscreenControl: true, gestureHandling: "greedy",
+        });
+      }
+      googleMarkersRef.current.forEach((marker) => marker.setMap(null));
+      googleMarkersRef.current = [];
+      const bounds = new maps.LatLngBounds();
+      mappedHotels.forEach((hotel) => {
+        const point = coordinates(hotel);
+        if (!point) return;
+        const location = { lat: point[0], lng: point[1] };
+        bounds.extend(location);
+        const meta = metaByHotel[hotel._id] || {};
+        const active = String(selectedHotel?._id || "") === String(hotel._id);
+        const label = markerText(hotel, meta, markerMetric);
+        const marker = new maps.Marker({
+          map: googleRef.current, position: location,
+          title: `${hotel.hotelName || "DineFor hotel"} — ${label}`,
+          label: { text: label, color: "#ffffff", fontSize: "12px", fontWeight: "700" },
+          icon: {
+            path: maps.SymbolPath.CIRCLE, scale: Math.max(30, 7 + label.length * 3.2),
+            fillColor: active ? "#004e49" : "#006b63", fillOpacity: 1,
+            strokeColor: "#ffffff", strokeWeight: 2,
+          },
+        });
+        marker.addListener("click", () => onSelectHotel?.(hotel));
+        googleMarkersRef.current.push(marker);
+      });
+      if (selectedHotel) {
+        const point = coordinates(selectedHotel);
+        if (point) { googleRef.current.panTo({ lat: point[0], lng: point[1] }); googleRef.current.setZoom(Math.max(googleRef.current.getZoom() || 12, 12)); }
+      } else if (position) {
+        googleRef.current.setCenter({ lat: position[0], lng: position[1] });
+        googleRef.current.setZoom(13);
+      } else if (mappedHotels.length > 1) {
+        googleRef.current.fitBounds(bounds, 70);
+      } else if (mappedHotels.length === 1) {
+        googleRef.current.setCenter(bounds.getCenter());
+        googleRef.current.setZoom(13);
+      }
+      setMapError("");
+    }).catch((error) => { if (!cancelled) setMapError(error.message || "Unable to load Google Maps."); });
+    return () => { cancelled = true; };
+  }, [mappedHotels, metaByHotel, markerMetric, selectedHotel, onSelectHotel, position]);
+
+  useEffect(() => {
+    if (GOOGLE_MAPS_KEY) return undefined;
     let cancelled = false;
 
     loadLeaflet()
@@ -92,7 +121,7 @@ export default function MapView({
         if (!mapRef.current) {
           mapRef.current = L.map(rootRef.current, {
             zoomControl: true,
-            scrollWheelZoom: true,
+            scrollWheelZoom: false,
             preferCanvas: true,
           }).setView(DEFAULT_CENTER, 7);
 
@@ -136,7 +165,9 @@ export default function MapView({
         });
 
         if (!selectedHotel) {
-          if (bounds.length > 1) {
+          if (position) {
+            mapRef.current.setView(position, 13);
+          } else if (bounds.length > 1) {
             mapRef.current.fitBounds(bounds, {
               paddingTopLeft: [36, 90],
               paddingBottomRight: [36, 36],
@@ -157,10 +188,13 @@ export default function MapView({
     return () => {
       cancelled = true;
     };
-  }, [mappedHotels, metaByHotel, markerMetric, selectedHotel, onSelectHotel]);
+  }, [mappedHotels, metaByHotel, markerMetric, selectedHotel, onSelectHotel, position]);
 
   useEffect(
     () => () => {
+      googleMarkersRef.current.forEach((marker) => marker.setMap(null));
+      googleMarkersRef.current = [];
+      googleRef.current = null;
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -170,84 +204,26 @@ export default function MapView({
     []
   );
 
-  const selectedMeta = selectedHotel
-    ? metaByHotel[selectedHotel._id] || {}
-    : null;
+  useEffect(() => {
+    if (!visible) return undefined;
+    // Leaflet needs a resize after its container is shown on mobile.
+    const timer = setTimeout(() => {
+      mapRef.current?.invalidateSize?.();
+      if (googleRef.current && window.google?.maps) {
+        window.google.maps.event.trigger(googleRef.current, "resize");
+      }
+    }, 90);
+    return () => clearTimeout(timer);
+  }, [visible]);
 
-  const hero =
-    selectedHotel?.coverMediaUrl ||
-    selectedHotel?.images?.[0] ||
-    selectedHotel?.galleryImages?.[0] ||
-    "";
+  const buffet = selectedHotel && metaByHotel[selectedHotel._id]?.matchingBuffets?.[0];
 
-  return (
-    <div className="df-map3-stage">
-      <div
-        ref={rootRef}
-        className="df-map3-canvas"
-        aria-label="Interactive DineFor hotel map"
-      />
-
-      {mapError && <div className="df-map3-error">{mapError}</div>}
-
-      {selectedHotel && (
-        <article className="df-map3-property" aria-live="polite">
-          {hero ? (
-            <img src={hero} alt={`${selectedHotel.hotelName || "Hotel"} preview`} />
-          ) : (
-            <div className="df-map3-placeholder" aria-hidden="true" />
-          )}
-
-          <div className="df-map3-property-body">
-            <button
-              type="button"
-              className="df-map3-property-close"
-              onClick={() => onSelectHotel?.(null)}
-              aria-label="Close hotel preview"
-            >
-              <span className="material-symbols-outlined">close</span>
-            </button>
-
-            <h3>{selectedHotel.hotelName}</h3>
-            <p className="df-map3-property-location">
-              {selectedHotel.city ||
-                selectedHotel.location ||
-                selectedHotel.district ||
-                "Sri Lanka"}
-            </p>
-
-            <div className="df-map3-rating">
-              <span className="df-map3-score">
-                {Number(selectedHotel.averageRating || 0).toFixed(1)}
-              </span>
-              <span>{Number(selectedHotel.totalReviews || 0)} reviews</span>
-            </div>
-
-            <p className="df-map3-price">
-              {priceText(selectedMeta?.minPrice)}
-              <small>from / person</small>
-            </p>
-
-            <div className="df-map3-actions">
-              <Link to={`/hotels/${selectedHotel._id}`} className="btn-outline">
-                Hotel
-              </Link>
-              {selectedMeta?.matchingBuffets?.[0]?._id ? (
-                <Link
-                  to={`/buffets/${selectedMeta.matchingBuffets[0]._id}`}
-                  className="btn-primary"
-                >
-                  View buffet
-                </Link>
-              ) : (
-                <Link to="/buffets" className="btn-primary">
-                  Browse buffets
-                </Link>
-              )}
-            </div>
-          </div>
-        </article>
-      )}
-    </div>
-  );
+  return <div className="df-map3-stage">
+    <div ref={rootRef} className="df-map3-canvas" aria-label="Interactive DineFor hotel map" />
+    {mapError && <div className="df-map3-error" role="status">{mapError} Open the List view to browse results.</div>}
+    {buffet && <section className="df-buffet-map-preview" aria-label="Selected buffet">
+      <button type="button" className="df-shell-secondary" onClick={() => onSelectHotel?.(null)}>Close preview</button>
+      <DiscoveryCard buffet={buffet} compact date={date} guests={guests} />
+    </section>}
+  </div>;
 }

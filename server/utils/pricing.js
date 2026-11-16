@@ -1,8 +1,21 @@
 const roundMoney = (value) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
 
 const getCommissionRate = () => {
-  const rate = Number(process.env.DINEFOR_COMMISSION_RATE || 8);
-  return Number.isFinite(rate) && rate >= 0 ? rate : 8;
+  const rate = Number(process.env.DINEFOR_COMMISSION_RATE || 5);
+  return Number.isFinite(rate) && rate >= 0 && rate <= 100 ? rate : 5;
+};
+
+const getDepositRate = () => {
+  const rate = Number(process.env.DINEFOR_DEPOSIT_RATE || 20);
+  return Number.isFinite(rate) && rate > 0 && rate <= 100 ? rate : 20;
+};
+
+const getGatewayFeeRate = (gateway) => {
+  if (gateway === "payhere") {
+    const rate = Number(process.env.PAYHERE_GATEWAY_FEE_RATE || 0);
+    return Number.isFinite(rate) && rate >= 0 ? rate : 0;
+  }
+  return 0;
 };
 
 const calculateCouponDiscount = ({ subtotal, coupon }) => {
@@ -53,4 +66,43 @@ const calculateTotals = ({ price, seats, coupon = null }) => {
   };
 };
 
-module.exports = { calculateTotals, roundMoney, getCommissionRate };
+const calculatePaymentBreakdown = ({ totals, paymentMode, gateway, depositRate }) => {
+  const mode = ["pay_at_hotel", "deposit", "full_payment"].includes(paymentMode)
+    ? paymentMode
+    : "pay_at_hotel";
+  const customerTotal = roundMoney(totals.grandTotal);
+  const effectiveDepositRate = Number.isFinite(Number(depositRate)) && Number(depositRate) > 0 && Number(depositRate) <= 100
+    ? Number(depositRate)
+    : getDepositRate();
+  const amountDueNow = mode === "deposit"
+    ? roundMoney(customerTotal * (effectiveDepositRate / 100))
+    : mode === "full_payment"
+    ? customerTotal
+    : 0;
+  const amountDueAtHotel = roundMoney(customerTotal - amountDueNow);
+  const gatewayFee = roundMoney(amountDueNow * (getGatewayFeeRate(gateway) / 100));
+  const dineForCommission = roundMoney(totals.commissionAmount);
+  const hotelPayable = roundMoney(customerTotal - dineForCommission);
+
+  return {
+    paymentMode: mode,
+    customerTotal,
+    amountDueNow,
+    amountDueAtHotel,
+    gatewayFee,
+    dineForCommission,
+    hotelPayable,
+    refundedAmount: 0,
+    netCollected: 0,
+    depositRate: effectiveDepositRate,
+  };
+};
+
+module.exports = {
+  calculateTotals,
+  calculatePaymentBreakdown,
+  roundMoney,
+  getCommissionRate,
+  getDepositRate,
+  getGatewayFeeRate,
+};

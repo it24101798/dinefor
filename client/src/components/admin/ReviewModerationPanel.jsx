@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
 import api from "../../services/api";
 
-export default function ReviewModerationPanel() {
+export default function ReviewModerationPanel({ initialStatus = "all" }) {
   const [reviews, setReviews] = useState([]);
   const [analytics, setAnalytics] = useState({});
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState(initialStatus);
   const [reportedOnly, setReportedOnly] = useState(false);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -93,6 +93,7 @@ export default function ReviewModerationPanel() {
 
       <div className="flex flex-wrap gap-2 mb-5">
         <select
+          aria-label="Review status"
           className="form-select"
           value={filter}
           onChange={(event) => setFilter(event.target.value)}

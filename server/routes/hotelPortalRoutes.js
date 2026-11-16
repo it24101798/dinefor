@@ -1,4 +1,5 @@
 const express = require("express");
+const { reservationWriteLimiter } = require("../middleware/reservationRateLimits");
 const { protect, authorize } = require("../middleware/authMiddleware");
 const controller = require("../controllers/hotelPortalController");
 
@@ -20,7 +21,7 @@ router.get("/reviews", controller.getReviews);
 router.put("/reviews/:id/reply", controller.replyToReview);
 router.get("/payments", controller.getPayments);
 router.get("/analytics", controller.getAnalytics);
-router.put("/bookings/:id/status", controller.updateBookingStatus);
+router.put("/bookings/:id/status", reservationWriteLimiter, controller.updateBookingStatus);
 router.delete("/bookings/:id", controller.deleteBooking);
 
 module.exports = router;

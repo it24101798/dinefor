@@ -1,0 +1,110 @@
+/* Mobile usability follow-up. Imported last, after the shared design system. */
+.df-crew-art{display:block;flex:none;width:180px;height:270px;max-width:100%;background-image:url('/images/characters/dinefor-crew-roles.png');background-repeat:no-repeat;background-size:300% 100%}
+.rf-art>.df-crew-art{position:absolute;bottom:0;right:15%;width:200px;height:300px;z-index:1}
+.df-workspace-art>.df-crew-art,.df-hotel-heading-art>.df-crew-art{margin:auto;width:147px;height:220px;position:relative;z-index:1}
+.rf-account-banner>.df-crew-art{justify-self:center;width:127px;height:190px;position:relative;z-index:1}
+.df-auth-art>.df-crew-art{width:193px;height:290px;position:relative;z-index:1}
+.rf-home-hotel-art>.df-crew-art{position:absolute;bottom:0;right:10%;width:180px;height:270px}
+.rf-hotels-how>.df-crew-art{margin:auto;align-self:end}
+.df-auth-form{grid-column:2;grid-row:1;min-width:0}
+.df-auth-story{grid-column:1;grid-row:1}
+.df-auth-form form>label,.df-auth-form form>div{min-width:0}
+.df-app .df-auth-form :is(input,select){min-height:48px;font-size:16px}
+.df-app .df-auth-form input[type=checkbox]{min-height:20px;width:20px;height:20px;flex-shrink:0}
+.df-app .df-auth-form button[type=submit],.df-auth-form .btn-primary{min-height:48px;white-space:normal}
+.df-app .rf-home-next .rf-hero-home{height:auto;min-height:390px;padding-block:38px}
+.df-app .rf-home-next .rf-hero-copy{min-width:0}
+.df-app .rf-home-search-wrap{margin-top:24px;display:grid;gap:14px}
+.df-app .rf-home-search-label{margin:0;padding:0 5px;font-size:16px;line-height:1.5;font-weight:700;letter-spacing:-.02em}
+.df-app .rf-home-search-wrap .rf-search{margin:0}
+.df-date-field{display:block;position:relative;min-width:0}
+.df-date-hint{position:absolute;inset:0;display:flex;align-items:center;font-size:14px;font-weight:600;pointer-events:none;color:var(--rf-deep)}
+.df-date-field input{position:relative;z-index:1}
+.df-date-field:not(.has-value) input{color:transparent!important}
+.df-date-field:not(.has-value) input::-webkit-datetime-edit{color:transparent}
+.df-date-field:focus-within input{color:var(--rf-deep)!important}
+.df-date-field:focus-within input::-webkit-datetime-edit{color:var(--rf-deep)}
+.df-date-field.has-value .df-date-hint,.df-date-field:focus-within .df-date-hint{visibility:hidden}
+.df-discovery-tools{margin:24px 0;min-width:0}
+.df-discovery-tools .rf-feed-controls{margin:0 0 16px;display:block}
+.df-discovery-tools .rf-feed-search{display:grid;grid-template-columns:minmax(0,1fr) minmax(190px,250px) auto;gap:12px;align-items:end;margin:0}
+.df-discovery-tools .rf-feed-search label{display:grid;gap:7px;min-width:0;font-size:12px;font-weight:600}
+.df-discovery-tools .rf-feed-search :is(input,select){width:100%;min-width:0;height:46px;font-size:14px}
+.df-discovery-tools .rf-filter-toggle{height:46px;justify-content:center;min-width:96px}
+.df-discovery-tools .rf-filter-strip{margin:14px 0 0}
+/* Long money values need room, not tiny lettering or split currency prefixes. */
+.df-app .finance-stat-grid{grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr))}
+.df-app .finance-stat-card h3,.df-app .finance-stat-card strong,.df-app .finance-card strong{font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:clamp(21px,2vw,29px);line-height:1.35;font-variant-numeric:tabular-nums;letter-spacing:-.04em}
+@media(max-width:767px){
+ .df-app .df-auth{display:flex;flex-direction:column;gap:28px;padding:94px 20px 36px;align-items:stretch}
+ .df-auth-form{order:0;width:100%;padding:0}
+ .df-auth-story{order:1;display:grid;grid-template-columns:minmax(0,1fr) 100px;gap:8px 12px;padding:22px;min-height:180px;border-radius:24px;align-items:center}
+ .df-auth-story .df-kicker,.df-auth-story>p:not(.df-kicker){display:none}
+ .df-auth-story h2{grid-column:1;grid-row:1;font-size:24px;line-height:1.15;margin:0;max-width:none}
+ .df-auth-story>a{grid-column:1;grid-row:2;margin:0;align-self:start;font-size:12px}
+ .df-auth-story .df-auth-art{grid-column:2;grid-row:1/3;min-height:150px;height:150px;margin:0;overflow:hidden;align-self:end}
+ .df-auth-art>.df-crew-art{width:100px;height:150px}
+ .df-auth-art .rf-ribbon{display:none}
+ .df-auth-form .mb-8{margin-bottom:24px}
+ .df-auth-form .my-6{margin-block:20px}
+ .df-auth-form .btn-primary{padding-inline:12px;font-size:14px}
+ .df-app .rf-home-next .rf-hero-home{min-height:0;padding:26px 20px 0}
+ .df-app .rf-home-next .rf-hero-home .rf-art{width:calc(100% + 40px);margin:16px -20px 0;height:240px}
+ .df-app .rf-home-next .rf-hero-home .rf-art img{transform:none}
+ .df-app .rf-home-hero-actions{gap:12px;align-items:center;margin-top:20px}
+ .df-app .rf-home-hero-actions .rf-button{font-size:13px;min-height:44px}
+ .df-app .rf-home-hero-actions .rf-home-text-link{font-size:12px;min-height:44px}
+ .df-app .rf-home-search-wrap{margin-top:24px;gap:12px}
+ .df-app .rf-home-search-label{font-size:17px;padding:0 2px;line-height:1.4}
+ .df-app .rf-search{padding:14px;gap:12px 0;margin-top:0!important;border-radius:24px}
+ .df-app .rf-search label{min-height:66px;align-items:center;padding:0 8px;gap:8px}
+ .df-app .rf-search label>span:last-child{font-size:11px}
+ .df-app .rf-search :is(input,select){font-size:16px!important;border-radius:0;min-height:38px;padding:5px 0;line-height:1.5}
+ .df-date-hint{font-size:16px}
+ .df-app .rf-search .dfh-field-icon{flex-basis:18px}
+ .df-app .rf-search button{min-height:48px;margin:0;padding:12px;font-size:14px}
+ .df-app .rf-feed .rf-hero{margin-bottom:16px;overflow:visible}
+ .df-app .rf-hero:not(.rf-hero-home) .rf-art{height:240px;border-radius:110px 110px 24px 24px;margin-top:20px;isolation:isolate;overflow:hidden}
+ .df-app .rf-hero:not(.rf-hero-home) .rf-arch{inset:0;border-radius:inherit}
+ .df-app .rf-hero .rf-art .rf-ribbon{left:0;top:0;width:100%;height:100%}
+ .df-app .rf-art>.df-crew-art{width:160px;height:240px;right:calc(50% - 80px)}
+ .df-discovery-tools{margin:22px 0 24px}
+ .df-discovery-tools .rf-feed-controls{margin-bottom:14px}
+ .df-discovery-tools .rf-chips{flex-wrap:nowrap;overflow-x:auto;gap:8px;scrollbar-width:none;padding:0 0 2px;scroll-snap-type:x proximity}
+ .df-discovery-tools .rf-chips::-webkit-scrollbar{display:none}
+ .df-discovery-tools .rf-chips button{min-height:44px;flex:0 0 auto;padding:9px 16px;font-size:13px;scroll-snap-align:start}
+ .df-discovery-tools .rf-feed-search{grid-template-columns:minmax(0,1fr) 102px;gap:12px}
+ .df-discovery-tools .rf-feed-search label:first-child{grid-column:1/-1}
+ .df-discovery-tools .rf-feed-search label{justify-content:stretch;font-size:12px;gap:6px}
+ .df-discovery-tools .rf-feed-search :is(input,select){height:46px;font-size:16px;padding:10px 12px;width:100%}
+ .df-discovery-tools .rf-filter-toggle{font-size:14px;min-width:0;width:100%}
+ .df-discovery-tools .rf-filter-strip{display:grid;grid-template-columns:1fr;gap:12px;padding:16px}
+ .df-discovery-tools .rf-filter-strip select{width:100%;font-size:16px;min-height:44px}
+ .df-app .rf-home-moments{margin-top:24px;margin-bottom:36px}
+ .rf-home-hotel-art>.df-crew-art{position:relative;right:auto;margin:auto;width:160px;height:240px}
+ .df-app .rf-home-hotel-art{min-height:240px;margin-top:22px}
+ .rf-hotels-how>.df-crew-art{width:147px;height:220px;margin-top:18px}
+ .df-app .rf-footer{padding-bottom:24px}
+}
+@media(max-width:359px){
+ .df-app .rf-search{grid-template-columns:1fr}
+ .df-app .rf-search label{border-right:0;border-bottom:1px solid #e2eeea;padding-block:4px;min-height:64px}
+ .df-app .rf-search button{grid-column:1}
+ .df-app .rf-home-next .rf-hero-home .rf-art{height:205px}
+ .df-auth-story{grid-template-columns:1fr 80px;padding:18px}
+ .df-auth-story .df-auth-art{height:120px;min-height:120px}
+ .df-auth-art>.df-crew-art{width:80px;height:120px}
+}
+
+.df-app .admin-stat-grid-v2.finance-grid{grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr))}
+.df-app .admin-stat-grid-v2.finance-grid strong{font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:26px;line-height:1.3;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+
+.df-crew-chef{clip-path:inset(0 5% 0 0)}
+.df-app .df-auth-form>section{border:0;box-shadow:none;background:transparent}
+@media(min-width:768px) and (max-width:1023px){
+ .df-app .df-auth{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:28px;padding:112px 24px 48px}
+ .df-auth-story{padding:26px 22px;min-height:520px}
+ .df-auth-story h2{font-size:32px}
+ .df-auth-story>p:not(.df-kicker){font-size:13px}
+ .df-auth-art{margin-inline:-12px}
+}

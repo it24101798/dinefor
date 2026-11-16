@@ -5,8 +5,7 @@ const { availableSeats, rankingScore } = require("../services/discoveryRankingSe
 
 const norm = (v) => String(v || "").trim();
 const lower = (v) => norm(v).toLowerCase();
-const escapeRegex = (v) => String(v).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const toNumber = (v, fallback = null) => (v === "" || v == null || Number.isNaN(Number(v)) ? fallback : Number(v));
+const toNumber = (v, fallback = null) => (v === "" || v == null || !Number.isFinite(Number(v)) ? fallback : Number(v));
 
 function dateAvailable(buffet, dateText) {
   if (!dateText) return true;
@@ -17,8 +16,8 @@ function dateAvailable(buffet, dateText) {
   if (buffet.buffetType === "special" && buffet.specialDate) {
     return new Date(buffet.specialDate).toISOString().slice(0, 10) === iso;
   }
-  if (buffet.availableFromDate && date < new Date(buffet.availableFromDate)) return false;
-  if (buffet.availableToDate && date > new Date(buffet.availableToDate)) return false;
+  if (buffet.availableFromDate && iso < new Date(buffet.availableFromDate).toISOString().slice(0, 10)) return false;
+  if (buffet.availableToDate && iso > new Date(buffet.availableToDate).toISOString().slice(0, 10)) return false;
   if (buffet.scheduleType === "selected_days" && buffet.recurringDays?.length) return buffet.recurringDays.includes(day);
   if (buffet.scheduleType === "one_day" && buffet.specialDate) return new Date(buffet.specialDate).toISOString().slice(0, 10) === iso;
   return true;
@@ -40,15 +39,17 @@ async function bookingStats(buffetIds) {
 }
 
 function publicEligible(buffet) {
-  const hotel = buffet.hotel;
-  if (!hotel) return false;
-  const partnerOk = !hotel.partnershipStatus || ["active", "active_legacy"].includes(hotel.partnershipStatus) || hotel.isApproved;
-  return buffet.isActive !== false && buffet.status === "active" && hotel.isApproved === true && partnerOk;
+  return buffet.hotel?.isApproved === true && buffet.hotel.status === "approved";
 }
+
+const normalizedWords = value => lower(value).replace(/[-_]+/g, " ").replace(/\s+/g, " ");
+const publicBuffetFields = "hotel title slug description category buffetType price location thumbnail images highlights isFeatured averageRating totalReviews createdAt isActive status availableFromDate availableToDate specialDate scheduleType recurringDays timeSlots maxGuestsPerBooking";
 
 async function loadEligibleBuffets() {
   const rows = await Buffet.find({ isActive: { $ne: false }, status: "active" })
-    .populate("hotel", "hotelName slug location address city district province country isApproved partnershipStatus averageRating totalReviews coverMediaUrl galleryImages")
+    .select(publicBuffetFields)
+    .sort({ _id: 1 })
+    .populate("hotel", "hotelName slug location address city district province isApproved status averageRating totalReviews coverMediaUrl galleryImages amenities mapLocation featured")
     .lean();
   return rows.filter(publicEligible);
 }
@@ -56,22 +57,30 @@ async function loadEligibleBuffets() {
 function matches(buffet, q) {
   const query = lower(q.query);
   const location = lower(q.location);
-  const category = lower(q.category || q.meal);
+  const category = normalizedWords(q.category || q.meal);
   const buffetType = lower(q.buffetType);
   const minPrice = toNumber(q.minPrice);
   const maxPrice = toNumber(q.maxPrice);
   const minRating = toNumber(q.minRating || q.rating);
   const guests = Math.max(1, toNumber(q.guests, 1));
-  const text = lower([buffet.title, buffet.description, buffet.category, buffet.buffetType, buffet.hotel?.hotelName, buffet.location?.city, buffet.hotel?.city, buffet.hotel?.district, buffet.hotel?.province].join(" "));
-  const locationText = lower([buffet.location?.city, buffet.location?.address, buffet.hotel?.location, buffet.hotel?.city, buffet.hotel?.district, buffet.hotel?.province].join(" "));
-  if (query && !text.includes(query)) return false;
+  const text = normalizedWords([buffet.title, buffet.description, buffet.category, buffet.buffetType, buffet.hotel?.hotelName, buffet.location?.city, buffet.location?.address, buffet.hotel?.location, buffet.hotel?.city, buffet.hotel?.address, buffet.hotel?.district, buffet.hotel?.province].join(" "));
+  const locationText = lower([buffet.location?.city, buffet.location?.address, buffet.hotel?.location, buffet.hotel?.city, buffet.hotel?.address, buffet.hotel?.district, buffet.hotel?.province].join(" "));
+  if (query && !text.includes(normalizedWords(query))) return false;
   if (location && !locationText.includes(location)) return false;
-  if (category && !lower(`${buffet.category} ${buffet.title} ${buffet.description}`).includes(category)) return false;
+  if (category && normalizedWords(buffet.category) !== category
+      && !normalizedWords(buffet.title).includes(category)) return false;
+  const dietary = norm(q.diet).split(",").filter(Boolean);
+  const amenities = norm(q.amenities).split(",").filter(Boolean);
+  const highlights = (buffet.highlights || []).map(normalizedWords);
+  const hotelAmenities = (buffet.hotel.amenities || []).map(normalizedWords);
+  if (!dietary.every(value => highlights.includes(normalizedWords(value)))) return false;
+  if (!amenities.every(value => hotelAmenities.includes(normalizedWords(value)))) return false;
   if (buffetType && buffetType !== "all" && lower(buffet.buffetType) !== buffetType) return false;
   if (minPrice != null && Number(buffet.price || 0) < minPrice) return false;
   if (maxPrice != null && Number(buffet.price || 0) > maxPrice) return false;
   if (minRating != null && Number(buffet.averageRating || buffet.hotel?.averageRating || 0) < minRating) return false;
-  if ((q.availableOnly === "true" || q.availableOnly === true || q.guests) && availableSeats(buffet) < guests) return false;
+  if (q.guests && guests > Number(buffet.maxGuestsPerBooking || 20)) return false;
+  if ((q.availableOnly === "true" || q.availableOnly === true) && availableSeats(buffet) < guests) return false;
   if (!dateAvailable(buffet, q.date)) return false;
   return true;
 }
@@ -111,11 +120,26 @@ async function buildResults(query) {
 exports.search = async (req, res, next) => {
   try {
     const rows = await buildResults(req.query);
-    const page = Math.max(1, toNumber(req.query.page, 1));
-    const limit = Math.min(100, Math.max(1, toNumber(req.query.limit, 24)));
+    const page = Math.max(1, Math.trunc(toNumber(req.query.page, 1)));
+    const limit = Math.min(100, Math.max(1, Math.trunc(toNumber(req.query.limit, 24))));
+    if (req.query.view === "map") {
+      const grouped = new Map();
+      for (const buffet of rows) {
+        const hotel = buffet.hotel;
+        const { latitude, longitude } = hotel.mapLocation || {};
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)
+          || Math.abs(latitude) > 90 || Math.abs(longitude) > 180 || (!latitude && !longitude)) continue;
+        const id = String(hotel._id);
+        const entry = grouped.get(id) || { hotel, buffet, count: 0 };
+        entry.count += 1;
+        if (buffet.price < entry.buffet.price) entry.buffet = buffet;
+        grouped.set(id, entry);
+      }
+      return res.json({ data: [...grouped.values()] });
+    }
     const start = (page - 1) * limit;
-    const locations = {};
-    const categories = {};
+    const locations = Object.create(null);
+    const categories = Object.create(null);
     rows.forEach((b) => {
       const loc = norm(b.location?.city || b.hotel?.city || b.hotel?.location);
       if (loc) locations[loc] = (locations[loc] || 0) + 1;

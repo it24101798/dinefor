@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import AccountLayout from "../design/AccountLayout";
 
 export default function AccountSecurity() {
   const { user } = useAuth();
@@ -57,15 +58,8 @@ export default function AccountSecurity() {
   };
 
   return (
-    <main className="min-h-screen bg-surface-cream pt-28 pb-12 px-4">
-      <div className="max-w-4xl mx-auto">
-        <span className="badge-gold">Account</span>
-        <h1 className="font-headline-lg text-headline-lg text-text-deep-green mt-2">
-          Account Security
-        </h1>
-        <p className="text-on-surface-variant">
-          Review your sign-in method and protect your DineFor account.
-        </p>
+    <AccountLayout title="Keep your account secure." description="Review how you sign in and manage the password protecting your DineFor account." className="rf-security">
+      <div className="w-full">
 
         {message && (
           <div
@@ -79,8 +73,8 @@ export default function AccountSecurity() {
           </div>
         )}
 
-        <div className="grid md:grid-cols-2 gap-6 mt-6">
-          <section className="card-ambient p-6">
+        <div className="grid lg:grid-cols-2 gap-6 mt-6">
+          <section className="card-ambient p-5 sm:p-7 bg-white border border-emerald-100 rounded-2xl">
             <h2 className="font-headline-md text-headline-md text-text-deep-green">
               Sign-in details
             </h2>
@@ -128,7 +122,7 @@ export default function AccountSecurity() {
             </dl>
           </section>
 
-          <section className="card-ambient p-6">
+          <section className="card-ambient p-5 sm:p-7 bg-white border border-emerald-100 rounded-2xl">
             <h2 className="font-headline-md text-headline-md text-text-deep-green">
               Change password
             </h2>
@@ -197,6 +191,6 @@ export default function AccountSecurity() {
           </section>
         </div>
       </div>
-    </main>
+    </AccountLayout>
   );
 }

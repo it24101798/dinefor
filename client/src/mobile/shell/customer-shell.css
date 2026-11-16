@@ -1,0 +1,135 @@
+.df-app {
+  --df-shell-ink: #073f45;
+  --df-shell-teal: #006b63;
+  --df-shell-mint: #def7ef;
+  --df-shell-line: #b6ded3;
+  --df-shell-font: 'Plus Jakarta Sans', Arial, sans-serif;
+}
+.df-shell-icon { width: 24px; height: 24px; flex: none; }
+.df-shell-domain, .df-shell-header .df-shell-menu-toggle { display: none; }
+
+.df-shell-primary, .df-shell-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 9px 15px;
+  border: 1px solid var(--df-shell-teal);
+  border-radius: 999px;
+  background: var(--df-shell-teal);
+  color: #fff;
+  text-decoration: none;
+  text-align: center;
+  font: 800 16px/1.2 var(--df-shell-font);
+  cursor: pointer;
+}
+.df-shell-secondary { background: #fff; color: var(--df-shell-ink); }
+.df-app :is(.df-welcome-menu, .dfm-home, .df-shell-bottom) :focus-visible {
+  outline: 2px solid var(--df-shell-teal);
+  outline-offset: 2px;
+}
+.df-welcome-menu { display: none; }
+@media (max-width: 767px) {
+  .df-app .df-shell-header .rf-nav { width: 100%; padding-inline: 20px; justify-content: space-between; }
+  .df-app .df-shell-header .rf-logo, .df-app .df-welcome-menu .rf-logo {
+    font-family: 'Playfair Display', Georgia, serif !important;
+    font-size: clamp(27px, 7.5vw, 38px) !important;
+    color: var(--df-shell-ink) !important;
+    white-space: nowrap;
+  }
+  .df-shell-domain { display: inline; }
+  .df-app .df-shell-header .df-shell-desktop-account { display: none; }
+  .df-app .df-shell-header .df-shell-menu-toggle, .df-shell-menu-toggle {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--df-shell-ink);
+    cursor: pointer;
+  }
+  .df-shell-menu-toggle .df-shell-icon { width: 28px; height: 28px; }
+  .df-welcome-menu[open] {
+    position: fixed;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    background: #fff;
+    color: var(--df-shell-ink);
+    font-family: var(--df-shell-font);
+  }
+  .df-welcome-menu-inner { max-width: 520px; margin: auto; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+  .df-welcome-menu-top { display: flex; align-items: center; justify-content: space-between; padding: 8px 20px; min-height: 64px; }
+  .df-welcome-menu-intro {
+    display: grid;
+    grid-template-columns: minmax(85px, 39%) minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    padding: 0 20px;
+    background: radial-gradient(ellipse 105% 105% at 47% -14%, #fff 90%, #d5f6eb 91%, #a9ebd8 100%);
+  }
+  .df-welcome-menu-intro .df-crew-art { width: 100%; height: auto; aspect-ratio: 2 / 3; align-self: end; }
+  .df-welcome-menu-intro h2 { margin: 0 0 6px; font-size: clamp(20px, 6vw, 28px); font-weight: 800; line-height: 1.08; letter-spacing: -.05em; }
+  .df-welcome-menu-intro p { margin: 0; font-size: 14px; line-height: 1.35; }
+  .df-welcome-menu-links { display: grid; margin: 10px 20px 0; }
+  .df-welcome-menu-links a {
+    display: grid;
+    grid-template-columns: 26px minmax(0, 1fr) 18px;
+    align-items: center;
+    gap: 12px;
+    min-height: 46px;
+    border-bottom: 1px solid var(--df-shell-line);
+    color: inherit;
+    font-weight: 750;
+  }
+  .df-welcome-menu-links a:last-child { border: 0; }
+  .df-welcome-menu-links .df-shell-icon:first-child { color: var(--df-shell-teal); }
+  .df-welcome-menu-links .df-shell-icon:last-child { width: 18px; height: 18px; }
+  .df-welcome-menu-actions { display: grid; gap: 10px; margin: 24px 20px 0; }
+  .df-app .df-shell-bottom.df-mobile-bottom-nav { border-radius: 0 !important; box-shadow: none !important; border-inline: 0 !important; }
+  .df-shell-bottom .df-mobile-bottom-link { gap: 4px; font-family: var(--df-shell-font); }
+  .df-app .df-shell-bottom .df-mobile-bottom-link { color: var(--df-shell-ink) !important; font-size: clamp(10px, 2.9vw, 13px) !important; }
+  .df-app .df-shell-bottom .df-mobile-bottom-link.is-active { background: var(--df-shell-mint) !important; }
+}
+
+.df-app :is(.df-welcome-menu-intro, .dfm-chef-note) .df-crew-art {
+  display: block;
+  background-image: url('/images/characters/dinefor-crew-roles.png');
+  background-repeat: no-repeat;
+  background-size: 300% 100%;
+}
+
+.df-shell-help { display: grid; gap: 12px; max-width: 640px; padding-block: 22px; }
+.df-shell-help h1 { font-size: clamp(28px, 6vw, 42px); line-height: 1.1; font-weight: 800; }
+.df-shell-help a { padding: 13px 16px; border: 1px solid var(--df-shell-line); border-radius: 14px; color: var(--df-shell-teal); font-weight: 700; }
+
+@media (min-width: 768px) {
+  .df-app .rf-home-next .rf-hero-home {
+    height: auto;
+    min-height: clamp(310px, 33vw, 425px);
+    align-items: center;
+    padding: 26px clamp(24px, 4vw, 56px) 42px;
+    background: linear-gradient(105deg, #e2f5ee, #f2faf6);
+  }
+  .df-app .rf-home-next .rf-hero-home h1 { font-size: clamp(38px, 4.5vw, 68px); line-height: 1.04; }
+  .df-app .rf-home-next .rf-hero-home .rf-art { height: 100%; }
+  .df-app .rf-home-next .rf-home-search-wrap { position: relative; z-index: 2; margin-top: -24px; }
+  .df-app .rf-home-next .rf-home-search-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .df-app .df-shell-header .rf-nav { gap: 16px; }
+  .df-app .df-shell-header .rf-desktop-nav a { padding-inline: 8px; }
+}

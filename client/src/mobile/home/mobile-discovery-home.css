@@ -1,0 +1,138 @@
+.dfm-home { display: none; }
+
+@media (max-width: 767px) {
+  .dfm-desktop-home { display: none !important; }
+  .dfm-home {
+    display: block;
+    padding: 68px 0 28px;
+    background: #fff;
+    color: var(--df-shell-ink);
+    font-family: var(--df-shell-font);
+  }
+  .dfm-welcome-copy { text-align: center; padding: 15px 12px 5px; }
+  .dfm-welcome h1 {
+    margin: 0;
+    font-size: clamp(34px, 10vw, 59px);
+    line-height: 1.02;
+    letter-spacing: -.068em;
+    font-weight: 800;
+  }
+  .dfm-welcome-copy p { margin: 9px 0 0; font-size: clamp(15px, 4.3vw, 21px); font-weight: 600; }
+  .dfm-welcome-art { position: relative; display: grid; place-items: end center; overflow: hidden; }
+  .dfm-welcome-art::before { content: ''; position: absolute; inset: 14% 0 0; background: linear-gradient(#e5f8f2, #c7efe3); border-radius: 48% 48% 0 0; }
+  .dfm-welcome-art svg { position: absolute; inset: 0 0 auto; width: 100%; height: 64%; }
+  .dfm-couple { position: relative; width: min(100%, 570px); height: auto; display: block; }
+  .dfm-search-panel {
+    position: relative;
+    display: grid;
+    gap: 5px;
+    margin: -17px auto 24px;
+    width: min(calc(100% - 24px), 500px);
+    padding: 8px;
+    border-radius: 23px;
+    background: #fff;
+    box-shadow: 0 6px 22px #073f4518;
+  }
+  .dfm-full-field {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) 18px;
+    align-items: center;
+    gap: 12px;
+    min-height: 54px;
+    margin: 0;
+    padding: 5px 11px;
+    border: 1px solid var(--df-shell-line);
+    border-radius: 17px;
+    color: var(--df-shell-ink);
+    cursor: pointer;
+  }
+  .dfm-field-label { display: block; font-size: 12px; line-height: 1.1; }
+  .dfm-full-field > .df-shell-icon { color: var(--df-shell-teal); }
+  .dfm-full-field > .df-shell-icon:last-child:not(:first-child) { width: 18px; pointer-events: none; }
+  .dfm-full-field:has(input) { grid-template-columns: 24px minmax(0, 1fr); }
+  .df-app .dfm-full-field :is(select, input) {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 26px;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+    appearance: none;
+    background: transparent;
+    color: var(--df-shell-ink);
+    font: 750 16px/1.2 var(--df-shell-font);
+  }
+  .dfm-date { display: block; position: relative; }
+  .dfm-date > span { position: absolute; inset: 0; display: flex; align-items: center; font-size: 16px; font-weight: 750; pointer-events: none; }
+  .dfm-date:not(.has-value):not(:focus-within) input { color: transparent; }
+  .dfm-date.has-value > span, .dfm-date:focus-within > span { visibility: hidden; }
+  .dfm-search-panel button { margin-top: 6px; }
+  .dfm-home-sections { width: min(calc(100% - 32px), 560px); margin-inline: auto; }
+  .dfm-home-sections h2 { margin: 0; font-size: clamp(20px, 5.4vw, 28px); font-weight: 800; line-height: 1.12; letter-spacing: -.047em; }
+  .dfm-occasion-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 24px; }
+  .dfm-occasion-list a {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 6px 10px;
+    border: 1px solid var(--df-shell-line);
+    border-radius: 999px;
+    background: var(--df-shell-mint);
+    color: inherit;
+    font-size: clamp(12px, 3.25vw, 15px);
+    font-weight: 750;
+  }
+  .dfm-occasion-list .df-shell-icon { color: var(--df-shell-teal); width: 20px; height: 20px; }
+  .dfm-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .dfm-section-heading a { display: flex; align-items: center; min-height: 44px; color: var(--df-shell-teal); font-size: 13px; font-weight: 750; white-space: nowrap; }
+  .dfm-section-heading .df-shell-icon { width: 17px; height: 17px; }
+  .dfm-cards { display: grid; grid-auto-flow: column; grid-auto-columns: 94%; gap: 11px; overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: 5px; }
+  .dfm-buffet-card { position: relative; min-width: 0; border: 1px solid #bfd2ce; border-radius: 18px; overflow: hidden; scroll-snap-align: start; }
+  .dfm-card-link { display: block; color: inherit; }
+  .dfm-card-link:focus-visible { outline-offset: -4px !important; }
+  .dfm-card-media { aspect-ratio: 2 / 1; background: #edf7f3; }
+  .dfm-card-media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .dfm-card-media .rf-photo-empty { display: flex; height: 100%; }
+  .dfm-card-save {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--df-shell-line);
+    border-radius: 50%;
+    background: #fff;
+    color: var(--df-shell-teal);
+    cursor: pointer;
+  }
+  .dfm-card-save:disabled { opacity: .65; }
+  .dfm-card-body { padding: 11px 12px; }
+  .dfm-card-body h3 { margin: 0 0 5px; font-size: 18px; font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
+  .dfm-card-meta { display: flex; align-items: end; justify-content: space-between; gap: 8px; }
+  .dfm-card-meta p { display: flex; align-items: center; gap: 4px; margin: 3px 0; font-size: 12px; overflow-wrap: anywhere; }
+  .dfm-card-meta .df-shell-icon { width: 16px; height: 16px; color: var(--df-shell-teal); }
+  .dfm-card-price { flex: none; padding: 6px 8px; border-radius: 12px; background: var(--df-shell-mint); text-align: center; }
+  .dfm-card-price small { display: block; font-size: 11px; }
+  .dfm-message { padding: 15px; border-radius: 14px; background: #edf7f3; font-size: 14px; }
+  .dfm-message button { min-height: 44px; padding: 0 6px; color: var(--df-shell-teal); font-weight: 800; text-decoration: underline; }
+  .dfm-chef-note {
+    display: grid;
+    grid-template-columns: minmax(70px, 32%) minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0 14px;
+    border-radius: 17px;
+    overflow: hidden;
+    background: radial-gradient(ellipse 130% 100% at 45% -8%, #eaf8f3 90%, #b7efdd 91%);
+  }
+  .dfm-chef-note .df-crew-art { width: 100%; height: auto; aspect-ratio: 2 / 3; align-self: end; }
+  .dfm-chef-note > div { padding: 9px 10px 9px 0; }
+  .dfm-chef-note h2 { color: var(--df-shell-teal); font-size: 12px; letter-spacing: .06em; line-height: 1.25; text-transform: uppercase; }
+  .dfm-chef-note p { margin: 6px 0 0; font-size: clamp(14px, 3.8vw, 18px); line-height: 1.28; font-weight: 700; }
+}

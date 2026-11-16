@@ -1,140 +1,44 @@
-import React, { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import api from "../services/api";
-import PasswordField, {
-  evaluatePassword,
-} from "../components/PasswordField";
+import AuthLayout from '../design/AuthLayout';
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import api from '../services/api';
+import PasswordField, { evaluatePassword } from '../components/PasswordField';
+import { safeReturnTo } from '../auth/navigation';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
-  const resetData = useMemo(() => {
-    try {
-      return JSON.parse(
-        sessionStorage.getItem("dineforPasswordReset") || "null"
-      );
-    } catch {
-      return null;
-    }
-  }, []);
+  const { state } = useLocation();
+  const returnTo = safeReturnTo(state?.returnTo);
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] =
-    useState("");
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const strength = evaluatePassword(password);
-  const mismatch =
-    confirmPassword && password !== confirmPassword
-      ? "Passwords do not match."
-      : "";
-
-  const submit = async (event) => {
+  async function submit(event) {
     event.preventDefault();
-
-    if (!resetData?.email || !resetData?.resetSession) {
-      setMessage(
-        "Your verified reset session is missing. Start again."
-      );
+    if (busy) return;
+    if (!evaluatePassword(password).valid || password !== confirm) {
+      setError('Use all the password requirements and enter the same password twice.');
       return;
     }
-    if (!strength.valid) {
-      setMessage("Create a strong password using all requirements.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setMessage("Passwords do not match.");
-      return;
-    }
-
-    setLoading(true);
+    setBusy(true);
+    setError('');
     try {
-      const { data } = await api.post("/auth/reset-password", {
-        email: resetData.email,
-        resetSession: resetData.resetSession,
-        password,
-      });
-      sessionStorage.removeItem("dineforPasswordReset");
-      navigate("/login", {
-        replace: true,
-        state: {
-          email: resetData.email,
-          message: data.message,
-        },
-      });
+      const { data } = await api.post('/auth/reset-password', { email: state.email, resetSession: state.resetSession, password });
+      navigate('/login', { replace: true, state: { email: state.email, returnTo, message: data.message } });
     } catch (error) {
-      setMessage(
-        error.response?.data?.message ||
-          "Password reset failed."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!resetData) {
-    return (
-      <main className="min-h-screen bg-surface-cream grid place-items-center px-4">
-        <section className="card-ambient p-7 text-center max-w-md">
-          <h1 className="font-headline-lg text-headline-lg text-text-deep-green">
-            Verification required
-          </h1>
-          <p className="text-on-surface-variant mt-2">
-            Verify the email code before creating a new password.
-          </p>
-          <Link
-            to="/forgot-password"
-            className="btn-primary inline-block mt-5"
-          >
-            Start Password Reset
-          </Link>
-        </section>
-      </main>
-    );
+      setError(error.response?.data?.message || 'Couldn’t reset your password.');
+    } finally { setBusy(false); }
   }
 
-  return (
-    <main className="min-h-screen bg-surface-cream flex items-center justify-center px-4 py-24">
-      <section className="w-full max-w-md card-ambient p-7">
-        <h1 className="font-headline-lg text-headline-lg text-text-deep-green">
-          Create new password
-        </h1>
-        <p className="text-on-surface-variant mt-2">
-          Your verification code was accepted. Create a secure new password.
-        </p>
-
-        <form onSubmit={submit} className="space-y-5 mt-6">
-          <PasswordField
-            label="New password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete="new-password"
-            showStrength
-          />
-          <PasswordField
-            label="Confirm new password"
-            value={confirmPassword}
-            onChange={(event) =>
-              setConfirmPassword(event.target.value)
-            }
-            autoComplete="new-password"
-            error={mismatch}
-          />
-
-          {message && (
-            <div className="p-3 rounded-xl bg-error/10 text-error">
-              {message}
-            </div>
-          )}
-
-          <button
-            className="btn-primary w-full"
-            disabled={loading}
-          >
-            {loading ? "Updating Password…" : "Update Password"}
-          </button>
-        </form>
-      </section>
-    </main>
-  );
+  return <AuthLayout>
+    <h1>Create a new password</h1>
+    {state?.resetSession && state?.email ? <form className="df07-form" onSubmit={submit}>
+      <PasswordField label="New password" value={password} onChange={event => setPassword(event.target.value)} autoComplete="new-password" showStrength />
+      <PasswordField label="Confirm password" value={confirm} onChange={event => setConfirm(event.target.value)} autoComplete="new-password" error={confirm && confirm !== password ? 'Passwords do not match.' : ''} />
+      {error && <p role="alert" className="df07-message">{error}</p>}
+      <button type="submit" className="df-shell-primary" disabled={busy}>{busy ? 'Updating…' : 'Reset password'}</button>
+    </form> : <p>Request and verify a reset code first.</p>}
+    <Link className="df07-link" to="/forgot-password" state={{ returnTo }}>Request a new reset code</Link>
+  </AuthLayout>;
 }

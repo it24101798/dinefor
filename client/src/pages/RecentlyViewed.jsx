@@ -1,3 +1,4 @@
+import AccountLayout from "../design/AccountLayout";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import api, { resolveMediaUrl } from "../services/api";
@@ -206,7 +207,7 @@ function RecentlyViewed() {
   );
 
   const renderLoadingSkeleton = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="df-account-results">
       {[1, 2, 3, 4, 5, 6].map((i) => (
         <SkeletonCard key={i} />
       ))}
@@ -275,8 +276,8 @@ function RecentlyViewed() {
   // ============================================
   if (!storedToken) {
     return (
-      <main className="min-h-screen bg-surface-cream pt-20">
-        <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
+      <AccountLayout className="df-account-finish" title="Something caught your eye." description="Return to the hotels and buffets you recently explored." artwork="/images/characters/buffet-search.png" artAlt="Food and dining location illustration">
+        <div className="df-account-body">
           <div className="text-center py-16">
             <span className="material-symbols-outlined text-6xl text-outline mb-4">lock</span>
             <h3 className="font-headline-md text-headline-md text-text-deep-green">Please Login</h3>
@@ -289,17 +290,17 @@ function RecentlyViewed() {
             </Link>
           </div>
         </div>
-      </main>
+      </AccountLayout>
     );
   }
 
   return (
-    <main className="min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20">
-      <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
+    <AccountLayout className="df-account-finish" title="Something caught your eye." description="Return to the hotels and buffets you recently explored." artwork="/images/characters/buffet-search.png" artAlt="Food and dining location illustration">
+      <div className="df-account-body">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h1 className="font-headline-lg text-headline-lg text-text-deep-green">Recently Viewed</h1>
+            <h2 className="font-headline-lg text-headline-lg text-text-deep-green">Recently Viewed</h2>
             <p className="font-body-md text-body-md text-on-surface-variant">
               Continue browsing buffets and hotels you've explored
             </p>
@@ -386,7 +387,7 @@ function RecentlyViewed() {
         ) : filteredItems.length === 0 ? (
           renderEmpty()
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="df-account-results">
             {filteredItems.map((item, index) => {
               const stableKey =
                 item?._id ||
@@ -396,7 +397,7 @@ function RecentlyViewed() {
           </div>
         )}
       </div>
-    </main>
+    </AccountLayout>
   );
 }
 

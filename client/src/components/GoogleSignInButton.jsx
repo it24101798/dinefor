@@ -50,6 +50,8 @@ function GoogleSignInButton({
   disabled = false,
 }) {
   const buttonContainerRef = useRef(null);
+  const callbacks = useRef({onCredential,onError});
+  callbacks.current = {onCredential,onError};
   const mountedRef = useRef(true);
   const [status, setStatus] = useState("loading");
 
@@ -72,6 +74,7 @@ function GoogleSignInButton({
     }
 
     let cancelled = false;
+    let resizeObserver;
 
     const initializeGoogle = async () => {
       try {
@@ -97,33 +100,35 @@ function GoogleSignInButton({
             const credential = response?.credential;
 
             if (!credential) {
-              onError?.(
+              callbacks.current.onError?.(
                 "Google did not return a valid sign-in credential."
               );
               return;
             }
 
-            onCredential?.(credential);
+            callbacks.current.onCredential?.(credential);
           },
           auto_select: false,
           cancel_on_tap_outside: true,
           use_fedcm_for_prompt: true,
         });
 
-        buttonContainerRef.current.innerHTML = "";
-
-        google.accounts.id.renderButton(
-          buttonContainerRef.current,
-          {
-            type: "standard",
-            theme: "outline",
-            size: "large",
-            text: "continue_with",
-            shape: "pill",
-            logo_alignment: "left",
-            width: 360,
-          }
-        );
+        const container = buttonContainerRef.current;
+        let lastWidth = 0;
+        const renderSizedButton = () => {
+          if (cancelled) return;
+          const width = Math.max(200, Math.min(400, Math.floor(container.parentElement.clientWidth)));
+          if (width === lastWidth) return;
+          lastWidth = width;
+          container.innerHTML = "";
+          google.accounts.id.renderButton(container, {
+            type: "standard", theme: "outline", size: "large",
+            text: "continue_with", shape: "pill", logo_alignment: "left", width,
+          });
+        };
+        renderSizedButton();
+        resizeObserver = new ResizeObserver(renderSizedButton);
+        resizeObserver.observe(container.parentElement);
 
         if (!cancelled && mountedRef.current) {
           setStatus("ready");
@@ -133,7 +138,7 @@ function GoogleSignInButton({
 
         if (!cancelled && mountedRef.current) {
           setStatus("error");
-          onError?.(
+          callbacks.current.onError?.(
             "Google Sign-In could not be loaded. You can still use email and password."
           );
         }
@@ -144,8 +149,9 @@ function GoogleSignInButton({
 
     return () => {
       cancelled = true;
+      resizeObserver?.disconnect();
     };
-  }, [clientId, onCredential, onError]);
+  }, [clientId]);
 
   if (status === "not-configured") {
     return (
@@ -154,7 +160,7 @@ function GoogleSignInButton({
         role="status"
       >
         <p className="font-label-sm text-label-sm text-on-surface-variant">
-          Google Sign-In is not configured for this environment.
+          Use your email and password to continue.
         </p>
       </div>
     );

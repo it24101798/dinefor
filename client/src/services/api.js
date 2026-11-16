@@ -1,8 +1,7 @@
 import axios from "axios";
 
-const API_BASE = (
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"
-).replace(/\/+$/, "");
+import { resolveApiBase } from "./apiBase";
+const API_BASE = resolveApiBase(import.meta.env.VITE_API_BASE_URL, import.meta.env.DEV);
 
 const SERVER_BASE = API_BASE.replace(/\/api\/?$/i, "");
 

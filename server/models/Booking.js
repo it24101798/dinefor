@@ -68,7 +68,7 @@ const bookingSchema = new mongoose.Schema(
 
     commissionRate: {
       type: Number,
-      default: 8,
+      default: 5,
     },
 
     commissionAmount: {
@@ -96,15 +96,25 @@ const bookingSchema = new mongoose.Schema(
 
     paymentStatus: {
       type: String,
-      enum: ["pending", "unpaid", "paid", "failed", "refunded", "cancelled", "expired"],
+      enum: ["pending", "unpaid", "partially_paid", "paid", "failed", "partially_refunded", "refunded", "cancelled", "expired"],
       default: "pending",
     },
 
     paymentMethod: {
       type: String,
-      enum: ["pay_at_hotel", "payhere", "stripe", "wallet", "card", "cash"],
+      enum: ["pay_at_hotel", "payhere", "stripe", "wallet", "card", "cash", "sandbox"],
       default: "pay_at_hotel",
     },
+
+    paymentMode: {
+      type: String,
+      enum: ["pay_at_hotel", "deposit", "full_payment"],
+      default: "pay_at_hotel",
+    },
+
+    paymentExpiresAt: { type: Date, default: null, index: true },
+    inventorySlotId: { type: String, default: null },
+    inventoryReleasedAt: { type: Date, default: null },
 
     paymentReference: {
       type: String,
@@ -140,7 +150,15 @@ const bookingSchema = new mongoose.Schema(
       trim: true,
     },
 
+    guestDetails: {
+      name: { type: String, trim: true, maxlength: 100 },
+      email: { type: String, trim: true, maxlength: 254 },
+      phone: { type: String, trim: true, maxlength: 25 },
+      bookingForSomeoneElse: { type: Boolean, default: false },
+    },
+    reservationPolicyAcceptedAt: { type: Date },
     specialRequests: {
+      shareDietary: { type: Boolean, default: false },
       occasion: { type: String, enum: ["", "birthday", "anniversary", "business", "other"], default: "" },
       seating: { type: String, enum: ["", "indoor", "outdoor", "window", "quiet", "accessible"], default: "" },
       highChair: { type: Boolean, default: false },
@@ -161,6 +179,34 @@ const bookingSchema = new mongoose.Schema(
     cancelledAt: {
       type: Date,
     },
+
+    cancellationRequest: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "CancellationRequest",
+      default: null,
+    },
+
+    cancellationReason: {
+      type: String,
+      trim: true,
+      maxlength: 1000,
+      default: "",
+    },
+
+    noShowMarkedAt: { type: Date, default: null },
+    noShowMarkedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+
+    rescheduleHistory: [
+      {
+        previousDate: Date,
+        previousTimeSlot: { startTime: String, endTime: String },
+        nextDate: Date,
+        nextTimeSlot: { startTime: String, endTime: String },
+        by: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+        reason: { type: String, default: "", maxlength: 500 },
+        at: { type: Date, default: Date.now },
+      },
+    ],
 
     qrUsed: {
       type: Boolean,

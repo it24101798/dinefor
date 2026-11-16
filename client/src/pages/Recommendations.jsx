@@ -1,3 +1,4 @@
+import AccountLayout from "../design/AccountLayout";
 import React, {
   useCallback,
   useEffect,
@@ -44,14 +45,14 @@ export default function Recommendations() {
   }, [load]);
 
   return (
-    <main className="min-h-screen bg-surface-cream pt-24 sm:pt-28 pb-12 px-4">
-      <div className="max-w-7xl mx-auto">
+    <AccountLayout className="df-account-finish" title="Picked for your next meal." description="Buffet experiences selected around your dining interests." artwork="/images/characters/buffet-search.png" artAlt="Food and dining location illustration">
+      <div className="df-account-body">
         <span className="badge-gold">
           Smart Discovery
         </span>
-        <h1 className="font-headline-lg text-headline-lg text-text-deep-green mt-2">
+        <h2 className="font-headline-lg text-headline-lg text-text-deep-green mt-2">
           Recommended for You
-        </h1>
+        </h2>
         <p className="text-on-surface-variant max-w-2xl">
           Ranked using your cuisine preferences, saved buffets,
           booking history, recent browsing, ratings and availability.
@@ -91,7 +92,7 @@ export default function Recommendations() {
         )}
 
         {loading ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-7">
+          <div className="df-account-results">
             {[1, 2, 3, 4, 5, 6].map((item) => (
               <div
                 key={item}
@@ -100,7 +101,7 @@ export default function Recommendations() {
             ))}
           </div>
         ) : items.length ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-7">
+          <div className="df-account-results">
             {items.map((buffet) => (
               <div key={buffet._id}>
                 <FeedCard buffet={buffet} />
@@ -138,6 +139,6 @@ export default function Recommendations() {
           </section>
         )}
       </div>
-    </main>
+    </AccountLayout>
   );
 }

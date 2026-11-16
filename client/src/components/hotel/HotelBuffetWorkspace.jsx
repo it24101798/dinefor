@@ -218,6 +218,10 @@ function HotelBuffetWorkspace({ headers, setMessage, setMessageType, onCreate, o
         <article><span>Paused</span><strong>{stats.paused}</strong></article>
       </div>
 
+      <div className="df-buffet-checklist">
+        <div><strong>Publishing checklist</strong><span>For each buffet: use a real cover photo, confirm the price, set accurate service times, and check seat capacity before publishing.</span></div>
+        <span className="df-buffet-checklist-badge">{buffets.filter((item) => !mediaUrl(item.thumbnail || item.images?.[0])).length} missing cover images</span>
+      </div>
       <div className="hf-filter-row">
         <input className="form-input" placeholder="Search buffets..." value={filters.q} onChange={(event) => setFilters({ ...filters, q: event.target.value })} />
         <select className="form-select" value={filters.status} onChange={(event) => setFilters({ ...filters, status: event.target.value })}>

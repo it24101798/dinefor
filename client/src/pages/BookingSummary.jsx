@@ -1,259 +1,126 @@
-import React, { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../services/api";
-import PaymentMethodSelector from "../components/payments/PaymentMethodSelector";
+import { Icon } from "../design/ReferenceUI";
+import CrewArt from "../design/CrewArt";
+import CheckoutSummary, { money } from "./CheckoutSummary";
+import "./checkout.css";
 
-const formatDate = (value) => {
-  if (!value) return "-";
-  return new Date(value).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
-};
-
-const money = (value) => `Rs. ${Number(value || 0).toLocaleString()}`;
-
-function calculateClientTotals({ price, seats, couponPreview }) {
-  const subtotal = Number(price || 0) * Number(seats || 0);
-  const discountAmount = Number(couponPreview?.discountAmount || 0);
-  const taxAmount = Number(couponPreview?.taxAmount || 0);
-  const serviceCharge = Number(couponPreview?.serviceCharge || 0);
-  const grandTotal = couponPreview?.grandTotal ?? Math.max(subtotal - discountAmount + taxAmount + serviceCharge, 0);
-  return { subtotal, discountAmount, taxAmount, serviceCharge, grandTotal };
-}
-
-function BookingSummary() {
-  const navigate = useNavigate();
+export default function BookingSummary() {
   const location = useLocation();
-  const reservation = location.state?.reservation || null;
+  const navigate = useNavigate();
+  const reservation = location.state?.reservation;
+  const valid = Boolean(reservation?.guestDetails && reservation.totals && reservation.checkoutKey);
+  const hotelId = valid ? reservation.buffet.hotel?._id : null;
+  const lock = useRef(false);
+  const [options, setOptions] = useState(null);
+  const [optionsError, setOptionsError] = useState("");
+  const [reload, setReload] = useState(0);
+  const [coupon, setCoupon] = useState("");
+  const [preview, setPreview] = useState(null);
+  const [couponBusy, setCouponBusy] = useState(false);
+  const [couponError, setCouponError] = useState("");
+  const [accepted, setAccepted] = useState(false);
+  const [error, setError] = useState("");
+  const [sending, setSending] = useState(false);
 
-  const storedUser = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem("dineforUser") || "null"); } catch { return null; }
-  }, []);
+  useEffect(() => {
+    if (!valid) return;
+    const controller = new AbortController();
+    setOptionsError("");
+    api.get("/payments/options", { params: { hotelId }, signal: controller.signal })
+      .then(({ data }) => setOptions(data))
+      .catch(() => {
+        if (!controller.signal.aborted) setOptionsError("Payment options could not be loaded.");
+      });
+    return () => controller.abort();
+  }, [hotelId, valid, reload]);
 
-  const [paymentMethod, setPaymentMethod] = useState("pay_at_hotel");
-  const [couponCode, setCouponCode] = useState("");
-  const [couponPreview, setCouponPreview] = useState(null);
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+  const reviewPath = location.search ? "/reserve" + location.search : "/feed";
+  const reviewState = reservation && { guestDetails: reservation.guestDetails, specialRequests: reservation.specialRequests, review: true, checkoutKey: reservation.checkoutKey };
+  if (!valid) return <main className="df09 df09-result"><h1>Review your reservation</h1><p>Check your guest details and total before continuing to payment.</p><Link className="df09-primary" to={reviewPath} state={reviewState}>{location.search ? "Return to reservation" : "Find a buffet"}</Link></main>;
 
-  const buffet = reservation?.buffet;
-  const totals = calculateClientTotals({ price: buffet?.price, seats: reservation?.seats, couponPreview });
-
-  const headers = storedUser?.token ? { Authorization: `Bearer ${storedUser.token}` } : {};
-
-  const applyCoupon = async () => {
-    setMessage("");
-    if (!couponCode.trim()) {
-      setCouponPreview(null);
-      setMessage("Enter a coupon code first.");
-      return;
-    }
-
+  const total = preview?.grandTotal ?? reservation.totals.grandTotal;
+  async function applyCoupon() {
+    if (!coupon.trim() || couponBusy || sending) return;
+    setCouponBusy(true);
+    setCouponError("");
     try {
-      const res = await api.post(
-        "/coupons/validate",
-        { code: couponCode, price: buffet.price, seats: reservation.seats },
-        { headers }
-      );
-      setCouponPreview(res.data.totals);
-      setMessage(res.data.message || "Coupon applied successfully.");
+      const { data } = await api.post("/coupons/validate", {
+        code: coupon.trim(), buffetId: reservation.buffetId, seats: reservation.seats,
+      });
+      if (typeof data.totals?.grandTotal !== "number") throw new Error("Invalid coupon quote");
+      setPreview(data.totals);
     } catch (error) {
-      setCouponPreview(null);
-      setMessage(error.response?.data?.message || "Coupon could not be applied.");
-    }
-  };
-
-  const confirmBooking = async () => {
-    if (!storedUser) {
-      navigate("/login");
-      return;
-    }
-
-    if (!reservation) return;
-
-    setLoading(true);
-    setMessage("");
-
-    try {
-      const res = await api.post(
-        "/bookings",
-        {
-          buffetId: reservation.buffetId,
-          selectedDate: reservation.selectedDate,
-          slotId: reservation.slotId,
-          seats: Number(reservation.seats),
-          paymentMethod,
-          couponCode: couponCode.trim(),
-        },
-        { headers }
-      );
-
-      setMessage(res.data.message || "Booking confirmed.");
-      setTimeout(() => navigate("/my-bookings"), 700);
-    } catch (error) {
-      setMessage(error.response?.data?.message || "Booking confirmation failed.");
+      setPreview(null);
+      setCouponError(error.response?.data?.message || "Could not apply this coupon.");
     } finally {
-      setLoading(false);
+      setCouponBusy(false);
     }
-  };
-
-  if (!reservation || !buffet) {
-    return (
-      <main className="min-h-screen bg-surface-cream pt-20">
-        <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
-          <div className="text-center py-16">
-            <span className="material-symbols-outlined text-6xl text-outline mb-4">error</span>
-            <h3 className="font-headline-md text-headline-md text-text-deep-green">No Reservation Found</h3>
-            <p className="font-body-md text-body-md text-on-surface-variant mt-2">Please select a buffet and time slot first.</p>
-            <Link to="/feed" className="btn-primary inline-flex items-center gap-2 mt-6">Browse Buffets</Link>
-          </div>
-        </div>
-      </main>
-    );
   }
 
-  if (!storedUser) {
-    return (
-      <main className="min-h-screen bg-surface-cream pt-20">
-        <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
-          <div className="text-center py-16">
-            <span className="material-symbols-outlined text-6xl text-outline mb-4">lock</span>
-            <h3 className="font-headline-md text-headline-md text-text-deep-green">Please Login</h3>
-            <p className="font-body-md text-body-md text-on-surface-variant mt-2">You need to be logged in to confirm a booking.</p>
-            <Link to="/login" className="btn-primary inline-flex items-center gap-2 mt-6">Login</Link>
-          </div>
-        </div>
-      </main>
-    );
+  async function confirm(event) {
+    event.preventDefault();
+    if (lock.current || couponBusy || !accepted || !options?.sandboxAvailable) return;
+    lock.current = true;
+    setSending(true);
+    setError("");
+    try {
+      const { data } = await api.post("/bookings", {
+        buffetId: reservation.buffetId, selectedDate: reservation.selectedDate,
+        slotId: reservation.slotId, seats: reservation.seats,
+        guestDetails: reservation.guestDetails, specialRequests: reservation.specialRequests,
+        acceptedCancellationPolicy: true, expectedTotal: total,
+        couponCode: preview ? coupon.trim() : "", paymentMode: "full_payment",
+      }, { headers: { "Idempotency-Key": reservation.checkoutKey } });
+      navigate(`/payment/status/${data.paymentId}`, { replace: true });
+    } catch (error) {
+      const existingPayment = error.response?.data?.paymentId;
+      if (existingPayment) navigate(`/payment/status/${existingPayment}`, { replace: true });
+      else setError(error.response?.data?.message || "We could not verify your request. Try again from this screen to recover the same payment hold.");
+    } finally {
+      lock.current = false;
+      setSending(false);
+    }
   }
 
-  return (
-    <main className="min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20">
-      <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
-        <div className="mb-8">
-          <h1 className="font-headline-lg text-headline-lg text-text-deep-green">Booking Summary</h1>
-          <p className="font-body-md text-body-md text-on-surface-variant">Review and confirm your reservation</p>
-        </div>
-
-        {message && (
-          <div className={`p-3 rounded-lg text-sm font-medium mb-6 ${
-            message.includes("confirmed") || message.includes("success")
-              ? "bg-secondary-container/30 text-secondary"
-              : "bg-error/10 text-error"
-          }`}>
-            {message}
+  return <main className="df09">
+    <Link className="df09-back" to={reviewPath} state={reviewState}><Icon name="arrow_back" /> Reservation review</Link>
+    <header className="df09-hero">
+      <div><h1>Choose how to pay</h1><p>Review your total before continuing to payment.</p></div>
+      <CrewArt role="chef" />
+    </header>
+    <form className="df09-checkout-grid" onSubmit={confirm}>
+      <div className="df09-stack">
+        <CheckoutSummary reservation={reservation} total={total} />
+        <section className="df09-card df09-guest">
+          <div><h2>Booking guest</h2><p>{reservation.guestDetails.name}</p></div>
+          <Link to={reviewPath} state={{ ...reviewState, review: false }}>Edit guest details</Link>
+        </section>
+        <details className="df09-card df09-details">
+          <summary>Have a coupon?</summary>
+          <div className="df09-coupon">
+            <input aria-label="Coupon code" placeholder="Coupon code" maxLength={64} value={coupon} disabled={couponBusy || sending} onChange={event => { setCoupon(event.target.value.toUpperCase()); setPreview(null); setCouponError(""); }} />
+            <button className="df09-secondary" type="button" disabled={!coupon.trim() || couponBusy || sending} onClick={applyCoupon}>{couponBusy ? "Checking…" : "Apply"}</button>
           </div>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Booking Details */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="card-ambient p-6">
-              <h2 className="font-headline-md text-headline-md text-text-deep-green mb-4">Reservation Details</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="font-label-sm text-label-sm text-on-surface-variant">Buffet</p>
-                  <p className="font-label-md text-label-md text-text-deep-green">{buffet.title}</p>
-                </div>
-                <div>
-                  <p className="font-label-sm text-label-sm text-on-surface-variant">Hotel</p>
-                  <p className="font-label-md text-label-md text-text-deep-green">{buffet.hotel?.hotelName || "Hotel"}</p>
-                </div>
-                <div>
-                  <p className="font-label-sm text-label-sm text-on-surface-variant">Date</p>
-                  <p className="font-label-md text-label-md text-text-deep-green">{formatDate(reservation.selectedDate)}</p>
-                </div>
-                <div>
-                  <p className="font-label-sm text-label-sm text-on-surface-variant">Time</p>
-                  <p className="font-label-md text-label-md text-text-deep-green">
-                    {reservation.slot?.startTime} - {reservation.slot?.endTime}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-label-sm text-label-sm text-on-surface-variant">Guests</p>
-                  <p className="font-label-md text-label-md text-text-deep-green">{reservation.seats}</p>
-                </div>
-                <div>
-                  <p className="font-label-sm text-label-sm text-on-surface-variant">Price per person</p>
-                  <p className="font-label-md text-label-md text-text-deep-green">{money(buffet.price)}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Coupon */}
-            <div className="card-ambient p-6">
-              <h2 className="font-headline-md text-headline-md text-text-deep-green mb-4">Apply Coupon</h2>
-              <div className="flex gap-3">
-                <input
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                  placeholder="Enter coupon code"
-                  className="form-input flex-1"
-                />
-                <button onClick={applyCoupon} className="btn-outline">Apply</button>
-              </div>
-              {couponPreview && (
-                <div className="mt-3 p-3 rounded-xl bg-secondary-container/10 border border-secondary/30">
-                  <p className="font-label-sm text-label-sm text-secondary">✅ Coupon applied! Discount: {money(couponPreview.discountAmount)}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Payment Method */}
-            <div className="card-ambient p-6">
-              <h2 className="font-headline-md text-headline-md text-text-deep-green mb-4">Payment Method</h2>
-              <PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} />
-            </div>
-          </div>
-
-          {/* Summary */}
-          <div className="lg:col-span-1">
-            <div className="card-ambient p-6 sticky top-28">
-              <h2 className="font-headline-md text-headline-md text-text-deep-green mb-4">Payment Summary</h2>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="font-body-md text-body-md text-on-surface-variant">Subtotal</span>
-                  <span className="font-body-md text-body-md text-text-deep-green">{money(totals.subtotal)}</span>
-                </div>
-                <div className="flex justify-between text-secondary">
-                  <span className="font-body-md text-body-md">Discount</span>
-                  <span className="font-body-md text-body-md">- {money(totals.discountAmount)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-body-md text-body-md text-on-surface-variant">Service Charge</span>
-                  <span className="font-body-md text-body-md text-text-deep-green">{money(totals.serviceCharge)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-body-md text-body-md text-on-surface-variant">Tax</span>
-                  <span className="font-body-md text-body-md text-text-deep-green">{money(totals.taxAmount)}</span>
-                </div>
-                <div className="border-t border-border-subtle pt-3 mt-3 flex justify-between">
-                  <span className="font-headline-md text-headline-md text-text-deep-green">Total</span>
-                  <span className="font-headline-md text-headline-md text-highlight-gold">{money(totals.grandTotal)}</span>
-                </div>
-              </div>
-
-              <button
-                onClick={confirmBooking}
-                disabled={loading}
-                className="btn-primary w-full mt-4 flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <span className="animate-spin rounded-full h-4 w-4 border-2 border-surface-cream border-t-transparent" />
-                    Confirming...
-                  </>
-                ) : (
-                  "Confirm Booking"
-                )}
-              </button>
-              <p className="font-label-sm text-label-sm text-on-surface-variant text-center mt-2">
-                You'll receive a QR confirmation after booking
-              </p>
-            </div>
-          </div>
-        </div>
+          {couponError && <p className="df09-warning" role="alert">{couponError}</p>}
+          {preview && <p role="status">Coupon applied. You saved {money(preview.discountAmount)}.</p>}
+        </details>
       </div>
-    </main>
-  );
+      <div className="df09-stack">
+        <section className="df09-method" aria-label="Payment method">
+          <Icon name="lock" /><div><h2>Pay securely online</h2><p>Due now {money(total)}</p></div>
+          <Icon name="check_circle" />
+        </section>
+        {optionsError ? <div className="df09-warning" role="alert">{optionsError} <button type="button" onClick={() => setReload(value => value + 1)}>Try again</button></div>
+          : !options ? <p role="status">Loading payment options…</p>
+          : options.sandboxAvailable ? <p className="df09-test">Sandbox checkout · No real payment</p>
+          : <p className="df09-warning">Online checkout is currently unavailable.</p>}
+        <label className="df09-terms"><input type="checkbox" required checked={accepted} onChange={event => setAccepted(event.target.checked)} /><span>I accept the <Link to={reviewPath} state={reviewState}>cancellation and change terms</Link> shown in the reservation review.</span></label>
+        {error && <p className="df09-warning" role="alert">{error}</p>}
+        <button className="df09-primary" type="submit" disabled={!accepted || !options?.sandboxAvailable || couponBusy || sending}>{sending ? "Holding your seats…" : "Continue to payment"} <Icon name="arrow_forward" /></button>
+        <Link to="/payments" className="df09-text-link">Payment history</Link>
+      </div>
+    </form>
+  </main>;
 }
-
-export default BookingSummary;

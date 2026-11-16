@@ -2,8 +2,11 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import FeedCard from "../components/FeedCard";
+import { BuffetTile as FeedCard, Icon } from "../design/ReferenceUI";
+import AccountLayout from "../design/AccountLayout";
 import SkeletonCard from "../components/shared/SkeletonCard";
+import { Action } from "../bookings/bookingDisplay";
+import "../bookings/bookings.css";
 
 
 const formatDate = (value) => {
@@ -124,7 +127,7 @@ function CustomerDashboard() {
       });
       fetchDashboard();
     } catch (error) {
-      console.error("Failed to mark notification as read:", error);
+      setMessage("Could not mark this notification as read. Please try again."); setMessageType("error");
     }
   };
 
@@ -401,7 +404,7 @@ function CustomerDashboard() {
             View All ({savedBuffets.length})
           </Link>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="rf-grid rf-account-cards">
           {savedBuffets.slice(0, 3).map((buffet) => (
             <FeedCard key={buffet._id} buffet={buffet} />
           ))}
@@ -421,7 +424,7 @@ function CustomerDashboard() {
             View All
           </Link>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="rf-grid rf-account-cards">
           {recommended.slice(0, 3).map((buffet) => (
             <FeedCard key={buffet._id} buffet={buffet} />
           ))}
@@ -527,42 +530,31 @@ function CustomerDashboard() {
     );
   }
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-surface-cream pt-20">
-        <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
-          {renderLoadingSkeleton()}
-        </div>
-      </main>
-    );
-  }
+  if (loading) return <AccountLayout title="Your dining, at a glance."><div role="status" aria-label="Loading your account">{renderLoadingSkeleton()}</div></AccountLayout>;
 
-  return (
-    <main className="min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20">
-      <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="font-headline-lg text-headline-lg text-text-deep-green">
-            Hello {data?.user?.name || user?.name || "Guest"} 👋
-          </h1>
-          <p className="font-body-md text-body-md text-on-surface-variant">
-            Welcome back to your DineFor dashboard.
-          </p>
-        </div>
-
-        {renderMessage()}
-        {renderWelcomeBanner()}
-        {renderStats()}
-        {renderQuickActions()}
-        {renderUpcomingReservations()}
-        {renderNotifications()}
-        {renderSavedBuffets()}
-        {renderRecommended()}
-        {renderRecentlyViewed()}
-        {renderBookingHistory()}
-      </div>
-    </main>
-  );
+  return <AccountLayout className="rf-overview df10-account df10-overview" title="Your DineFor account" description="Manage your bookings, preferences and security.">
+    {renderMessage()}
+    <section className="df10-card df10-profile" aria-label="Guest profile">
+      <Icon name="account_circle" />
+      <div><h2>Guest profile</h2><p>{data?.user?.name || user?.name}</p><p>{data?.user?.email || user?.email}</p></div>
+      <Action icon="edit" to="/profile">Edit profile</Action>
+    </section>
+    <nav className="df10-profile-links" aria-label="Your account">
+      {[
+        ["/my-bookings", "calendar_month", "My bookings"], ["/saved", "favorite_border", "Saved places"],
+        ["/payments", "payments", "Payment History"], ["/my-reviews", "rate_review", "My reviews"],
+        ["/notifications", "notifications", "Notifications"], ["/account-security", "lock", "Password & security"],
+        ["/help", "support_agent", "Help & support"], ["/help#privacy", "shield", "Privacy & account deletion"],
+      ].map(([to, icon, title]) => <Action key={to} to={to} icon={icon}>{title}</Action>)}
+      <Action icon="logout" onClick={() => { logout(); navigate("/"); }}>Sign out</Action>
+    </nav>
+    <div className="rf-overview-stats">{renderStats()}</div>
+    <div className="rf-overview-columns"><div>{renderUpcomingReservations()}</div><aside>{renderNotifications()}</aside></div>
+    {renderSavedBuffets()}
+    <div className="rf-overview-quick">{renderQuickActions()}</div>
+    {renderRecommended()}
+    <div className="rf-overview-columns"><div>{renderRecentlyViewed()}</div><div>{renderBookingHistory()}</div></div>
+  </AccountLayout>;
 }
 
 export default CustomerDashboard;

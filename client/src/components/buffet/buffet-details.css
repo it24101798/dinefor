@@ -1,0 +1,85 @@
+.df06-page { min-height: 100dvh; padding: 104px 0 40px; color: var(--df-shell-ink); font-family: var(--df-shell-font); background: #fff; }
+.df06-wrap { width: min(1240px, calc(100% - 36px)); margin: auto; }
+.df06-toolbar { position: relative; display: flex; align-items: center; min-height: 56px; }
+.df06-toolbar > a { display: inline-flex; align-items: center; gap: 3px; font-weight: 800; }
+.df06-toolbar > a svg { transform: rotate(180deg); }
+.df06-toolbar .df-discover-heart { top: 5px; }
+.df06-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 34%); gap: 24px; align-items: start; }
+.df06-main, .df06-tab-panel { min-width: 0; }
+.df06-gallery { display: grid; gap: 7px; }
+.df06-cover { position: relative; width: 100%; display: block; overflow: hidden; aspect-ratio: 1.95; background: #eaf8f3; border-radius: 16px; }
+.df06-gallery :is(img,.rf-photo-empty) { display: block; width: 100%; height: 100%; }
+.df06-gallery .rf-photo-empty { display: flex; min-height: 0; }
+.df06-gallery img { object-fit: cover; }
+.df06-photo-count { position: absolute; right: 10px; bottom: 10px; padding: 4px 10px; border-radius: 8px; background: #09272be0; color: #fff; }
+.df06-thumbs { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0,1fr); gap: 7px; }
+.df06-thumbs button { overflow: hidden; height: clamp(54px, 12vw, 105px); border: 2px solid transparent; border-radius: 10px; }
+.df06-thumbs button[aria-pressed=true] { border-color: var(--df-shell-teal); }
+.df06-thumbs .rf-photo-empty span:last-child { display: none; }
+.df06-title { margin: 16px 0; }
+.df06-title h1 { font-size: clamp(27px, 5vw, 54px); line-height: 1.05; letter-spacing: -.045em; font-weight: 800; overflow-wrap: anywhere; }
+.df06-facts { display: flex; flex-wrap: wrap; gap: 6px 13px; margin-top: 8px; font-size: 14px; }
+.df06-facts span { display: flex; gap: 4px; align-items: center; }
+.df06-facts svg { width: 17px; height: 17px; color: var(--df-shell-teal); }
+.df06-facts b, .df06-rating-row b { color: #a86600; }
+.df06-tabs { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); padding: 4px; gap: 4px; margin-bottom: 15px; border-radius: 13px; background: #e8f3f3; }
+.df06-tabs button { min-height: 44px; border-radius: 10px; font-size: 14px; font-weight: 800; }
+.df06-tabs button[aria-selected=true] { color: #fff; background: var(--df-shell-teal); }
+.df06-tab-panel { margin-bottom: 14px; overflow-wrap: anywhere; }
+.df06-tab-panel h2,.df06-info h2,.df06-reservation h2 { font-size: 20px; line-height: 1.15; font-weight: 800; }
+.df06-description { font-size: 16px; line-height: 1.5; }
+.df06-amenities, .df06-menu { display: grid; gap: 7px; padding: 0; list-style: none; margin: 13px 0; }
+.df06-amenities { display: flex; flex-wrap: wrap; }
+.df06-amenities li, .df06-menu li { border: 1px solid var(--df-shell-line); border-radius: 12px; padding: 9px 12px; background: #f5fbf9; }
+.df06-menu li { display: flex; align-items: center; gap: 9px; }
+.df06-couple { position: relative; min-height: 100px; overflow: hidden; background: #f1fbf7; border-radius: 16px; }
+.df06-couple img { position: relative; width: min(100%,360px); display: block; margin: auto; }
+.df06-couple svg { position: absolute; inset: 0; width: 100%; height: 100%; color: #97d8c7; }
+.df06-menu-heading { display: flex; align-items: center; justify-content: space-between; min-height: 96px; gap: 8px; }
+.df06-menu-heading .df-crew-art { display: block; width: 77px; height: 116px; flex: none; background-image: url('/images/characters/dinefor-crew-roles.png'); background-size: 300% 100%; background-repeat: no-repeat; }
+.df06-info, .df06-policy { margin: 10px 0; padding: 12px; border: 1px solid var(--df-shell-line); background: #f5fbf9; border-radius: 13px; }
+.df06-info { display: flex; gap: 9px; }
+.df06-info p,.df06-policy p { font-size: 14px; margin-top: 5px; overflow-wrap: anywhere; }
+.df06-info a,.df06-text-button { color: var(--df-shell-teal); text-decoration: underline; font-size: 14px; font-weight: 750; }
+.df06-policy summary { cursor: pointer; font-weight: 800; }
+.df06-policy summary svg { display: inline; vertical-align: middle; margin-right: 4px; }
+.df06-review-panel header { display: flex; justify-content: space-between; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 9px; }
+.df06-review-score { display: grid; grid-template-columns: minmax(68px, 29%) minmax(0, 1fr); gap: 11px; padding: 8px 0 15px; align-items: center; }
+.df06-review-score strong { display: block; font-size: 42px; line-height: 1.05; }
+.df06-review-score span { font-size: 12px; }
+.df06-rating-row { display: grid; grid-template-columns: 26px minmax(0,1fr) 37px; gap: 5px; align-items: center; }
+.df06-rating-row progress { width: 100%; height: 12px; accent-color: var(--df-shell-teal); }
+.df06-desktop-booking { position: sticky; top: 98px; max-height: calc(100dvh - 112px); overflow: auto; padding: 2px; }
+.df06-reservation { display: grid; gap: 10px; border: 1px solid var(--df-shell-line); border-radius: 18px; padding: 15px; background: #fff; }
+.df06-reservation fieldset { display: grid; gap: 9px; min-width: 0; margin: 0; border: 0; padding: 0; }
+.df06-reservation label { display: grid; gap: 3px; font-size: 14px; font-weight: 750; }
+.df06-reservation input { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--df-shell-line); border-radius: 9px; font-size: 16px; }
+.df06-slots { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; }
+.df06-slots button { padding: 5px; border: 1px solid var(--df-shell-line); border-radius: 8px; min-height: 49px; font-size: 13px; }
+.df06-slots button[aria-pressed=true] { background: var(--df-shell-mint); border-color: var(--df-shell-teal); }
+.df06-slots small { display: block; }
+.df06-party,.df06-total { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.df06-party > div { display:flex; align-items:center; gap:8px; }
+.df06-party button,.df06-close { display:grid; place-items:center; width:44px; height:44px; border:1px solid var(--df-shell-line); border-radius:50%; }
+.df06-total { padding: 10px; border-radius: 10px; background: var(--df-shell-mint); }
+.df06-hint { font-size: 12px; }
+.df06-reservation button:disabled { opacity: .55; cursor: default; }
+.df06-booking-bar { position: fixed; inset: auto 0 0; z-index: 40; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 14px max(9px,env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid var(--df-shell-line); }
+.df-mobile-nav-present .df06-booking-bar { bottom: calc(66px + env(safe-area-inset-bottom)); }
+.df06-booking-bar strong { font-size: clamp(17px, 5vw, 22px); }
+.df06-booking-bar button { min-width: 110px; }
+.df06-page:has(.df06-booking-bar) .df06-wrap { padding-bottom: 82px; }
+.df06-reserve-dialog[open],.df06-lightbox[open] { color: var(--df-shell-ink); border: 0; padding: 0; max-width: 100%; }
+.df06-reserve-dialog[open] { position: fixed; inset: auto 0 0; margin: auto; width: min(100%,530px); max-height: 90dvh; background: #fff; border-radius: 18px 18px 0 0; }
+.df06-reserve-dialog > div { padding: 7px 10px max(12px,env(safe-area-inset-bottom)); }
+.df06-close { margin-left: auto; }
+.df06-reserve-dialog form { border: 0; }
+.df06-reserve-dialog::backdrop,.df06-lightbox::backdrop { background: #061b22c7; }
+.df06-lightbox[open] { width:min(95vw,950px); background: #082a30; color:#fff; padding: 10px; border-radius: 15px; }
+.df06-lightbox header,.df06-lightbox footer { display:flex; align-items:center; justify-content:space-between; }
+.df06-lightbox img { display:block; margin:auto; max-width:100%; max-height:72dvh; object-fit:contain; }
+.df06-lightbox button { border-radius: 50%; width: 44px; height: 44px; background: #ffffff25; color:#fff; font-size: 23px; }
+.df06-page :focus-visible,.df06-reserve-dialog :focus-visible { outline:2px solid var(--df-shell-teal); outline-offset:2px; }
+.df06-lightbox :focus-visible { outline:2px solid #bcf6e6; outline-offset:1px; }
+@media (max-width:1023px) { .df06-layout { grid-template-columns: minmax(0,1fr); } .df06-wrap { max-width: 700px; } }
+@media (max-width:767px) { .df06-page { padding-top: 69px; } .df06-wrap { width:calc(100% - 24px); } .df06-cover { aspect-ratio: 1.68; } }

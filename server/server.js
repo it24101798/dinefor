@@ -7,9 +7,11 @@ const compression = require("compression");
 const rateLimit = require("express-rate-limit");
 const path = require("path");
 const fs = require("fs");
+const mongoose = require("mongoose");
 
 const connectDB = require("./config/db");
 const { startBookingReminderScheduler } = require("./services/bookingReminderScheduler");
+const { startPaymentExpiryScheduler } = require("./services/paymentExpiryScheduler");
 
 dotenv.config();
 connectDB();
@@ -84,7 +86,7 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "Idempotency-Key", "X-Hotel-Invitation"],
   })
 );
 
@@ -170,12 +172,28 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+app.get("/api/health/readiness", (req, res) => {
+  const checks = {
+    database: mongoose.connection.readyState === 1,
+    mongoConfigured: Boolean(process.env.MONGO_URI),
+    jwtConfigured: Boolean(process.env.JWT_SECRET),
+    clientUrlConfigured: Boolean(process.env.CLIENT_URL),
+    publicApiUrlConfigured: Boolean(process.env.PUBLIC_API_URL),
+    payHereMerchantConfigured: Boolean(process.env.PAYHERE_MERCHANT_ID && process.env.PAYHERE_MERCHANT_SECRET),
+    payHereRefundConfigured: Boolean(process.env.PAYHERE_APP_ID && process.env.PAYHERE_APP_SECRET),
+    smtpConfigured: Boolean(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS),
+  };
+  const criticalReady = checks.database && checks.mongoConfigured && checks.jwtConfigured;
+  return res.status(process.env.NODE_ENV === "production" && !criticalReady ? 503 : 200).json({ status: criticalReady ? "ready" : "degraded", environment: process.env.NODE_ENV || "development", checks, timestamp: new Date().toISOString() });
+});
+
 /*
 |--------------------------------------------------------------------------
 | API routes
 |--------------------------------------------------------------------------
 */
 app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/hotel-onboarding", require("./routes/hotelOnboardingRoutes"));
 app.use("/api/hotels", require("./routes/hotelRoutes"));
 app.use("/api/partnership", require("./routes/partnershipRoutes"));
 app.use(
@@ -193,6 +211,11 @@ app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/customer", require("./routes/customerExperienceRoutes"));
 app.use("/api/analytics", require("./routes/analyticsRoutes"));
 app.use("/api/payments", require("./routes/paymentRoutes"));
+app.use("/api/settlements", require("./routes/settlementRoutes"));
+app.use("/api/activity-logs", require("./routes/activityLogRoutes"));
+app.use("/api/cancellations", require("./routes/cancellationRoutes"));
+app.use("/api/documents", require("./routes/documentRoutes"));
+app.use("/api/reconciliation", require("./routes/reconciliationRoutes"));
 app.use("/api/coupons", require("./routes/couponRoutes"));
 app.use("/api/seo", require("./routes/seoRoutes"));
 
@@ -245,4 +268,5 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   startBookingReminderScheduler();
+  startPaymentExpiryScheduler();
 });

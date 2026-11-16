@@ -1,3 +1,4 @@
+const { logActivity } = require("../services/activityLogService");
 const SiteSetting = require("../models/SiteSetting");
 
 const normalizeItems = (items = []) =>
@@ -42,6 +43,7 @@ exports.updateSiteSettings = async (req, res) => {
     if (!settings) settings = await SiteSetting.create(update);
     else settings = await SiteSetting.findByIdAndUpdate(settings._id, update, { new: true, runValidators: true });
 
+    await logActivity({ actor: req.user.id, actorRole: req.user.role, action: "homepage_updated", entityType: "homepage", entityId: settings._id, message: "Homepage settings updated.", metadata: { fields: Object.keys(update) } });
     return res.status(200).json({ message: "Site settings updated successfully.", settings });
   } catch (error) {
     return res.status(500).json({ message: "Failed to update site settings.", error: error.message });

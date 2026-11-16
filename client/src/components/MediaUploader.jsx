@@ -3,6 +3,8 @@ import api from "../services/api";
 
 function MediaUploader({
   onUpload,
+  onUploadState,
+  hidePreview = false,
   accept = "image/*,video/mp4,video/webm,video/ogg",
   label = "Upload",
   multiple = false,
@@ -56,6 +58,7 @@ function MediaUploader({
     }
 
     setUploading(true);
+    onUploadState?.(true);
     setError("");
     setProgress(0);
 
@@ -69,6 +72,7 @@ function MediaUploader({
       setError(uploadError.response?.data?.message || uploadError.message || "Upload failed. Please try again.");
     } finally {
       setUploading(false);
+      onUploadState?.(false);
       setProgress(0);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
@@ -87,7 +91,7 @@ function MediaUploader({
 
       {error && <div className="p-3 rounded-xl bg-error/10 text-error text-sm">{error}</div>}
 
-      {uploadedFiles.length > 0 && (
+      {!hidePreview && uploadedFiles.length > 0 && (
         <div className="space-y-2">
           {uploadedFiles.map((file, index) => (
             <div key={`${file.fileUrl}-${index}`} className="flex items-center gap-3 p-3 rounded-xl border border-border-subtle bg-surface-container-low">

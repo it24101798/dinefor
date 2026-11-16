@@ -1,0 +1,33 @@
+.df08 { color: var(--df-shell-ink); font-family: var(--df-shell-font); min-height: 100dvh; padding: 106px 14px 24px; background: #f3faf7; }
+.df08-wrap { background: white; border: 1px solid var(--df-shell-line); border-radius: 22px; max-width: 570px; margin: auto; padding: 20px; display: grid; gap: 12px; }
+.df08 h1 { margin: 0; font-size: clamp(26px,7vw,36px); font-weight: 800; line-height: 1.12; letter-spacing: -.04em; }
+.df08 h2 { font-size: 17px; font-weight: 800; }
+.df08-edit { min-height: 44px; justify-self: start; display: inline-flex; align-items: center; color: var(--df-shell-teal); text-decoration: underline; font-weight: 750; }
+.df08-progress { display: flex; gap: 6px; justify-content: space-between; padding: 0; margin: 0; list-style: none; }
+.df08-progress li { display: flex; align-items: center; gap: 4px; white-space: nowrap; font-size: clamp(10px,3vw,13px); }
+.df08-progress span { display: grid; place-items: center; width: 23px; height: 23px; background:#e4eeea; border-radius:50%; font-weight:800; }
+.df08-progress [aria-current] span { background: var(--df-shell-teal); color:#fff; }
+.df08-buffet { display: grid; grid-template-columns: 34% minmax(0,1fr); align-items:center; gap:10px; padding:8px; border:1px solid var(--df-shell-line); border-radius:13px; background:#f3faf7; }
+.df08-buffet > div { height:82px; border-radius:9px; overflow:hidden; }
+.df08-buffet :is(img,.rf-photo-empty) { width:100%; height:100%; min-height:0; object-fit:cover; }
+.df08-buffet .rf-photo-empty span:last-child { display:none; }
+.df08-buffet section { overflow-wrap:anywhere; }
+.df08-buffet p { font-size:13px; }
+.df08-form { display:grid; gap:11px; min-width:0; }
+.df08-form label { display:grid; gap:4px; font-size:14px; font-weight:750; }
+.df08-form :is(input:not([type=checkbox]),textarea) { width:100%; min-width:0; min-height:44px; border:1px solid #8bbbae; border-radius:9px; font-size:16px; }
+.df08-form .df08-check { display:flex; align-items:flex-start; gap:8px; font-weight:500; }
+.df08-check input { flex:none; accent-color:var(--df-shell-teal); }
+.df08-dietary summary { cursor:pointer; font-weight:750; padding:8px 0; color:var(--df-shell-teal); }
+.df08-dietary label { margin:7px 0; }
+.df08-chef { display:flex; align-items:center; gap:10px; padding:0 10px; background:#e5f6ef; border-radius:13px; font-size:13px; }
+.df08-chef .df-crew-art { width:64px; height:96px; flex:none; display:block; background:url('/images/characters/dinefor-crew-roles.png') no-repeat; background-size:300% 100%; }
+.df08-review { margin:0; }
+.df08-review > div,.df08-total { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.4fr); gap:8px; padding:8px 0; border-bottom:1px solid var(--df-shell-line); }
+.df08-review dd,.df08-total strong:last-child { text-align:right; overflow-wrap:anywhere; }
+.df08-review dt { font-weight:750; }
+.df08-notice,.df08-total { background:#e8f6f1; border-radius:11px; padding:10px; font-size:14px; }
+.df08-notice p { margin-top:5px; }
+.df08 button:disabled { opacity:.58; }
+.df08 :focus-visible { outline:2px solid var(--df-shell-teal); outline-offset:2px; }
+@media(max-width:767px) { .df08{padding:69px 0 18px;background:#fff;} .df08-wrap{padding:14px;border:0;} }

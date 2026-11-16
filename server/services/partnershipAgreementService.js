@@ -1,9 +1,15 @@
 const crypto = require("crypto");
 const PDFDocument = require("pdfkit");
+const { renderOfferLetter } = require("./hotelOfferLetter");
 const HotelPartnershipAgreement = require("../models/HotelPartnershipAgreement");
 
-const canonicalize = (value) =>
-  JSON.stringify(value, Object.keys(value).sort());
+function canonicalize(value) {
+  if (value && typeof value === "object") {
+    const sorted = Object.fromEntries(Object.keys(value).sort().map(key => [key, JSON.parse(canonicalize(value[key] ?? null))]));
+    return JSON.stringify(sorted);
+  }
+  return JSON.stringify(value);
+}
 
 const hashTerms = ({ legalSnapshot, terms, version }) =>
   crypto
@@ -45,16 +51,16 @@ const buildDefaultTerms = (hotel, overrides = {}) => ({
     overrides.platformCommissionRate ?? process.env.DINEFOR_COMMISSION_RATE ?? 5
   ),
   currency: String(overrides.currency || "LKR"),
-  settlementCycle: String(overrides.settlementCycle || "Monthly"),
+  settlementCycle: String(overrides.settlementCycle || (hotel.onboardingApplication ? "Weekly" : "Monthly")),
   settlementWindowDays: Number(overrides.settlementWindowDays ?? 7),
   cancellationPolicy: String(
     overrides.cancellationPolicy ||
-      hotel.application?.cancellationPolicy ||
+      (!hotel.onboardingApplication && hotel.application?.cancellationPolicy) ||
       "The hotel must honor confirmed reservations and apply the cancellation terms displayed to the customer at the time of reservation."
   ),
   refundPolicy: String(
     overrides.refundPolicy ||
-      hotel.application?.refundPolicy ||
+      (!hotel.onboardingApplication && hotel.application?.refundPolicy) ||
       "Approved customer refunds must be processed according to the payment and refund policy active at the time of booking."
   ),
   hotelResponsibilities: String(
@@ -79,13 +85,13 @@ const buildDefaultTerms = (hotel, overrides = {}) => ({
   ),
 });
 
-const createAgreement = async ({ hotel, adminUserId, overrides = {} }) => {
+const createAgreement = async ({ hotel, adminUserId, overrides = {}, verifiedLegal }) => {
   const previous = await HotelPartnershipAgreement.findOne({
     hotel: hotel._id,
   }).sort({ version: -1 });
 
   const version = Number(previous?.version || 0) + 1;
-  const legalSnapshot = buildLegalSnapshot(hotel);
+  const legalSnapshot = verifiedLegal || buildLegalSnapshot(hotel);
   const terms = buildDefaultTerms(hotel, overrides);
   const termsHash = hashTerms({ legalSnapshot, terms, version });
 
@@ -96,6 +102,7 @@ const createAgreement = async ({ hotel, adminUserId, overrides = {} }) => {
 
   const agreement = await HotelPartnershipAgreement.create({
     hotel: hotel._id,
+    offerLetter: Boolean(hotel.onboardingApplication),
     agreementNumber: buildAgreementNumber(hotel._id, version),
     version,
     legalSnapshot,
@@ -112,6 +119,7 @@ const createAgreement = async ({ hotel, adminUserId, overrides = {} }) => {
 };
 
 const renderAgreementPdf = (agreement, res) => {
+  if (agreement.offerLetter) return renderOfferLetter(agreement, res);
   const doc = new PDFDocument({
     size: "A4",
     margin: 54,

@@ -1,0 +1,2 @@
+import React from 'react';import {Link} from 'react-router-dom';
+export default function NotFound(){return <main className="df-result-page"><section className="df-not-found"><p className="df-kicker">404 · A DIFFERENT DIRECTION</p><h1>This table isn’t here.</h1><p>The page may have moved. Let’s find your next dining experience.</p><img src="/images/characters/buffet-search.png" alt=""/><div><Link className="btn-primary" to="/feed">Discover buffets</Link><Link className="btn-outline" to="/">Back home</Link></div></section></main>}

@@ -6,6 +6,7 @@ import React, {
 } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api";
+import AccountLayout from "../design/AccountLayout";
 import MediaUploader from "../components/MediaUploader";
 import { useAuth } from "../context/AuthContext";
 
@@ -440,16 +441,14 @@ export default function ClientProfile() {
   if (!profile) return null;
 
   return (
-    <main className="min-h-screen bg-surface-cream pt-24 sm:pt-28 pb-12 px-4">
-      <div className="max-w-6xl mx-auto">
+    <AccountLayout className="rf-profile" title="A little more about you." description="Your tastes, your preferences, your next great meal.">
+      <div className="rf-profile-body">
         <div className="flex flex-col sm:flex-row justify-between gap-4">
           <div>
-            <span className="badge-gold">
-              Customer Profile
-            </span>
-            <h1 className="font-headline-lg text-headline-lg text-text-deep-green mt-2">
-              My Profile
-            </h1>
+            <p className="rf-eyebrow">YOUR DINING PROFILE</p>
+            <h2 className="rf-profile-title">
+              My profile
+            </h2>
             <p className="text-on-surface-variant">
               Personalize recommendations and reservation
               support.
@@ -491,7 +490,7 @@ export default function ClientProfile() {
           </div>
         )}
 
-        <div className="grid lg:grid-cols-[300px_1fr] gap-6 mt-6">
+        <div className="rf-profile-grid">
           <aside className="space-y-5">
             <section className="card-ambient p-6 h-fit">
               <div className="w-28 h-28 rounded-full overflow-hidden bg-surface-container-high mx-auto border-4 border-surface-container-lowest shadow-md">
@@ -787,6 +786,6 @@ export default function ClientProfile() {
           }
         />
       )}
-    </main>
+    </AccountLayout>
   );
 }

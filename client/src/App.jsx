@@ -1,5 +1,11 @@
-import React from "react";
-import { Routes, Route } from "react-router-dom";
+import ReservationDetails from "./pages/ReservationDetails";
+import { SavedBuffetsProvider } from "./discovery/useSavedBuffets";
+import React, { lazy, Suspense, useEffect } from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
+import "./design/reference.css";
+import NotFound from "./pages/NotFound";
+import ForHotels from "./pages/ForHotels";
+import CustomerHelp from "./mobile/shell/CustomerHelp";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import HotelApprovedRoute from "./routes/HotelApprovedRoute";
@@ -18,14 +24,17 @@ import VerifyEmail from "./pages/VerifyEmail";
 import VerificationPending from "./pages/VerificationPending";
 import AccountSecurity from "./pages/AccountSecurity";
 import MyBookings from "./pages/MyBookings";
+import CustomerBooking from "./pages/CustomerBooking";
 import MyReviews from "./pages/MyReviews";
 import Notifications from "./pages/Notifications";
 import Recommendations from "./pages/Recommendations";
-import HotelDashboard from "./pages/HotelDashboard";
 import HotelApply from "./pages/HotelApply";
+import PartnerEnquiry from "./onboarding/PartnerEnquiry";
+import HotelInvitation from "./onboarding/HotelInvitation";
+import AdminHotelOnboarding from "./onboarding/AdminHotelOnboarding";
+import HotelBankDetails from "./onboarding/HotelBankDetails";
+import HotelStaff, { HotelStaffDesk, HotelStaffInvitation } from "./onboarding/HotelStaff";
 import HotelProfile from "./pages/HotelProfile";
-import AdminDashboard from "./pages/AdminDashboard";
-import ExploreMap from "./pages/ExploreMap";
 import BookingCheckIn from "./pages/BookingCheckIn";
 import HotelCheckInDesk from "./pages/HotelCheckInDesk";
 import ClientProfile from "./pages/ClientProfile";
@@ -35,17 +44,27 @@ import BookingSummary from "./pages/BookingSummary";
 import PaymentHistory from "./pages/PaymentHistory";
 import RecentlyViewed from "./pages/RecentlyViewed";
 import PartnershipCompliance from "./pages/PartnershipCompliance";
-import AdminPartnershipReview from "./pages/AdminPartnershipReview";
-import SeoLandingPage from "./pages/seo/SeoLandingPage";
-import DestinationPage from "./pages/seo/DestinationPage";
-import PriceCollectionPage from "./pages/seo/PriceCollectionPage";
+import PaymentGatewayResult from "./pages/PaymentGatewayResult";
+
+const HotelDashboard = lazy(() => import("./pages/HotelDashboard"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const ExploreMap = lazy(() => import("./pages/ExploreMap"));
+const AdminPartnershipReview = lazy(() => import("./pages/AdminPartnershipReview"));
+const SeoLandingPage = lazy(() => import("./pages/seo/SeoLandingPage"));
+const DestinationPage = lazy(() => import("./pages/seo/DestinationPage"));
+const PriceCollectionPage = lazy(() => import("./pages/seo/PriceCollectionPage"));
 
 export default function App() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
   return (
-    <>
+    <SavedBuffetsProvider><div className="df-app">
       <Navbar />
+      <Suspense fallback={<div className="min-h-[50vh] grid place-items-center" role="status">Loading page…</div>}>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/help" element={<CustomerHelp />} />
+        <Route path="/for-hotels" element={<ForHotels />} />
         <Route path="/feed" element={<Feed />} />
         <Route path="/discover" element={<Feed />} />
         <Route path="/explore-map" element={<ExploreMap />} />
@@ -148,6 +167,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/reserve" element={<ProtectedRoute allowedRoles={["customer", "admin"]}><ReservationDetails /></ProtectedRoute>} />
         <Route
           path="/booking-summary"
           element={
@@ -158,6 +178,10 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/bookings/:id" element={<ProtectedRoute allowedRoles={["customer", "admin"]}><CustomerBooking /></ProtectedRoute>} />
+        <Route path="/bookings/:id/manage" element={<ProtectedRoute allowedRoles={["customer", "admin"]}><CustomerBooking screen="manage" /></ProtectedRoute>} />
+        <Route path="/bookings/:id/pass" element={<ProtectedRoute allowedRoles={["customer", "admin"]}><CustomerBooking screen="pass" /></ProtectedRoute>} />
+        <Route path="/bookings/:id/review" element={<ProtectedRoute allowedRoles={["customer", "admin"]}><CustomerBooking screen="review" /></ProtectedRoute>} />
         <Route
           path="/my-bookings"
           element={
@@ -178,6 +202,9 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/payment/status/:paymentId" element={<ProtectedRoute allowedRoles={["customer", "admin"]}><PaymentGatewayResult /></ProtectedRoute>} />
+        <Route path="/payment/return" element={<ProtectedRoute allowedRoles={["customer", "admin"]}><PaymentGatewayResult /></ProtectedRoute>} />
+        <Route path="/payment/cancel" element={<ProtectedRoute allowedRoles={["customer", "admin"]}><PaymentGatewayResult /></ProtectedRoute>} />
         <Route
           path="/profile"
           element={
@@ -237,6 +264,13 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/hotel-enquiry" element={<PartnerEnquiry />} />
+        <Route path="/hotel-invitation" element={<HotelInvitation />} />
+        <Route path="/hotel/staff" element={<ProtectedRoute allowedRoles={["hotel"]}><HotelStaff /></ProtectedRoute>} />
+        <Route path="/hotel/staff-desk" element={<ProtectedRoute allowedRoles={["hotel_staff"]}><HotelStaffDesk /></ProtectedRoute>} />
+        <Route path="/hotel-staff-invitation" element={<HotelStaffInvitation />} />
+        <Route path="/hotel/bank-details" element={<ProtectedRoute allowedRoles={["hotel"]}><HotelBankDetails /></ProtectedRoute>} />
+        <Route path="/admin/hotel-onboarding/:id?" element={<ProtectedRoute allowedRoles={["admin"]}><AdminHotelOnboarding /></ProtectedRoute>} />
         <Route
           path="/hotel-apply"
           element={
@@ -298,13 +332,15 @@ export default function App() {
         <Route
           path="/check-in/:code"
           element={
-            <ProtectedRoute allowedRoles={["hotel", "admin"]}>
+            <ProtectedRoute allowedRoles={["hotel", "admin", "hotel_staff"]}>
               <BookingCheckIn />
             </ProtectedRoute>
           }
         />
+        <Route path="*" element={<NotFound />} />
       </Routes>
+      </Suspense>
       <MobileBottomNav />
-    </>
+    </div></SavedBuffetsProvider>
   );
 }

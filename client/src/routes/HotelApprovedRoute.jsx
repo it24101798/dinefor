@@ -9,20 +9,26 @@ const HotelApprovedRoute = ({ children }) => {
   const [hotelStatus, setHotelStatus] = useState(null);
   const [partnershipStatus, setPartnershipStatus] = useState(null);
   const [checking, setChecking] = useState(true);
+  const [checkedToken, setCheckedToken] = useState(null);
 
   useEffect(() => {
+    let cancelled = false;
     const checkHotelStatus = async () => {
       if (!user || user.role !== "hotel") {
         setChecking(false);
         return;
       }
 
+      setChecking(true);
+      setHotelStatus(null);
+      setPartnershipStatus(null);
       try {
         const token = user.token;
         const headers = { Authorization: `Bearer ${token}` };
         const res = await api.get(`/hotels/my-hotel`, { headers });
         
-        const hotel = res.data?.hotel ?? res.data;
+        if (cancelled) return;
+        const hotel = Object.hasOwn(res.data || {}, "hotel") ? res.data.hotel : res.data;
         if (hotel) {
           setHotelStatus(hotel.status || "pending");
           setPartnershipStatus(hotel.partnershipStatus || null);
@@ -30,17 +36,19 @@ const HotelApprovedRoute = ({ children }) => {
           setHotelStatus("no_application");
         }
       } catch (error) {
+        if (cancelled) return;
         console.error("Hotel status check failed:", error);
         setHotelStatus("no_application");
       } finally {
-        setChecking(false);
+        if (!cancelled) { setCheckedToken(user.token); setChecking(false); }
       }
     };
 
     checkHotelStatus();
+    return () => { cancelled = true; };
   }, [user]);
 
-  if (loading || checking) {
+  if (loading || checking || (user?.role === "hotel" && checkedToken !== user.token)) {
     return (
       <div className="min-h-screen bg-surface-cream flex items-center justify-center">
         <div className="text-center">
@@ -65,7 +73,7 @@ const HotelApprovedRoute = ({ children }) => {
     return children;
   }
 
-  return <Navigate to="/hotel-apply" replace />;
+  return <Navigate to={hotelStatus === "no_application" ? "/hotel-enquiry" : "/hotel-partnership"} replace />;
 };
 
 export default HotelApprovedRoute;

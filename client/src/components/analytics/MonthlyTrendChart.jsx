@@ -14,14 +14,15 @@ function MonthlyTrendChart({ monthly = [] }) {
         </div>
       </div>
 
-      <div className="simple-chart">
+      {monthly.length === 0 && <p className="muted">No monthly activity to display yet.</p>}
+      <div className="simple-chart" aria-label="Monthly revenue chart">
         {monthly.map((row) => {
-          const height = Math.max((Number(row.revenue || 0) / maxRevenue) * 100, 8);
+          const height = Math.max((Number(row.revenue || 0) / maxRevenue) * 100, 0);
           return (
             <div className="chart-column" key={row.key}>
               <span className="chart-value">{formatCurrency(row.revenue)}</span>
               <div className="chart-bar-wrap">
-                <div className="chart-bar" style={{ height: `${height}%` }} />
+                <div className="chart-bar" role="img" aria-label={`${row.label}: ${formatCurrency(row.revenue)}, ${row.bookings || 0} bookings`} style={{ height: `${height}%` }} />
               </div>
               <strong>{row.label}</strong>
               <small>{row.bookings} bookings</small>

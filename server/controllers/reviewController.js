@@ -1,3 +1,4 @@
+const { logActivity } = require("../services/activityLogService");
 const Review = require("../models/Review");
 const Buffet = require("../models/Buffet");
 const Hotel = require("../models/Hotel");
@@ -760,6 +761,7 @@ exports.updateReviewModeration = async (req, res) => {
 
     await updateAggregateRatings(review.buffet, review.hotel);
 
+    await logActivity({ actor: req.user.id, actorRole: req.user.role, action: "review_moderated", entityType: "review", entityId: review._id, message: `Review status: ${review.status}.` });
     return res.status(200).json({
       message: "Review moderation updated.",
       review,
@@ -783,6 +785,7 @@ exports.deleteReviewAdmin = async (req, res) => {
     await review.deleteOne();
     await updateAggregateRatings(buffet, hotel);
 
+    await logActivity({ actor: req.user.id, actorRole: req.user.role, action: "review_deleted", entityType: "review", entityId: review._id, message: "Review deleted." });
     return res.status(200).json({
       message: "Review permanently deleted.",
     });

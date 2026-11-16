@@ -74,7 +74,7 @@ const shell = ({ heading, preheader = "", body, footer = "" }) => `
 </body>
 </html>`;
 
-const sendMail = async ({ to, subject, text, html }) => {
+const sendMail = async ({ to, subject, text, html, attachments = [] }) => {
   const transporter = createTransporter();
   const from =
     process.env.EMAIL_FROM ||
@@ -87,6 +87,7 @@ const sendMail = async ({ to, subject, text, html }) => {
     subject,
     text,
     html,
+    attachments,
   });
 
   return {
@@ -120,21 +121,20 @@ const sendAccountEmail = async ({
     }),
   });
 
-const sendOtpEmail = async ({ to, name, code, expiresMinutes = 10 }) =>
-  sendMail({
+const sendOtpEmail = async ({ to, code, expiresMinutes = 10, purpose = "reset" }) => {
+  const heading = purpose === "email" ? "Verify your DineFor email" : "Reset your DineFor password";
+  return sendMail({
     to,
-    subject: "Your DineFor password reset code",
-    text: `Hello ${name || "Diner"}, your DineFor password reset code is ${code}. It expires in ${expiresMinutes} minutes.`,
+    subject: heading,
+    text: `${heading}. Your code is ${code}. It expires in ${expiresMinutes} minutes.`,
     html: shell({
-      heading: "Password reset verification",
-      preheader: "Use this one-time code to continue your password reset.",
-      body: `
-        <p style="line-height:1.7;color:#4f5d55">Hello ${name || "Diner"},</p>
-        <p style="line-height:1.7;color:#4f5d55">Enter this one-time code in DineFor. It expires in ${expiresMinutes} minutes.</p>
-        <div style="font-size:36px;letter-spacing:10px;text-align:center;font-weight:800;background:#f0f8f4;border:1px solid #b9ddcd;border-radius:16px;padding:22px;margin:24px 0;color:#173c2b">${code}</div>
-        <p style="color:#78827c;font-size:13px">DineFor support will never ask you to share this code.</p>`,
+      heading,
+      body: `<p>Enter this code on DineFor within ${expiresMinutes} minutes.</p>
+        <div style="font-size:32px;letter-spacing:8px;text-align:center;padding:16px;background:#eaf8f4">${code}</div>
+        <p>If you did not request this code, you can ignore this email.</p>`,
     }),
   });
+};
 
 const formatMoney = (value) =>
   `LKR ${Number(value || 0).toLocaleString("en-LK", {
@@ -414,21 +414,18 @@ const sendHotelBookingEmail = ({
   const titles = {
     confirmed: "New DineFor reservation",
     cancelled: "DineFor reservation cancelled",
+    rescheduled: "DineFor reservation rescheduled",
+    no_show: "DineFor no-show recorded",
   };
 
-  const heading =
-    event === "cancelled"
-      ? "Reservation cancelled"
-      : "New reservation received";
+  const headings = { confirmed: "New reservation received", cancelled: "Reservation cancelled", rescheduled: "Reservation rescheduled", no_show: "No-show recorded" };
+  const introductions = { confirmed: "A customer has reserved a buffet at your hotel.", cancelled: "A customer reservation for your hotel was cancelled.", rescheduled: "A customer reservation moved to a new date or time.", no_show: "This reservation was recorded as a no-show under the hotel policy." };
 
   return sendBrandedEmail({
     to,
     subject: `${titles[event] || titles.confirmed} | ${hotelName}`,
-    heading,
-    intro:
-      event === "cancelled"
-        ? "A customer reservation for your hotel was cancelled."
-        : "A customer has reserved a buffet at your hotel.",
+    heading: headings[event] || headings.confirmed,
+    intro: introductions[event] || introductions.confirmed,
     rows: [
       ["Booking code", booking?.bookingCode || "-"],
       ["Customer", customerName || "-"],
