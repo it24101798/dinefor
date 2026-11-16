@@ -10,6 +10,7 @@ const HotelApprovedRoute = ({ children }) => {
   const [partnershipStatus, setPartnershipStatus] = useState(null);
   const [checking, setChecking] = useState(true);
   const [checkedToken, setCheckedToken] = useState(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,8 +38,7 @@ const HotelApprovedRoute = ({ children }) => {
         }
       } catch (error) {
         if (cancelled) return;
-        console.error("Hotel status check failed:", error);
-        setHotelStatus("no_application");
+        setHotelStatus(error.response?.status === 401 ? "sign_in_required" : "unavailable");
       } finally {
         if (!cancelled) { setCheckedToken(user.token); setChecking(false); }
       }
@@ -46,7 +46,7 @@ const HotelApprovedRoute = ({ children }) => {
 
     checkHotelStatus();
     return () => { cancelled = true; };
-  }, [user]);
+  }, [user, attempt]);
 
   if (loading || checking || (user?.role === "hotel" && checkedToken !== user.token)) {
     return (
@@ -67,6 +67,18 @@ const HotelApprovedRoute = ({ children }) => {
 
   if (user.role !== "hotel") {
     return <Navigate to="/" replace />;
+  }
+
+  if (hotelStatus === "sign_in_required") return <Navigate to="/login" replace />;
+
+  if (hotelStatus === "unavailable") {
+    return <main className="min-h-[65vh] grid place-items-center px-4 pt-28 pb-16">
+      <section className="card-ambient p-6 space-y-4" role="alert">
+        <h1 className="text-xl font-bold">Partner portal temporarily unavailable</h1>
+        <p>We couldn’t check your hotel status.</p>
+        <button type="button" className="btn-primary" onClick={() => setAttempt((value) => value + 1)}>Try again</button>
+      </section>
+    </main>;
   }
 
   if (hotelStatus === "approved" || ["active", "active_legacy"].includes(partnershipStatus)) {

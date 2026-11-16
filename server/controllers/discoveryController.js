@@ -126,9 +126,7 @@ exports.search = async (req, res, next) => {
       const grouped = new Map();
       for (const buffet of rows) {
         const hotel = buffet.hotel;
-        const { latitude, longitude } = hotel.mapLocation || {};
-        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)
-          || Math.abs(latitude) > 90 || Math.abs(longitude) > 180 || (!latitude && !longitude)) continue;
+        if (!hotel?._id) continue;
         const id = String(hotel._id);
         const entry = grouped.get(id) || { hotel, buffet, count: 0 };
         entry.count += 1;

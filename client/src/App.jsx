@@ -1,3 +1,4 @@
+import RouteLoadBoundary from "./routes/RouteLoadBoundary";
 import ReservationDetails from "./pages/ReservationDetails";
 import { SavedBuffetsProvider } from "./discovery/useSavedBuffets";
 import React, { lazy, Suspense, useEffect } from "react";
@@ -60,6 +61,7 @@ export default function App() {
   return (
     <SavedBuffetsProvider><div className="df-app">
       <Navbar />
+      <RouteLoadBoundary route={pathname}>
       <Suspense fallback={<div className="min-h-[50vh] grid place-items-center" role="status">Loading page…</div>}>
       <Routes>
         <Route path="/" element={<Home />} />
@@ -340,6 +342,7 @@ export default function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
       </Suspense>
+      </RouteLoadBoundary>
       <MobileBottomNav />
     </div></SavedBuffetsProvider>
   );

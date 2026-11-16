@@ -1,36 +1,42 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 import AnalyticsStatCards from "./AnalyticsStatCards";
 import MonthlyTrendChart from "./MonthlyTrendChart";
 import TopPerformersTable from "./TopPerformersTable";
 
 function HotelAnalyticsPanel() {
-  const storedUser = useMemo(() => JSON.parse(localStorage.getItem("dineforUser")), []);
-  const token = storedUser?.token;
+  const { user } = useAuth();
+  const token = user?.token;
   const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
   const [analytics, setAnalytics] = useState(null);
   const [months, setMonths] = useState("all");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setMessage("");
     const fetchAnalytics = async () => {
       try {
-        const res = await api.get("/analytics/hotel", { headers });
-        setAnalytics(res.data);
+        const res = await api.get("/analytics/hotel", { headers, signal: controller.signal });
+        if (!controller.signal.aborted) setAnalytics(res.data);
       } catch (error) {
-        setMessage(error.response?.data?.message || "Hotel analytics failed to load.");
+        if (!controller.signal.aborted) setMessage(error.response?.data?.message || "Hotel analytics failed to load.");
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
     fetchAnalytics();
-  }, [headers]);
+    return () => controller.abort();
+  }, [headers, attempt]);
 
   if (loading) return <p className="muted page-message">Loading hotel analytics...</p>;
-  if (message) return <p className="error-text page-message">{message}</p>;
+  if (message) return <p className="error-text page-message" role="alert">{message} <button type="button" className="btn-outline" onClick={() => setAttempt((value) => value + 1)}>Try again</button></p>;
   if (!analytics) return null;
 
   return (

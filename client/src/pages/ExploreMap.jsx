@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import MapView from '../components/map/MapView';
+import { hotelCoordinates, mapResults } from '../components/map/mapResults';
+import CrewArt from '../design/CrewArt';
 import DiscoveryCard from '../discovery/DiscoveryCard';
 import { CityOptions, FilterDialog } from '../discovery/Filters';
 import { readFilters, searchParamsFor } from '../discovery/query';
@@ -36,16 +38,17 @@ export default function ExploreMap() {
     request.set('view', 'map');
     api.get('/discovery/search', { params: request, signal: controller.signal }).then(({ data }) => {
       if (!Array.isArray(data?.data)) throw new Error('Unexpected map response');
-      if (!controller.signal.aborted) setData(data.data);
+      if (!controller.signal.aborted) setData(mapResults(data.data));
     }).catch(() => {
       if (!controller.signal.aborted) setError(true);
     });
     return () => controller.abort();
   }, [signature, attempt]);
 
-  const hotels = useMemo(() => data?.map(row => row.hotel) || [], [data]);
-  const metaByHotel = useMemo(() => Object.fromEntries((data || []).map(({ hotel, buffet, count }) => [
-    hotel._id, { matchingBuffets: [buffet], minPrice: buffet.price, count, mealLabel: buffet.category },
+  const hotels = useMemo(() => (data || []).map(row => row.hotel).filter(hotelCoordinates), [data]);
+  const displayView = hotels.length ? view : 'list';
+  const metaByHotel = useMemo(() => Object.fromEntries((data || []).map(({ hotel, buffet, count, price }) => [
+    hotel._id, { matchingBuffets: [buffet], minPrice: price, count, mealLabel: buffet.category },
   ])), [data]);
 
   function locate() {
@@ -70,7 +73,10 @@ export default function ExploreMap() {
   }
 
   return <main className="df-discover-page df-buffet-map"><div className="df-discover-wrap">
-    <h1>Explore buffets near you</h1>
+    <header className="df-map-intro">
+      <div><h1>Explore buffets near you</h1><p>Find a buffet by town, hotel or location.</p></div>
+      <CrewArt role="host" />
+    </header>
     <form className="df-discover-search" onSubmit={search}>
       <ShellIcon name="search" /><input aria-label="Search restaurants or a location" placeholder="Search restaurants or a location" value={term} maxLength={120} onChange={e => setTerm(e.target.value)} />
       <button type="submit" aria-label="Search map"><ShellIcon name="arrow" /></button>
@@ -85,21 +91,22 @@ export default function ExploreMap() {
     {geoStatus && <p className="df-discover-note" role="status">{geoStatus}</p>}
     <ResultsState loading={!data && !error} error={error} retry={() => setAttempt(value => value + 1)} />
     {data && !data.length && <section className="df-map-empty">
-      <img src="/images/characters/buffet-search.png" alt="" />
-      <h2>Find buffets near you</h2><p>{signature ? 'No mapped buffets match your filters.' : 'Search for a town or allow location access.'}</p>
+      <CrewArt role="assistant" />
+      <h2>Find buffets near you</h2><p>{signature ? 'No buffets match your filters.' : 'Search for a town or allow location access.'}</p>
       <button type="button" className="df-shell-secondary" onClick={locate}>Use my location</button>
       {signature && <button type="button" className="df-shell-primary" onClick={() => setParams({})}>Clear filters</button>}
     </section>}
     {data?.length > 0 && <>
       <div className="df-discover-pills df-map-view-toggle" aria-label="Map results view">
-        <button type="button" aria-pressed={view === 'map'} onClick={() => setView('map')}>Map</button>
-        <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}>List</button>
+        <button type="button" disabled={!hotels.length} aria-pressed={displayView === 'map'} onClick={() => setView('map')}>Map</button>
+        <button type="button" aria-pressed={displayView === 'list'} onClick={() => setView('list')}>List</button>
       </div>
       <div className="df-buffet-map-layout">
-        <div className={`df-buffet-map-results ${view === 'list' ? 'is-visible' : ''}`}>
-          {(data || []).map(({ buffet, hotel }) => <div key={hotel._id}><DiscoveryCard buffet={buffet} compact date={filters.date} guests={filters.guests} /><button type="button" className="df-shell-secondary" onClick={() => { setSelected(hotel); setView('map'); }}>Show on map</button></div>)}
+        <div className={`df-buffet-map-results ${displayView === 'list' ? 'is-visible' : ''}`}>
+          {!hotels.length && <p role="status">These hotels don’t have map pins yet. You can still view their buffets.</p>}
+          {data.map(({ buffet, hotel }) => <div key={hotel._id}><DiscoveryCard buffet={buffet} compact date={filters.date} guests={filters.guests} />{hotelCoordinates(hotel) && <button type="button" className="df-shell-secondary" onClick={() => { setSelected(hotel); setView('map'); }}>Show on map</button>}</div>)}
         </div>
-        <div className={`df-buffet-map-canvas ${view === 'map' ? 'is-visible' : ''}`}><MapView hotels={hotels} metaByHotel={metaByHotel} selectedHotel={selected} onSelectHotel={setSelected} position={position} visible={view === 'map'} date={filters.date} guests={filters.guests} /></div>
+        {hotels.length > 0 && <div className={`df-buffet-map-canvas ${displayView === 'map' ? 'is-visible' : ''}`}><MapView hotels={hotels} metaByHotel={metaByHotel} selectedHotel={selected} onSelectHotel={setSelected} onShowList={() => setView('list')} position={position} visible={displayView === 'map'} date={filters.date} guests={filters.guests} /></div>}
       </div>
     </>}
   </div>{open && <FilterDialog value={draft} update={(key, value) => setDraft(previous => ({ ...previous, [key]: value }))} clear={() => setDraft(readFilters(new URLSearchParams()))} onClose={close} submit={event => { event.preventDefault(); setParams(searchParamsFor(draft)); close(); }} />}</main>;

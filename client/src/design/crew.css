@@ -1,0 +1,16 @@
+.df-crew-art {
+  display: block;
+  width: 120px;
+  height: 180px;
+  flex: none;
+  background: url('/images/characters/dinefor-crew-roles.png') no-repeat;
+  background-size: 300% 100%;
+}
+.rf-art > .df-crew-art { position: absolute; right: 12%; bottom: 0; width: 180px; height: 270px; }
+.df-workspace-art > .df-crew-art,
+.rf-account-banner > .df-crew-art { margin: auto; }
+.rf-home-hotel-art > .df-crew-art { position: absolute; bottom: 0; right: 10%; }
+.rf-hotels-how > .df-crew-art { margin: auto; }
+@media (max-width: 767px) {
+  .rf-art > .df-crew-art { width: 104px; height: 156px; }
+}

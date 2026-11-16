@@ -98,3 +98,56 @@
   .df-reservation-filters select,
   .df-reservation-filters .df-export-button { grid-column: 1 / -1; }
 }
+
+.df-partner-logo {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  overflow: hidden;
+  margin-bottom: .65rem;
+  border: 1px solid #c4ded5;
+  border-radius: .9rem;
+  background: #e8f6f0;
+  color: #064d48;
+  font-weight: 800;
+}
+.df-partner-logo img { width: 100%; height: 100%; object-fit: contain; background: white; }
+.df-hotel-suite .df-partner-hero { isolation: isolate; background: linear-gradient(105deg, #e0f4ec, #f4fbf7); }
+.df-hotel-suite .df-partner-hero .df-hotel-heading-art { position: relative !important; overflow: visible; }
+.df-hotel-suite .df-partner-hero .df-hotel-heading-art .df-crew-art { width: 122px; height: 183px; z-index: 1; }
+.df-hotel-suite .df-partner-hero .rf-ribbon { position: absolute; width: 100%; inset: auto 0 1rem; color: #7cc9bc; }
+.df-hotel-heading-actions a {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  min-height: 44px;
+  padding: .55rem .8rem;
+  border: 1px solid #aacfc7;
+  border-radius: .75rem;
+  background: #fff;
+  color: #075c54;
+  font-weight: 700;
+  font-size: .85rem;
+}
+.df-hotel-heading-actions .df-partner-primary { border-color: #006b63; background: #006b63; color: white; }
+.df-hotel-suite .df-partner-hero .df-hotel-heading-actions .material-symbols-outlined { font-size: 18px; }
+@media (max-width: 767px) {
+  .df-hotel-suite .df-partner-hero { grid-template-columns: minmax(0, 1fr) 64px; gap: .55rem; min-height: auto !important; padding: .9rem !important; }
+  .df-hotel-suite .df-partner-hero .df-hotel-heading-art { height: 96px !important; align-self: start; grid-column: 2; grid-row: 1; }
+  .df-hotel-suite .df-partner-hero .df-hotel-heading-art .df-crew-art { width: 64px; height: 96px; }
+  .df-hotel-suite .df-partner-hero .df-hotel-heading-actions { grid-column: 1 / -1; }
+  .df-hotel-suite .df-partner-hero .df-hotel-heading-copy { display: contents; }
+  .df-hotel-suite .df-partner-hero .df-hotel-heading-copy > :not(.df-hotel-heading-actions) { grid-column: 1; }
+  .df-hotel-suite .df-partner-hero h1 { margin: 0; }
+}
+@media (max-width: 767px) {
+  .df-hotel-suite .df-partner-hero .df-hotel-heading-art { grid-row: 1 / span 3; }
+}
+.df-hotel-suite .material-symbols-outlined {
+  display: inline-block;
+  width: 1em;
+  overflow: hidden;
+  white-space: nowrap;
+  flex-shrink: 0;
+}

@@ -83,3 +83,18 @@
 .df06-lightbox :focus-visible { outline:2px solid #bcf6e6; outline-offset:1px; }
 @media (max-width:1023px) { .df06-layout { grid-template-columns: minmax(0,1fr); } .df06-wrap { max-width: 700px; } }
 @media (max-width:767px) { .df06-page { padding-top: 69px; } .df06-wrap { width:calc(100% - 24px); } .df06-cover { aspect-ratio: 1.68; } }
+
+.df06-toolbar { justify-content: space-between; gap: .75rem; margin-bottom: .5rem; }
+.df06-toolbar .df-discover-heart { position: relative; inset: auto; }
+.df06-toolbar .df-discover-heart button { color: var(--df-shell-ink); border: 1px solid var(--df-shell-line); }
+.df06-toolbar > a { color: var(--df-shell-teal); }
+.df06-section-links { display: flex; gap: .4rem; padding: .35rem; border-radius: .8rem; background: #e8f4f1; }
+.df06-section-links a { flex: 1; display: grid; min-height: 44px; place-items: center; border-radius: .6rem; font-weight: 750; color: #07534f; }
+.df06-section-links a:hover { background: #d3ede6; }
+.df06-content-section { margin: 1.25rem 0; scroll-margin-top: 100px; }
+.df06-content-section h2,.df06-related h2 { margin-bottom: .4rem; font-size: clamp(1.2rem, 3vw, 1.55rem); font-weight: 800; }
+.df06-couple { margin-block: .8rem; }
+.df06-related { margin-top: 1.5rem; border-top: 1px solid var(--df-shell-line); padding-top: 1rem; }
+.df06-related > header { display: flex; align-items: baseline; justify-content: space-between; gap: .6rem; flex-wrap: wrap; margin-bottom: .7rem; }
+.df06-related-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: .8rem; }
+@media (max-width: 767px) { .df06-content-section { scroll-margin-top: 78px; } }

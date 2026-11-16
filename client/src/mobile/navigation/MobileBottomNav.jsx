@@ -52,7 +52,9 @@ export default function MobileBottomNav() {
     [location.pathname]
   );
 
-  const items = user?.role === "admin" ? adminItems : user?.role === "hotel" ? hotelItems : user?.role === "hotel_staff" ? checkInItems : customerItems;
+  const inAdminWorkspace = /^\/admin(?:\/|$)/.test(location.pathname);
+  const inHotelWorkspace = /^\/hotel(?:\/|-partnership(?:\/|$)|$)/.test(location.pathname);
+  const items = user?.role === "admin" && inAdminWorkspace ? adminItems : user?.role === "hotel" && inHotelWorkspace ? hotelItems : user?.role === "hotel_staff" && inHotelWorkspace ? checkInItems : customerItems;
 
   useEffect(() => {
     const shouldShow = isMobile && !hidden;
@@ -71,7 +73,7 @@ export default function MobileBottomNav() {
           end={item.to === "/" || item.to === "/hotel" || item.to === "/admin"}
           className={({ isActive }) => {
             const aliasActive = items === customerItems && (
-              (item.label === "Discover" && ["/discover", "/listings", "/buffets"].includes(location.pathname)) ||
+              (item.label === "Discover" && (["/discover", "/listings", "/buffets"].includes(location.pathname) || location.pathname.startsWith("/buffets/"))) ||
               (item.label === "Map" && location.pathname === "/map") ||
               (item.label === "Bookings" && location.pathname.startsWith("/bookings/")) ||
               (item.label === "Account" && ["/profile", "/saved", "/account-security", "/help", "/notifications", "/payments", "/my-reviews"].includes(location.pathname))

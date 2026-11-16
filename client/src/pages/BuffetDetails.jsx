@@ -11,11 +11,12 @@ import { mealLabel, money } from '../discovery/query';
 import { toImageUrl } from '../utils/media';
 import GalleryLightbox from '../components/shared/GalleryLightbox';
 import ReservationPanel, { sriLankaToday } from '../components/buffet/ReservationPanel';
+import RelatedBuffets from '../components/buffet/RelatedBuffets';
 import ReviewForm from '../components/reviews/ReviewForm';
 import ReviewList from '../components/reviews/ReviewList';
 import '../components/buffet/buffet-details.css';
 
-const tabs = [['details', 'Details'], ['menu', 'Menu'], ['reviews', 'Reviews']];
+const sections = [['details', 'Details'], ['menu', 'Menu'], ['reviews', 'Reviews']];
 const dateKey = value => typeof value === 'string' ? value.slice(0, 10) : '';
 const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '')
   && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
@@ -129,11 +130,9 @@ function BuffetDetailPage({ id }) {
   const [guests, setGuests] = useState(1);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const [tab, setTab] = useState('details');
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [lightbox, setLightbox] = useState(false);
   const [reserve, setReserve] = useState(requested.get('reserve') === '1');
-  const tabRefs = useRef({});
   const recorded = useRef('');
 
   useEffect(() => {
@@ -189,7 +188,7 @@ function BuffetDetailPage({ id }) {
 
   return <main className="df06-page">
     <div className="df06-wrap">
-      <div className="df06-toolbar"><Link to="/listings"><ShellIcon name="right" /> Buffets</Link><SaveHeart buffet={buffet} /></div>
+      <div className="df06-toolbar"><Link to="/listings"><ShellIcon name="right" /> All buffets</Link><SaveHeart buffet={buffet} /></div>
       <div className="df06-layout">
         <div className="df06-main">
           <Gallery photos={photos} title={buffet.title} index={galleryIndex} select={setGalleryIndex} open={openGallery} />
@@ -201,32 +200,25 @@ function BuffetDetailPage({ id }) {
               {buffet.category && <span><ShellIcon name="buffet" />{mealLabel(buffet.category)} buffet</span>}
             </div>
           </header>
-          <div className="df06-tabs" role="tablist" aria-label="Buffet information">
-            {tabs.map(([key, label], index) => <button type="button" key={key} id={`df06-tab-${key}`} ref={element => { tabRefs.current[key] = element; }}
-              role="tab" aria-selected={key === tab} tabIndex={key === tab ? 0 : -1} aria-controls="df06-panel"
-              onClick={() => setTab(key)} onKeyDown={event => {
-                const direction = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
-                if (!direction && !['Home', 'End'].includes(event.key)) return;
-                event.preventDefault();
-                const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + direction + tabs.length) % tabs.length;
-                setTab(tabs[next][0]);
-                tabRefs.current[tabs[next][0]]?.focus();
-              }}>{label}</button>)}
+          <nav className="df06-section-links" aria-label="On this page">
+            {sections.map(([key, label]) => <a key={key} href={`#buffet-${key}`}>{label}</a>)}
+          </nav>
+          <section className="df06-content-section" id="buffet-details" aria-labelledby="buffet-details-title">
+            <h2 id="buffet-details-title">About this buffet</h2>
+            {buffet.description && <p className="df06-description">{buffet.description}</p>}
+            {amenities.length > 0 && <ul className="df06-amenities">{amenities.map((label, index) => <li key={index}>{label}</li>)}</ul>}
+            <div className="df06-couple"><Ribbon /><img src="/images/home/nila-kavin.png" alt="" loading="lazy" /></div>
+            <LocationAndPolicy buffet={buffet} />
+          </section>
+          <section className="df06-content-section" id="buffet-menu" aria-labelledby="buffet-menu-title">
+            <div className="df06-menu-heading"><div><h2 id="buffet-menu-title">Buffet menu</h2><p>Menu highlights supplied by the hotel.</p></div><CrewArt role="chef" /></div>
+            {highlights.length ? <ul className="df06-menu">{highlights.map((item, index) => <li key={index}><ShellIcon name="buffet" />{item}</li>)}</ul> : <p>The hotel hasn’t published menu highlights for this buffet.</p>}
+            <details className="df06-policy"><summary>Dietary information</summary><p>Menu items may change. Check allergens and dietary needs with the hotel before booking.</p></details>
+          </section>
+          <div className="df06-content-section" id="buffet-reviews">
+            <Reviews buffetId={buffet._id} returnTo={location.pathname + location.search} />
           </div>
-          <div className="df06-tab-panel" id="df06-panel" role="tabpanel" aria-labelledby={`df06-tab-${tab}`} tabIndex={0}>
-            {tab === 'details' && <>
-              {buffet.description && <p className="df06-description">{buffet.description}</p>}
-              {amenities.length > 0 && <ul className="df06-amenities">{amenities.map((label, index) => <li key={index}>{label}</li>)}</ul>}
-              <div className="df06-couple"><Ribbon /><img src="/images/home/nila-kavin.png" alt="" loading="lazy" /></div>
-            </>}
-            {tab === 'menu' && <>
-              <div className="df06-menu-heading"><div><h2>Buffet menu</h2><p>Menu highlights supplied by the hotel.</p></div><CrewArt role="chef" /></div>
-              {highlights.length ? <ul className="df06-menu">{highlights.map((item, index) => <li key={index}><ShellIcon name="buffet" />{item}</li>)}</ul> : <p>The hotel hasn’t published menu highlights for this buffet.</p>}
-              <aside className="df06-info"><div><h2>Dietary information</h2><p>Menu items may change. Check allergens and dietary needs with the hotel before booking.</p></div></aside>
-            </>}
-            {tab === 'reviews' && <Reviews buffetId={buffet._id} returnTo={location.pathname + location.search} />}
-          </div>
-          <LocationAndPolicy buffet={buffet} />
+          <RelatedBuffets buffetId={buffet._id} city={typeof city === 'string' ? city : ''} category={buffet.category} date={date} guests={guests} />
         </div>
         {isDesktop && <aside className="df06-desktop-booking">{booking}</aside>}
       </div>

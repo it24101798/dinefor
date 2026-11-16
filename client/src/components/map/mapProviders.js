@@ -16,39 +16,10 @@ export const loadGoogleMaps = () => {
   googleMapsPromise.catch(() => { googleMapsPromise = undefined; });
   return googleMapsPromise;
 };
-const LEAFLET_CSS = "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css";
-const LEAFLET_JS = "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js";
-let leafletPromise;
-
-export const loadLeaflet = () => {
-  if (window.L) return Promise.resolve(window.L);
-  if (leafletPromise) return leafletPromise;
-
-  leafletPromise = new Promise((resolve, reject) => {
-    if (!document.querySelector(`link[href="${LEAFLET_CSS}"]`)) {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = LEAFLET_CSS;
-      document.head.appendChild(link);
-    }
-
-    const existing = document.querySelector(`script[src="${LEAFLET_JS}"]`);
-    if (existing) {
-      if (window.L) return resolve(window.L);
-      existing.addEventListener("load", () => resolve(window.L), { once: true });
-      existing.addEventListener("error", reject, { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = LEAFLET_JS;
-    script.async = true;
-    script.onload = () => resolve(window.L);
-    script.onerror = () => reject(new Error("Unable to load the map library."));
-    document.body.appendChild(script);
-  });
-
-  leafletPromise.catch(() => { leafletPromise = undefined; });
-  return leafletPromise;
-};
-
+export async function loadLeaflet() {
+  const [{ default: leaflet }] = await Promise.all([
+    import("leaflet"),
+    import("leaflet/dist/leaflet.css"),
+  ]);
+  return leaflet;
+}

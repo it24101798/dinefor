@@ -4,6 +4,8 @@ import HotelFinancePanel from "../components/payments/HotelFinancePanel";
 import "../styles/revision12-15.css";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import api from "../services/api";
+import { toImageUrl } from "../utils/media";
+import { Ribbon } from "../design/ReferenceUI";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { HotelMediaWorkspace, HotelProfileWorkspace, HotelReviewReplyWorkspace, HotelSettingsWorkspace } from "../components/hotel/HotelOperationsPanels";
 import HotelBuffetWorkspace from "../components/hotel/HotelBuffetWorkspace";
@@ -31,6 +33,28 @@ const hotelSections = [
   { key: "partnership", label: "Partnership & Compliance", icon: "verified_user", path: "/hotel-partnership" },
   { key: "settings", label: "Settings", icon: "settings", path: "/hotel/settings" },
 ];
+
+const workspaceSections = {
+  overview: ["Manage your buffet service, guest arrivals and table availability.", "host"],
+  reservations: ["Review bookings and prepare for upcoming arrivals.", "host"],
+  buffets: ["Manage menus, dates, capacity and publishing.", "chef"],
+  create: ["Set up a buffet with its own schedule, photos and pricing.", "chef"],
+  media: ["Update the photos guests see before they book.", "chef"],
+  reviews: ["Read and respond to feedback from diners.", "host"],
+  analytics: ["Track reservation demand and buffet performance.", "assistant"],
+  finance: ["Review collections, refunds and hotel settlements.", "assistant"],
+  profile: ["Keep the public hotel profile and contact details current.", "host"],
+  settings: ["Manage reservation policies, payments and contact preferences.", "assistant"],
+};
+
+function HotelLogo({ hotel }) {
+  const [failed, setFailed] = useState("");
+  const logo = toImageUrl(hotel?.logo);
+  return <div className="df-partner-logo" aria-hidden="true">
+    {logo && logo !== failed ? <img src={logo} alt="" onError={() => setFailed(logo)} /> :
+      (hotel?.hotelName || "Hotel").trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("")}
+  </div>;
+}
 
 const bookingStatusLabels = {
   all: "All",
@@ -177,7 +201,10 @@ function HotelDashboard() {
       if (hotelRes.status === "fulfilled") setHotel(Object.prototype.hasOwnProperty.call(hotelRes.value.data || {}, "hotel") ? hotelRes.value.data.hotel : hotelRes.value.data);
       if (bookingsRes.status === "fulfilled") setBookings(Array.isArray(bookingsRes.value.data) ? bookingsRes.value.data : []);
       if (buffetsRes.status === "fulfilled") setBuffets(Array.isArray(buffetsRes.value.data) ? buffetsRes.value.data : []);
-      if (reviewsRes.status === "fulfilled") setReviews(Array.isArray(reviewsRes.value.data) ? reviewsRes.value.data : []);
+      if (reviewsRes.status === "fulfilled") {
+        const reviewData = reviewsRes.value.data;
+        setReviews(Array.isArray(reviewData) ? reviewData : Array.isArray(reviewData?.reviews) ? reviewData.reviews : []);
+      }
       if (paymentsRes.status === "fulfilled") setPayments(Array.isArray(paymentsRes.value.data) ? paymentsRes.value.data : []);
       if (analyticsRes.status === "fulfilled") setAnalytics(analyticsRes.value.data);
 
@@ -514,21 +541,12 @@ function HotelDashboard() {
       <div className="mb-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="font-headline-lg text-headline-lg text-text-deep-green">Welcome Back!</h1>
+            <h2 className="font-headline-lg text-headline-lg text-text-deep-green">Hotel operations</h2>
             <p className="font-body-md text-body-md text-on-surface-variant">
               {hotel?.hotelName || "Hotel"} • {formatDate(new Date())}
             </p>
           </div>
-          <div className="flex gap-3">
-            <button onClick={() => navigate("/hotel/create")} className="btn-primary flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px]">add</span>
-              New Buffet
-            </button>
-            <button onClick={() => navigate("/hotel/check-in")} className="btn-secondary flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px]">qr_code_scanner</span>
-              QR Desk
-            </button>
-          </div>
+
         </div>
       </div>
 
@@ -975,13 +993,7 @@ function HotelDashboard() {
         {/* Sidebar */}
         <aside className="df-hotel-sidebar hidden md:flex flex-col w-64 fixed left-0 top-20 h-[calc(100vh-5rem)] bg-surface-container-lowest border-r border-border-subtle overflow-y-auto">
           <div className="p-6 border-b border-border-subtle">
-            {hotel?.logo ? (
-              <img src={hotel.logo} alt={hotel.hotelName} className="w-12 h-12 rounded-full object-cover mb-2" />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center text-surface-cream font-headline-md text-xl mb-2">
-                {hotel?.hotelName?.charAt(0) || "H"}
-              </div>
-            )}
+            <HotelLogo hotel={hotel} />
             <h3 className="font-headline-md text-headline-md text-text-deep-green">{hotel?.hotelName || "Hotel Portal"}</h3>
             <span className={`status-pill ${getStatusColor(hotel?.status || "pending")}`}>
               {hotel?.status || "Draft"}
@@ -1039,18 +1051,18 @@ function HotelDashboard() {
               {hotelSections.map((section) => <option key={section.key} value={section.path}>{section.label}</option>)}
             </select>
           </label>
-          <section className={`df-hotel-heading ${["overview","create"].includes(currentSection.key)?"has-art":"is-compact"}`} aria-label="Hotel workspace">
+          <section className="df-hotel-heading has-art df-partner-hero" aria-label="Hotel workspace">
             <div className="df-hotel-heading-copy">
-              <span className="df-hotel-eyebrow">DINEFOR PARTNER WORKSPACE · {hotel?.status || "Application"}</span>
+              <span className="df-hotel-eyebrow">{hotel?.hotelName || "DineFor Partner Portal"}</span>
               <h1>{currentSection.label}</h1>
-              <p>{hotel?.hotelName || "Your hotel"} · Manage buffet experiences, reservations and guest service from one place.</p>
+              <p>{workspaceSections[currentSection.key]?.[0] || workspaceSections.overview[0]}</p>
               <div className="df-hotel-heading-actions">
-                <button type="button" onClick={() => navigate("/hotel/reservations")}><span className="material-symbols-outlined">event_seat</span> Reservations</button>
-                <button type="button" onClick={() => navigate("/hotel/buffets")}><span className="material-symbols-outlined">restaurant_menu</span> Buffets</button>
-                <button type="button" onClick={() => navigate("/hotel/check-in")}><span className="material-symbols-outlined">qr_code_scanner</span> QR desk</button>
+                {currentSection.key !== "create" && <NavLink className="df-partner-primary" to="/hotel/create"><span className="material-symbols-outlined" aria-hidden="true">add</span> New buffet</NavLink>}
+                {currentSection.key !== "reservations" && <NavLink to="/hotel/reservations"><span className="material-symbols-outlined" aria-hidden="true">event_seat</span> Reservations</NavLink>}
+                <NavLink to="/hotel/check-in"><span className="material-symbols-outlined" aria-hidden="true">qr_code_scanner</span> QR desk</NavLink>
               </div>
             </div>
-            {["overview","create"].includes(currentSection.key) && <div className="df-hotel-heading-art"><CrewArt role={currentSection.key === "create" ? "chef" : "host"} /></div>}
+            <div className="df-hotel-heading-art"><Ribbon /><CrewArt role={workspaceSections[currentSection.key]?.[1] || "host"} /></div>
           </section>
           {renderMessage()}
           {renderDeleteConfirmModal()}
