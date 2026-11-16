@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import api from "../services/api";
 import MediaUploader from "../components/MediaUploader";
+import AccountLayout from "../design/AccountLayout";
+import { Icon, Photo } from "../design/ReferenceUI";
 
 const emptyEditor = {
   title: "",
@@ -16,6 +18,7 @@ const emptyEditor = {
 };
 
 export default function MyReviews() {
+  const { state } = useLocation();
   const [reviews, setReviews] = useState([]);
   const [analytics, setAnalytics] = useState({});
   const [loading, setLoading] = useState(true);
@@ -23,6 +26,8 @@ export default function MyReviews() {
   const [editor, setEditor] = useState(emptyEditor);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [query, setQuery] = useState("");
+  const [reviewFilter, setReviewFilter] = useState("all");
 
   const load = useCallback(async () => {
     try {
@@ -115,153 +120,50 @@ export default function MyReviews() {
     }
   };
 
+  const filteredReviews = reviews.filter((review) => {
+    const text = [review.title, review.comment, review.buffet?.title, review.hotel?.hotelName].filter(Boolean).join(" ").toLowerCase();
+    const matchesText = text.includes(query.trim().toLowerCase());
+    const matchesFilter = reviewFilter === "all" ||
+      (reviewFilter === "photos" && (review.images?.length || review.videos?.length)) ||
+      (reviewFilter === "replies" && review.hotelReply?.message);
+    return matchesText && matchesFilter;
+  });
+
   return (
-    <main className="min-h-screen bg-surface-cream pt-24 sm:pt-28 pb-12 px-4">
-      <div className="max-w-6xl mx-auto">
-        <span className="badge-gold">My Contribution</span>
-        <h1 className="font-headline-lg text-headline-lg text-text-deep-green mt-2">
-          My Reviews
-        </h1>
-        <p className="text-on-surface-variant">
-          Manage verified feedback you shared after dining.
-        </p>
-
-        {message && (
-          <div className="mt-5 p-3 rounded-xl bg-surface-container-low text-on-surface-variant">
-            {message}
-          </div>
-        )}
-
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
-          {[
-            ["Reviews", analytics.totalReviews || 0],
-            ["Helpful Votes", analytics.helpfulReceived || 0],
-            [
-              "Average Given",
-              Number(analytics.averageRatingGiven || 0).toFixed(1),
-            ],
-            ["Photos Shared", analytics.photosShared || 0],
-          ].map(([label, value]) => (
-            <div key={label} className="card-ambient p-4 text-center">
-              <strong className="text-2xl text-text-deep-green">
-                {value}
-              </strong>
-              <p className="text-sm text-on-surface-variant">
-                {label}
-              </p>
-            </div>
-          ))}
-        </section>
-
-        {loading ? (
-          <div className="mt-6 grid md:grid-cols-2 gap-5">
-            {[1, 2, 3, 4].map((item) => (
-              <div
-                key={item}
-                className="card-ambient h-64 animate-pulse"
-              />
-            ))}
-          </div>
-        ) : reviews.length ? (
-          <div className="mt-6 grid md:grid-cols-2 gap-5">
-            {reviews.map((review) => (
-              <article
-                key={review._id}
-                className="card-ambient p-5 flex flex-col"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-secondary text-sm font-semibold">
-                      {review.hotel?.hotelName || "Hotel"}
-                    </p>
-                    <h2 className="font-headline-md text-headline-md text-text-deep-green">
-                      {review.buffet?.title || "Buffet"}
-                    </h2>
-                  </div>
-
-                  <span className="badge-mint">
-                    {review.rating}/5
-                  </span>
-                </div>
-
-                {review.title && (
-                  <h3 className="font-semibold text-text-deep-green mt-4">
-                    {review.title}
-                  </h3>
-                )}
-                <p className="text-on-surface-variant mt-2 line-clamp-4">
-                  {review.comment}
-                </p>
-
-                <div className="flex flex-wrap gap-2 mt-4">
-                  <span className="badge-mint">
-                    Verified Booking
-                  </span>
-                  <span className="px-3 py-1 rounded-full bg-surface-container-low text-sm">
-                    {review.helpfulVotes?.length || 0} helpful
-                  </span>
-                  {review.hotelReply?.message && (
-                    <span className="px-3 py-1 rounded-full bg-secondary-container/20 text-secondary text-sm">
-                      Hotel replied
-                    </span>
-                  )}
-                </div>
-
-                {review.images?.length > 0 && (
-                  <div className="flex gap-2 mt-4 overflow-x-auto">
-                    {review.images.slice(0, 4).map((image) => (
-                      <img
-                        key={image}
-                        src={image}
-                        alt="Review"
-                        className="w-20 h-20 rounded-xl object-cover shrink-0"
-                      />
-                    ))}
-                  </div>
-                )}
-
-                <div className="mt-auto pt-5 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => openEditor(review)}
-                    className="btn-outline"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => remove(review)}
-                    className="px-4 py-2 rounded-full border border-error/30 text-error hover:bg-error/10"
-                  >
-                    Delete
-                  </button>
-                  <Link
-                    to={`/buffets/${review.buffet?._id}`}
-                    className="btn-secondary"
-                  >
-                    View Buffet
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <section className="card-ambient p-10 text-center mt-6">
-            <span className="material-symbols-outlined text-5xl text-outline">
-              reviews
-            </span>
-            <h2 className="font-headline-md text-headline-md text-text-deep-green mt-3">
-              No reviews written yet
-            </h2>
-            <p className="text-on-surface-variant mt-2">
-              Complete a buffet reservation to publish a verified review.
-            </p>
-            <Link to="/my-bookings" className="btn-primary inline-block mt-5">
-              View My Bookings
-            </Link>
-          </section>
-        )}
+    <AccountLayout title="Your dining stories." description="Revisit your buffet experiences, share moments, and manage your verified reviews." className="rf-my-reviews" artwork="/images/characters/account-concierge.png">
+      <div className="rf-reviews-heading">
+        <div><span className="rf-eyebrow">YOUR CONTRIBUTIONS</span><h2 className="rf-account-title">My reviews</h2><p>Real experiences help other guests discover their next favourite buffet.</p></div>
+        <Link to="/my-bookings" className="rf-button"><Icon name="calendar_month"/> My bookings</Link>
       </div>
+      {state?.reviewPublished && !message && <p className="rf-review-notice" role="status">Your verified review was published.</p>}
+      {message && <div className="rf-review-notice" role="status">{message}<button type="button" onClick={() => setMessage("")} aria-label="Dismiss message"><Icon name="close"/></button></div>}
+      <section className="rf-review-stats" aria-label="Your review statistics">
+        {[
+          ["Reviews", analytics.totalReviews ?? reviews.length, "rate_review"],
+          ["Helpful votes", analytics.helpfulReceived ?? 0, "thumb_up"],
+          ["Average given", Number(analytics.averageRatingGiven || 0).toFixed(1), "star"],
+          ["Photos shared", analytics.photosShared ?? 0, "photo_library"],
+        ].map(([label, value, icon]) => <div className="rf-review-stat" key={label}><Icon name={icon}/><strong>{value}</strong><span>{label}</span></div>)}
+      </section>
+      <section className="rf-reviews-panel" aria-label="Your published reviews">
+        <div className="rf-reviews-toolbar">
+          <label className="rf-review-search"><Icon name="search"/><span className="sr-only">Search reviews</span><input type="search" placeholder="Search hotels, buffets, or your reviews" value={query} onChange={(e) => setQuery(e.target.value)}/></label>
+          <label className="rf-review-filter"><span className="sr-only">Filter reviews</span><select value={reviewFilter} onChange={(e) => setReviewFilter(e.target.value)}><option value="all">All reviews</option><option value="photos">With photos or videos</option><option value="replies">Hotel replied</option></select></label>
+        </div>
+        {loading ? <div className="rf-review-loading" role="status"><span className="rf-loader"/>Loading your reviews…</div> : filteredReviews.length > 0 ? (
+          <div className="rf-review-grid">
+            {filteredReviews.map((review) => <article className="rf-review-entry" key={review._id}>
+              <div className="rf-review-entry-top"><div className="rf-review-mark"><Icon name="restaurant"/></div><div className="rf-review-identity"><span>{review.hotel?.hotelName || "Hotel experience"}</span><h3>{review.buffet?.title || "Buffet experience"}</h3></div><span className="rf-review-score"><Icon name="star"/>{Number(review.rating || 0).toFixed(1)}</span></div>
+              {review.title && <h4 className="rf-review-entry-title">{review.title}</h4>}
+              <p className="rf-review-comment">{review.comment || "No written comment provided."}</p>
+              <div className="rf-review-pills"><span><Icon name="verified"/> Verified review</span><span><Icon name="thumb_up"/> {review.helpfulVotes?.length || 0} helpful</span>{review.hotelReply?.message && <span><Icon name="forum"/> Hotel replied</span>}</div>
+              {review.images?.length > 0 && <div className="rf-review-photos">{review.images.slice(0,3).map((src,index)=><Photo sources={[src]} alt={`Review photo ${index + 1}`} key={`${src}-${index}`}/>)}</div>}
+              {review.hotelReply?.message && <div className="rf-review-hotel-reply"><strong>Response from the hotel</strong><p>{review.hotelReply.message}</p></div>}
+              <div className="rf-review-entry-actions"><button type="button" className="rf-review-edit" onClick={() => openEditor(review)}><Icon name="edit"/> Edit review</button><button type="button" className="rf-review-delete" onClick={() => remove(review)}><Icon name="delete_outline"/> Delete</button>{review.buffet?._id && <Link to={`/buffets/${review.buffet._id}`} className="rf-review-view">View buffet <Icon name="arrow_forward"/></Link>}</div>
+            </article>)}
+          </div>
+        ) : <div className="rf-review-empty"><Icon name={reviews.length ? "search_off" : "rate_review"}/><h3>{reviews.length ? "No matching reviews" : "Your stories start after dining"}</h3><p>{reviews.length ? "Try another search or choose a different filter." : "After your buffet experience, you can share a verified review here."}</p>{reviews.length ? <button type="button" className="rf-button" onClick={() => {setQuery("");setReviewFilter("all");}}>Clear filters</button> : <Link to="/my-bookings" className="rf-button">View my bookings <Icon name="arrow_forward"/></Link>}</div>}
+      </section>
 
       {editing && (
         <div
@@ -396,6 +298,6 @@ export default function MyReviews() {
           </section>
         </div>
       )}
-    </main>
+    </AccountLayout>
   );
 }

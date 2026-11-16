@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { makeBookingQr } from "../bookings/bookingQr";
 
 
 const formatDate = (date) => {
@@ -63,6 +64,14 @@ function BookingCheckIn() {
   // STATE
   // ============================================
   const [booking, setBooking] = useState(null);
+  const [qrUrl, setQrUrl] = useState("");
+  const bookingCode = booking?.bookingCode;
+  useEffect(() => {
+    let active = true;
+    setQrUrl("");
+    if (bookingCode) makeBookingQr(bookingCode).then(url => { if (active) setQrUrl(url); }).catch(() => {});
+    return () => { active = false; };
+  }, [bookingCode]);
   const [validation, setValidation] = useState(null);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("info");
@@ -72,6 +81,7 @@ function BookingCheckIn() {
   const [timeRemaining, setTimeRemaining] = useState(null);
 
   const storedUser = JSON.parse(localStorage.getItem("dineforUser") || "null");
+  const staffDesk = storedUser?.role === "hotel_staff" ? "/hotel/staff-desk" : "/hotel/check-in";
   const headers = { Authorization: `Bearer ${storedUser?.token}` };
 
   // ============================================
@@ -143,7 +153,7 @@ function BookingCheckIn() {
       setMessageType("success");
       setShowConfirm(false);
       await fetchBooking();
-      setTimeout(() => navigate("/hotel/check-in"), 2000);
+      setTimeout(() => navigate(staffDesk), 2000);
     } catch (error) {
       const errorMsg = error.response?.data?.message || "Check-in failed.";
       setMessage(errorMsg);
@@ -160,16 +170,17 @@ function BookingCheckIn() {
   const handleDownload = () => {
     if (!booking) return;
 
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
-      `${window.location.origin}/check-in/${booking.bookingCode}`
-    )}`;
+    if (!qrUrl) return;
+    const escape = value => String(value ?? "").replace(/[&<>"']/g, character => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    })[character]);
 
     const html = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8" />
-        <title>DineFor - Check-In ${booking.bookingCode}</title>
+        <title>DineFor - Check-In ${escape(booking.bookingCode)}</title>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { font-family: 'Inter', Arial, sans-serif; background: #f5f3ef; padding: 40px; }
@@ -193,17 +204,17 @@ function BookingCheckIn() {
             <h1>🍽️ DineFor</h1>
             <span class="status ${booking.bookingStatus}">${getStatusLabel(booking.bookingStatus)}</span>
           </div>
-          <h2 style="font-size: 20px; color: #1A3021; margin-bottom: 4px;">${booking.buffet?.title || "Buffet Reservation"}</h2>
-          <p style="color: #434843; margin-bottom: 16px;">${booking.buffet?.hotel?.hotelName || "Hotel"}</p>
+          <h2 style="font-size: 20px; color: #1A3021; margin-bottom: 4px;">${escape(booking.buffet?.title || "Buffet Reservation")}</h2>
+          <p style="color: #434843; margin-bottom: 16px;">${escape(booking.buffet?.hotel?.hotelName || "Hotel")}</p>
           <div class="qr">
             <img src="${qrUrl}" alt="QR Code" />
             <p style="margin-top: 12px; font-size: 14px; color: #434843;">
-              <strong>${booking.bookingCode}</strong>
+              <strong>${escape(booking.bookingCode)}</strong>
             </p>
           </div>
           <div class="details">
             <div class="detail"><label>Date</label><value>${formatDate(booking.selectedDate)}</value></div>
-            <div class="detail"><label>Time</label><value>${booking.selectedTimeSlot?.startTime} - ${booking.selectedTimeSlot?.endTime}</value></div>
+            <div class="detail"><label>Time</label><value>${escape(booking.selectedTimeSlot?.startTime)} - ${escape(booking.selectedTimeSlot?.endTime)}</value></div>
             <div class="detail"><label>Seats</label><value>${booking.seats} guest${booking.seats > 1 ? "s" : ""}</value></div>
             <div class="detail"><label>Total</label><value>${formatCurrency(booking.grandTotal || booking.totalAmount)}</value></div>
           </div>
@@ -294,7 +305,7 @@ function BookingCheckIn() {
   // ============================================
   if (loading) {
     return (
-      <main className="min-h-screen bg-surface-cream pt-20">
+      <main className="df-checkin-page min-h-screen bg-surface-cream pt-20">
         <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
           {renderLoading()}
         </div>
@@ -304,7 +315,7 @@ function BookingCheckIn() {
 
   if (!booking) {
     return (
-      <main className="min-h-screen bg-surface-cream pt-20">
+      <main className="df-checkin-page min-h-screen bg-surface-cream pt-20">
         <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
           <div className="text-center py-16">
             <span className="material-symbols-outlined text-6xl text-outline mb-4">qr_code_2</span>
@@ -323,7 +334,7 @@ function BookingCheckIn() {
   }
 
   return (
-    <main className="min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20">
+    <main className="df-checkin-page min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20">
       <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
         {/* Header */}
         <div className="mb-8">
@@ -373,16 +384,9 @@ function BookingCheckIn() {
             </div>
           </div>
 
-          {/* QR Code */}
-          <div className="flex justify-center my-4">
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                `${window.location.origin}/check-in/${booking.bookingCode}`
-              )}`}
-              alt="QR Code"
-              className="w-36 h-36 bg-white p-2 rounded-xl border border-border-subtle"
-            />
-          </div>
+          {qrUrl && <div className="flex justify-center my-4">
+            <img src={qrUrl} alt="Booking QR code" className="w-36 h-36 bg-white p-2 rounded-xl border border-border-subtle" />
+          </div>}
 
           {/* Time Remaining */}
           {renderTimeRemaining()}
@@ -437,7 +441,7 @@ function BookingCheckIn() {
               Print
             </button>
             <Link
-              to="/hotel/check-in"
+              to={staffDesk}
               className="btn-outline flex items-center gap-2"
             >
               <span className="material-symbols-outlined text-[18px]">arrow_back</span>

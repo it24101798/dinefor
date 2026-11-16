@@ -203,9 +203,8 @@ const buffetSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-buffetSchema.pre("validate", function ensureSeoSlug(next) {
+buffetSchema.pre("validate", function ensureSeoSlug() {
   if (!this.slug && this.title) this.slug = buildDocumentSlug(this.title, this._id);
-  next();
 });
 
 // Release 4.3 discovery indexes.

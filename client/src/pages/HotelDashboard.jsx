@@ -1,9 +1,17 @@
+import CrewArt from "../design/CrewArt";
+import HotelAnalyticsPanel from "../components/analytics/HotelAnalyticsPanel";
+import HotelFinancePanel from "../components/payments/HotelFinancePanel";
+import "../styles/revision12-15.css";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import api from "../services/api";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { HotelMediaWorkspace, HotelProfileWorkspace, HotelReviewReplyWorkspace, HotelSettingsWorkspace } from "../components/hotel/HotelOperationsPanels";
 import HotelBuffetWorkspace from "../components/hotel/HotelBuffetWorkspace";
-import MediaUploader from "../components/MediaUploader";
+import BuffetCreationWizard from "../components/hotel/BuffetCreationWizard";
+import PartnerOverview from "../components/hotel/PartnerOverview";
+import { sriLankaToday } from "../bookings/bookingDisplay";
+import "../styles/hotel-partner-portal.css";
+import CancellationCasesPanel from "../components/booking/CancellationCasesPanel";
 
 
 // ============================================
@@ -125,40 +133,6 @@ function HotelDashboard() {
   const [selectedReview, setSelectedReview] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [showCreateBuffet, setShowCreateBuffet] = useState(false);
-  const [showEditBuffet, setShowEditBuffet] = useState(null);
-
-  // Buffet form states
-  const [buffetForm, setBuffetForm] = useState({
-    title: "",
-    description: "",
-    price: "",
-    category: "",
-    buffetType: "regular",
-    thumbnail: "",
-    images: [],
-    videos: [],
-    timeSlots: [{ startTime: "", endTime: "", totalSeats: "", availableSeats: "" }],
-    availableFromDate: "",
-    availableToDate: "",
-    recurringDays: [],
-    scheduleType: "all_days",
-    isFeatured: false,
-    status: "draft",
-    specialDate: "",
-    highlights: [],
-  });
-
-  const [recurringOptions, setRecurringOptions] = useState({
-    monday: false,
-    tuesday: false,
-    wednesday: false,
-    thursday: false,
-    friday: false,
-    saturday: false,
-    sunday: false,
-  });
-
   // ============================================
   // SECTION DETECTION
   // ============================================
@@ -200,7 +174,7 @@ function HotelDashboard() {
         api.get(`/hotel-portal/analytics`, { headers }),
       ]);
 
-      if (hotelRes.status === "fulfilled") setHotel(hotelRes.value.data);
+      if (hotelRes.status === "fulfilled") setHotel(Object.prototype.hasOwnProperty.call(hotelRes.value.data || {}, "hotel") ? hotelRes.value.data.hotel : hotelRes.value.data);
       if (bookingsRes.status === "fulfilled") setBookings(Array.isArray(bookingsRes.value.data) ? bookingsRes.value.data : []);
       if (buffetsRes.status === "fulfilled") setBuffets(Array.isArray(buffetsRes.value.data) ? buffetsRes.value.data : []);
       if (reviewsRes.status === "fulfilled") setReviews(Array.isArray(reviewsRes.value.data) ? reviewsRes.value.data : []);
@@ -238,8 +212,7 @@ function HotelDashboard() {
 
     const totalRevenue = activeBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0);
     const pendingRevenue = confirmedBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0);
-    const collectedRevenue = checkedInBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0) +
-      completedBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0);
+    const collectedRevenue = payments.reduce((sum, payment) => sum + Number(payment.paidAmount ?? (payment.status === "paid" ? payment.amount : 0) ?? 0), 0);
 
     const activeBuffets = buffets.filter((b) => b.status === "active");
     const featuredBuffets = buffets.filter((b) => b.isFeatured);
@@ -253,7 +226,7 @@ function HotelDashboard() {
     const totalPayments = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
     const pendingPayments = payments.filter((p) => p.status === "pending").reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
-    const uniqueCustomers = new Set(bookings.map((b) => b.user?._id || b.user?.email).filter(Boolean));
+    const uniqueCustomers = new Set(bookings.map((b) => b.user?._id).filter(Boolean));
 
     return {
       bookings: bookings.length,
@@ -290,7 +263,7 @@ function HotelDashboard() {
     if (bookingSearch.trim()) {
       const q = bookingSearch.toLowerCase().trim();
       result = result.filter((b) =>
-        [b.bookingCode, b.user?.name, b.user?.email, b.buffet?.title]
+        [b.bookingCode, b.guestDetails?.name, b.user?.name, b.buffet?.title]
           .filter(Boolean)
           .join(" ")
           .toLowerCase()
@@ -302,13 +275,39 @@ function HotelDashboard() {
       result = result.filter((b) => new Date(b.selectedDate || b.createdAt) >= new Date(dateRange.start));
     }
     if (dateRange.end) {
-      result = result.filter((b) => new Date(b.selectedDate || b.createdAt) <= new Date(dateRange.end));
+      result = result.filter((b) => new Date(b.selectedDate || b.createdAt) < new Date(new Date(dateRange.end).getTime() + 86400000));
     }
 
     result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
     return result;
   }, [bookings, bookingFilter, bookingSearch, dateRange]);
+
+  // Exports only the reservations currently visible after applying the hotel filters.
+  const exportReservationsCsv = () => {
+    if (!filteredBookings.length) return;
+    const fields = ["Booking code", "Guest", "Buffet", "Dining date", "Start", "End", "Seats", "Amount (LKR)", "Status"];
+    const safeCell = (value) => {
+      let content = String(value ?? "").replace(/^[=+\-@\t\r]/, (match) => "'" + match);
+      return `"${content.replace(/"/g, '""')}"`;
+    };
+    const rows = filteredBookings.map((booking) => [
+      booking.bookingCode, booking.guestDetails?.name || booking.user?.name, booking.buffet?.title,
+      booking.selectedDate ? new Date(booking.selectedDate).toLocaleDateString("en-CA") : "",
+      booking.selectedTimeSlot?.startTime, booking.selectedTimeSlot?.endTime,
+      booking.seats, booking.totalAmount, booking.bookingStatus,
+    ]);
+    const csv = [fields, ...rows].map((row) => row.map(safeCell).join(",")).join("\r\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `dinefor-reservations-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
 
   const filteredBuffets = useMemo(() => {
     let result = [...buffets];
@@ -345,16 +344,31 @@ function HotelDashboard() {
   // ============================================
   const updateBookingStatus = async (bookingId, status) => {
     try {
-      await api.put(
-        `/hotel-portal/bookings/${bookingId}/status`,
-        { status },
-        { headers }
-      );
-      setMessage(`Booking status updated to ${status}.`);
+      if (status === "checked_in") {
+        await api.put(`/bookings/${bookingId}/check-in`, {}, { headers });
+      } else {
+        await api.put(`/bookings/${bookingId}/status`, { bookingStatus: status }, { headers });
+      }
+      await fetchAll();
+      setMessage(status === "checked_in" ? "Guest checked in." : "Reservation completed.");
+      setMessageType("success");
+    } catch (error) {
+      setMessage(error.response?.data?.message || "Failed to update booking.");
+      setMessageType("error");
+    }
+  };
+
+  const cancellationAction = async (bookingId, action) => {
+    const isNoShow = action === "no-show";
+    const reason = window.prompt(isNoShow ? "Add a no-show note:" : "Explain why the hotel is cancelling this reservation:", isNoShow ? "Guest did not arrive within the grace period." : "Hotel operational cancellation.");
+    if (reason === null || !reason.trim()) return;
+    try {
+      await api.post(`/cancellations/bookings/${bookingId}/${action}`, { reason, reasonCode: isNoShow ? "no_show" : "hotel_operational" }, { headers });
+      setMessage(isNoShow ? "No-show recorded under the hotel policy." : "Reservation cancelled and refund outcome recorded.");
       setMessageType("success");
       await fetchAll();
     } catch (error) {
-      setMessage(error.response?.data?.message || "Failed to update booking.");
+      setMessage(error.response?.data?.message || "Reservation lifecycle action failed.");
       setMessageType("error");
     }
   };
@@ -396,160 +410,6 @@ function HotelDashboard() {
       );
       setMessage(`Buffet status updated to ${status}.`);
       setMessageType("success");
-      await fetchAll();
-    } catch (error) {
-      setMessage(error.response?.data?.message || "Failed to update buffet.");
-      setMessageType("error");
-    }
-  };
-
-  const createBuffet = async (e) => {
-    e.preventDefault();
-    try {
-      const normalizedCategory = String(buffetForm.category || "other")
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, "-");
-
-      const validCategories = new Set([
-        "breakfast", "lunch", "dinner", "high-tea",
-        "seafood", "bbq", "brunch", "other",
-      ]);
-
-      const normalizedScheduleType =
-        buffetForm.scheduleType === "daily"
-          ? "all_days"
-          : buffetForm.scheduleType === "special"
-            ? "one_day"
-            : buffetForm.scheduleType;
-
-      const normalizedSlots = buffetForm.timeSlots
-        .map((slot) => ({
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-          totalSeats: Number(slot.totalSeats),
-          availableSeats:
-            Number(slot.availableSeats) > 0
-              ? Number(slot.availableSeats)
-              : Number(slot.totalSeats),
-        }))
-        .filter((slot) => slot.startTime || slot.endTime || slot.totalSeats);
-
-      if (!buffetForm.title.trim()) {
-        throw new Error("Buffet title is required.");
-      }
-
-      if (!Number.isFinite(Number(buffetForm.price)) || Number(buffetForm.price) < 0) {
-        throw new Error("Enter a valid buffet price.");
-      }
-
-      if (!normalizedSlots.length || normalizedSlots.some(
-        (slot) =>
-          !slot.startTime ||
-          !slot.endTime ||
-          !Number.isFinite(slot.totalSeats) ||
-          slot.totalSeats < 1
-      )) {
-        throw new Error("Each time slot needs a start time, end time, and seat capacity.");
-      }
-
-      if (
-        buffetForm.availableFromDate &&
-        buffetForm.availableToDate &&
-        new Date(buffetForm.availableToDate) < new Date(buffetForm.availableFromDate)
-      ) {
-        throw new Error("Available To date cannot be before Available From date.");
-      }
-
-      if (normalizedScheduleType === "one_day" && !buffetForm.specialDate) {
-        throw new Error("Select the special buffet date.");
-      }
-
-      const recurringDays = Object.entries(recurringOptions)
-        .filter(([, selected]) => selected)
-        .map(([day]) => day.charAt(0).toUpperCase() + day.slice(1));
-
-      if (normalizedScheduleType === "selected_days" && recurringDays.length === 0) {
-        throw new Error("Select at least one recurring day.");
-      }
-
-      const payload = {
-        title: buffetForm.title.trim(),
-        description: buffetForm.description.trim(),
-        price: Number(buffetForm.price),
-        category: validCategories.has(normalizedCategory)
-          ? normalizedCategory
-          : "other",
-        buffetType: ["regular", "special"].includes(buffetForm.buffetType)
-          ? buffetForm.buffetType
-          : "special",
-        thumbnail: buffetForm.thumbnail || "",
-        images: Array.isArray(buffetForm.images) ? buffetForm.images : [],
-        videos: Array.isArray(buffetForm.videos) ? buffetForm.videos : [],
-        timeSlots: normalizedSlots,
-        availableFromDate: buffetForm.availableFromDate || null,
-        availableToDate: buffetForm.availableToDate || null,
-        recurringDays,
-        scheduleType: normalizedScheduleType,
-        specialDate: normalizedScheduleType === "one_day"
-          ? buffetForm.specialDate || null
-          : null,
-        isFeatured: Boolean(buffetForm.isFeatured),
-        status: buffetForm.status || "draft",
-      };
-
-      await api.post(`/hotel-portal/buffets`, payload, { headers });
-      setMessage("Buffet created successfully!");
-      setMessageType("success");
-      setShowCreateBuffet(false);
-      setBuffetForm({
-        title: "",
-        description: "",
-        price: "",
-        category: "",
-        buffetType: "regular",
-        thumbnail: "",
-        images: [],
-        videos: [],
-        timeSlots: [{ startTime: "", endTime: "", totalSeats: "", availableSeats: "" }],
-        availableFromDate: "",
-        availableToDate: "",
-        recurringDays: [],
-        scheduleType: "all_days",
-        isFeatured: false,
-        status: "draft",
-        specialDate: "",
-        highlights: [],
-      });
-      await fetchAll();
-    } catch (error) {
-      setMessage(error.response?.data?.message || error.message || "Failed to create buffet.");
-      setMessageType("error");
-    }
-  };
-
-  const updateBuffet = async (e) => {
-    e.preventDefault();
-    try {
-      const payload = {
-        ...buffetForm,
-        price: Number(buffetForm.price),
-        timeSlots: buffetForm.timeSlots.map(slot => ({
-          ...slot,
-          totalSeats: Number(slot.totalSeats),
-          availableSeats: Number(slot.availableSeats) || Number(slot.totalSeats),
-        })),
-        recurringDays: Object.keys(recurringOptions).filter(key => recurringOptions[key]),
-      };
-
-      await api.put(
-        `/hotel-portal/buffets/${showEditBuffet}`,
-        payload,
-        { headers }
-      );
-      setMessage("Buffet updated successfully!");
-      setMessageType("success");
-      setShowEditBuffet(null);
       await fetchAll();
     } catch (error) {
       setMessage(error.response?.data?.message || "Failed to update buffet.");
@@ -649,240 +509,6 @@ function HotelDashboard() {
     );
   };
 
-  const renderCreateBuffetModal = () => {
-    if (!showCreateBuffet) return null;
-
-    return (
-      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowCreateBuffet(false)}>
-        <div className="bg-surface-container-lowest rounded-2xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto buffet-creator-modal" onClick={(e) => e.stopPropagation()}>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-headline-lg text-headline-lg text-text-deep-green">Create New Buffet</h3>
-            <button onClick={() => setShowCreateBuffet(false)} className="text-on-surface-variant hover:text-text-deep-green">
-              <span className="material-symbols-outlined">close</span>
-            </button>
-          </div>
-
-          <form onSubmit={createBuffet} className="space-y-4 buffet-creator-form">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Title *</label>
-                <input
-                  value={buffetForm.title}
-                  onChange={(e) => setBuffetForm({ ...buffetForm, title: e.target.value })}
-                  className="form-input w-full"
-                  required
-                />
-              </div>
-              <div>
-                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Price (Rs.) *</label>
-                <input
-                  type="number"
-                  value={buffetForm.price}
-                  onChange={(e) => setBuffetForm({ ...buffetForm, price: e.target.value })}
-                  className="form-input w-full"
-                  required
-                />
-              </div>
-              <div>
-                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Category *</label>
-                <select
-                  value={buffetForm.category}
-                  onChange={(e) => setBuffetForm({ ...buffetForm, category: e.target.value })}
-                  className="form-select w-full"
-                  required
-                >
-                  <option value="">Select Category</option>
-                  <option value="breakfast">Breakfast</option>
-                  <option value="lunch">Lunch</option>
-                  <option value="dinner">Dinner</option>
-                  <option value="high-tea">High Tea</option>
-                  <option value="seafood">Seafood</option>
-                  <option value="bbq">BBQ</option>
-                  <option value="brunch">Brunch</option>
-                  <option value="other">Other / Weekend Buffet</option>
-                </select>
-              </div>
-              <div>
-                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Buffet Type</label>
-                <select
-                  value={buffetForm.buffetType}
-                  onChange={(e) => setBuffetForm({ ...buffetForm, buffetType: e.target.value })}
-                  className="form-select w-full"
-                >
-                  <option value="regular">Regular</option>
-                  <option value="special">Special</option>
-                  
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Description</label>
-              <textarea
-                value={buffetForm.description}
-                onChange={(e) => setBuffetForm({ ...buffetForm, description: e.target.value })}
-                className="form-textarea w-full"
-                rows="3"
-              />
-            </div>
-
-            <div>
-              <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Highlights (comma separated)</label>
-              <input
-                value={buffetForm.highlights.join(", ")}
-                onChange={(e) => setBuffetForm({ ...buffetForm, highlights: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
-                className="form-input w-full"
-                placeholder="Fresh seafood, Live cooking, Premium desserts"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Available From</label>
-                <input
-                  type="date"
-                  value={buffetForm.availableFromDate}
-                  onChange={(e) => setBuffetForm({ ...buffetForm, availableFromDate: e.target.value })}
-                  className="form-input w-full"
-                />
-              </div>
-              <div>
-                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Available To</label>
-                <input
-                  type="date"
-                  value={buffetForm.availableToDate}
-                  onChange={(e) => setBuffetForm({ ...buffetForm, availableToDate: e.target.value })}
-                  className="form-input w-full"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Time Slots</label>
-              {buffetForm.timeSlots.map((slot, index) => (
-                <div key={index} className="flex flex-wrap gap-2 mb-2">
-                  <input
-                    type="time"
-                    value={slot.startTime}
-                    onChange={(e) => {
-                      const newSlots = [...buffetForm.timeSlots];
-                      newSlots[index].startTime = e.target.value;
-                      setBuffetForm({ ...buffetForm, timeSlots: newSlots });
-                    }}
-                    className="form-input flex-1 min-w-[100px]"
-                    placeholder="Start"
-                  />
-                  <input
-                    type="time"
-                    value={slot.endTime}
-                    onChange={(e) => {
-                      const newSlots = [...buffetForm.timeSlots];
-                      newSlots[index].endTime = e.target.value;
-                      setBuffetForm({ ...buffetForm, timeSlots: newSlots });
-                    }}
-                    className="form-input flex-1 min-w-[100px]"
-                    placeholder="End"
-                  />
-                  <input
-                    type="number"
-                    value={slot.totalSeats}
-                    onChange={(e) => {
-                      const newSlots = [...buffetForm.timeSlots];
-                      newSlots[index].totalSeats = e.target.value;
-                      setBuffetForm({ ...buffetForm, timeSlots: newSlots });
-                    }}
-                    className="form-input w-24"
-                    placeholder="Seats"
-                  />
-                  {index > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newSlots = buffetForm.timeSlots.filter((_, i) => i !== index);
-                        setBuffetForm({ ...buffetForm, timeSlots: newSlots });
-                      }}
-                      className="text-error hover:text-error/80"
-                    >
-                      <span className="material-symbols-outlined">delete</span>
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => setBuffetForm({
-                  ...buffetForm,
-                  timeSlots: [...buffetForm.timeSlots, { startTime: "", endTime: "", totalSeats: "", availableSeats: "" }]
-                })}
-                className="text-secondary hover:underline text-sm"
-              >
-                + Add Time Slot
-              </button>
-            </div>
-
-            <section className="hf-editor-section">
-              <div><span className="eyebrow">Buffet Media</span><h3>Cover, gallery and video uploads</h3></div>
-              <div className="hf-media-upload-grid">
-                <div><h4>Cover image</h4><MediaUploader accept="image/*" label="Upload cover image" onUpload={(data) => setBuffetForm((current) => ({ ...current, thumbnail: data.fileUrl, images: [data.fileUrl, ...current.images.filter((item) => item !== data.fileUrl)] }))} /></div>
-                <div><h4>Gallery images</h4><MediaUploader multiple accept="image/*" label="Upload gallery images" onUpload={(items) => setBuffetForm((current) => ({ ...current, images: [...current.images, ...items.map((item) => item.fileUrl)] }))} /></div>
-                <div><h4>Buffet videos</h4><MediaUploader multiple accept="video/*" label="Upload videos" onUpload={(items) => setBuffetForm((current) => ({ ...current, videos: [...current.videos, ...items.map((item) => item.fileUrl)] }))} /></div>
-              </div>
-            </section>
-
-            <div>
-              <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Schedule Type</label>
-              <select
-                value={buffetForm.scheduleType}
-                onChange={(e) => setBuffetForm({ ...buffetForm, scheduleType: e.target.value })}
-                className="form-select w-full"
-              >
-                <option value="all_days">All Days</option>
-                <option value="selected_days">Selected Days</option>
-                <option value="one_day">One Day / Special Date</option>
-              </select>
-            </div>
-
-            {buffetForm.scheduleType === "selected_days" && (
-              <div className="flex flex-wrap gap-3">
-                {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map((day) => (
-                  <label key={day} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={recurringOptions[day]}
-                      onChange={(e) => setRecurringOptions({ ...recurringOptions, [day]: e.target.checked })}
-                      className="w-4 h-4 text-secondary focus:ring-secondary rounded"
-                    />
-                    <span className="font-label-sm text-label-sm text-text-deep-green capitalize">{day}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-
-            {buffetForm.scheduleType === "one_day" && (
-              <div>
-                <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Special Date</label>
-                <input
-                  type="date"
-                  value={buffetForm.specialDate}
-                  onChange={(e) => setBuffetForm({ ...buffetForm, specialDate: e.target.value })}
-                  className="form-input w-full"
-                />
-              </div>
-            )}
-
-            <div className="flex justify-end gap-3 pt-4 border-t border-border-subtle">
-              <button type="button" onClick={() => setShowCreateBuffet(false)} className="btn-outline">Cancel</button>
-              <button type="submit" className="btn-primary">Create Buffet</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  };
-
-  // ============================================
-  // SECTION RENDERERS
-  // ============================================
   const renderOverview = () => (
     <>
       <div className="mb-8">
@@ -890,11 +516,11 @@ function HotelDashboard() {
           <div>
             <h1 className="font-headline-lg text-headline-lg text-text-deep-green">Welcome Back!</h1>
             <p className="font-body-md text-body-md text-on-surface-variant">
-              {hotel?.hotelName || "Hotel"} â€¢ {formatDate(new Date())}
+              {hotel?.hotelName || "Hotel"} • {formatDate(new Date())}
             </p>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => setShowCreateBuffet(true)} className="btn-primary flex items-center gap-2">
+            <button onClick={() => navigate("/hotel/create")} className="btn-primary flex items-center gap-2">
               <span className="material-symbols-outlined text-[18px]">add</span>
               New Buffet
             </button>
@@ -914,7 +540,7 @@ function HotelDashboard() {
           <p className="font-label-sm text-label-sm text-secondary">{summary.confirmedBookings} confirmed</p>
         </div>
         <div className="card-ambient p-4 text-center hover:shadow-ambient-lg transition-shadow bg-gradient-to-br from-surface-container-lowest to-surface-container-low">
-          <p className="font-label-sm text-label-sm text-on-surface-variant">Revenue</p>
+          <p className="font-label-sm text-label-sm text-on-surface-variant">Reservation value</p>
           <p className="font-headline-md text-headline-md text-highlight-gold">{money(summary.revenue)}</p>
           <p className="font-label-sm text-label-sm text-secondary">Collected: {money(summary.collectedRevenue)}</p>
         </div>
@@ -931,7 +557,7 @@ function HotelDashboard() {
         <div className="card-ambient p-4 text-center hover:shadow-ambient-lg transition-shadow">
           <p className="font-label-sm text-label-sm text-on-surface-variant">Reviews</p>
           <p className="font-headline-lg text-headline-lg text-text-deep-green">{summary.reviews}</p>
-          <p className="font-label-sm text-label-sm text-secondary">â­ {summary.avgRating.toFixed(1)} avg</p>
+          <p className="font-label-sm text-label-sm text-secondary">★ {summary.avgRating.toFixed(1)} avg</p>
         </div>
         <div className="card-ambient p-4 text-center hover:shadow-ambient-lg transition-shadow">
           <p className="font-label-sm text-label-sm text-on-surface-variant">Customers</p>
@@ -939,6 +565,14 @@ function HotelDashboard() {
         </div>
       </div>
 
+      <section className="df-hotel-next-steps" aria-label="Operational shortcuts">
+        <div><span className="df-hotel-eyebrow">THE NEXT BEST ACTION</span><h2>Keep your dining service ready</h2><p>Keep buffet schedules accurate, review incoming reservations and prepare your QR check-in desk.</p></div>
+        <div className="df-hotel-next-links">
+          <button type="button" onClick={() => navigate("/hotel/buffets")}>Review buffet availability <span aria-hidden="true">→</span></button>
+          <button type="button" onClick={() => navigate("/hotel/reservations")}>Check guest reservations <span aria-hidden="true">→</span></button>
+        </div>
+      </section>
+      <PartnerOverview bookings={bookings} buffets={buffets} headers={headers} today={sriLankaToday()} />
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Bookings */}
@@ -957,7 +591,7 @@ function HotelDashboard() {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="font-label-md text-label-md text-text-deep-green">{b.buffet?.title || "Buffet"}</p>
-                  <p className="font-label-sm text-label-sm text-on-surface-variant">{b.user?.name || "Guest"} â€¢ {formatDate(b.selectedDate)}</p>
+                  <p className="font-label-sm text-label-sm text-on-surface-variant">{b.user?.name || "Guest"} • {formatDate(b.selectedDate)}</p>
                   <p className="font-label-sm text-label-sm text-on-surface-variant">{b.bookingCode}</p>
                 </div>
                 <div className="text-right">
@@ -975,7 +609,7 @@ function HotelDashboard() {
           <div className="card-ambient p-6">
             <h3 className="font-headline-md text-headline-md text-text-deep-green mb-4">Quick Actions</h3>
             <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => setShowCreateBuffet(true)} className="btn-secondary flex items-center justify-center gap-2 p-4">
+              <button onClick={() => navigate("/hotel/create")} className="btn-secondary flex items-center justify-center gap-2 p-4">
                 <span className="material-symbols-outlined text-[20px]">add</span>
                 Create Buffet
               </button>
@@ -1033,14 +667,15 @@ function HotelDashboard() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-4">
+      <div className="df-reservation-filters flex flex-wrap gap-3 mb-4">
         <input
           value={bookingSearch}
           onChange={(e) => setBookingSearch(e.target.value)}
-          placeholder="Search code, customer, buffet..."
+          aria-label="Search reservations"
+          placeholder="Search code, guest or buffet…"
           className="form-input flex-1 min-w-[200px]"
         />
-        <select value={bookingFilter} onChange={(e) => setBookingFilter(e.target.value)} className="form-select w-auto">
+        <select aria-label="Reservation status" value={bookingFilter} onChange={(e) => setBookingFilter(e.target.value)} className="form-select w-auto">
           {Object.keys(bookingStatusLabels).map((status) => (
             <option key={status} value={status}>{bookingStatusLabels[status]}</option>
           ))}
@@ -1050,17 +685,20 @@ function HotelDashboard() {
           value={dateRange.start}
           onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
           className="form-input w-auto"
-          placeholder="Start Date"
+          aria-label="From date"
         />
         <input
           type="date"
           value={dateRange.end}
           onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
           className="form-input w-auto"
-          placeholder="End Date"
+          aria-label="To date"
         />
         <button onClick={() => { setBookingSearch(""); setBookingFilter("all"); setDateRange({ start: "", end: "" }); }} className="btn-outline">
           Reset
+        </button>
+        <button type="button" onClick={exportReservationsCsv} disabled={!filteredBookings.length} className="btn-outline df-export-button" title="Download the filtered reservations as CSV">
+          <span className="material-symbols-outlined text-[18px]">download</span> Export CSV ({filteredBookings.length})
         </button>
       </div>
 
@@ -1087,7 +725,7 @@ function HotelDashboard() {
       {/* Table */}
       <div className="card-ambient overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full df-portal-reservation-table">
             <thead className="bg-surface-container-low">
               <tr>
                 <th className="text-left p-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Booking</th>
@@ -1102,25 +740,37 @@ function HotelDashboard() {
             <tbody>
               {filteredBookings.map((b) => (
                 <tr key={b._id} className="border-t border-border-subtle hover:bg-surface-container-low/50">
-                  <td className="p-4">
+                  <td data-label="Reference" className="p-4">
                     <p className="font-label-sm text-label-sm text-text-deep-green font-medium">{b.bookingCode}</p>
                     <p className="font-label-sm text-label-sm text-on-surface-variant">{formatDate(b.createdAt)}</p>
                   </td>
-                  <td className="p-4">
-                    <p className="font-body-md text-body-md text-text-deep-green">{b.user?.name || "-"}</p>
-                    <p className="font-label-sm text-label-sm text-on-surface-variant">{b.user?.email || ""}</p>
+                  <td data-label="Guest" className="p-4">
+                    <p className="font-body-md text-body-md text-text-deep-green">{b.guestDetails?.name || b.user?.name || "-"}</p>
+                    {(b.specialRequests?.occasion || b.specialRequests?.seating || b.specialRequests?.highChair ||
+                      b.specialRequests?.wheelchairAccess || b.specialRequests?.additionalNotes ||
+                      (b.specialRequests?.shareDietary && b.specialRequests?.dietaryNotes)) && (
+                      <details className="mt-2 max-w-xs whitespace-pre-wrap break-words text-sm">
+                        <summary className="cursor-pointer font-medium">Guest requests</summary>
+                        {b.specialRequests.occasion && <p>Occasion · {b.specialRequests.occasion}</p>}
+                        {b.specialRequests.seating && <p>Seating · {b.specialRequests.seating}</p>}
+                        {b.specialRequests.highChair && <p>High chair requested</p>}
+                        {b.specialRequests.wheelchairAccess && <p>Wheelchair access requested</p>}
+                        {b.specialRequests.additionalNotes && <p>{b.specialRequests.additionalNotes}</p>}
+                        {b.specialRequests.shareDietary && b.specialRequests.dietaryNotes && <p>Dietary note · {b.specialRequests.dietaryNotes}</p>}
+                      </details>
+                    )}
                   </td>
-                  <td className="p-4">
+                  <td data-label="Buffet" className="p-4">
                     <p className="font-body-md text-body-md text-text-deep-green">{b.buffet?.title || "-"}</p>
                     <p className="font-label-sm text-label-sm text-on-surface-variant">{b.selectedTimeSlot?.startTime} - {b.selectedTimeSlot?.endTime}</p>
                   </td>
-                  <td className="p-4">
+                  <td data-label="Date" className="p-4">
                     <p className="font-body-md text-body-md text-text-deep-green">{formatDate(b.selectedDate)}</p>
                     <p className="font-label-sm text-label-sm text-on-surface-variant">{b.seats} seats</p>
                   </td>
-                  <td className="p-4 font-label-md text-label-md text-highlight-gold">{money(b.totalAmount)}</td>
-                  <td className="p-4"><span className={`status-pill ${getStatusColor(b.bookingStatus)}`}>{b.bookingStatus}</span></td>
-                  <td className="p-4">
+                  <td data-label="Total" className="p-4 font-label-md text-label-md text-highlight-gold">{money(b.totalAmount)}</td>
+                  <td data-label="Status" className="p-4"><span className={`status-pill ${getStatusColor(b.bookingStatus)}`}>{b.bookingStatus}</span></td>
+                  <td data-label="Actions" className="p-4">
                     <div className="flex flex-wrap gap-2">
                       {b.bookingStatus === "confirmed" && (
                         <button
@@ -1140,17 +790,19 @@ function HotelDashboard() {
                       )}
                       {!["cancelled", "no_show", "completed"].includes(b.bookingStatus) && (
                         <button
-                          onClick={() => updateBookingStatus(b._id, "cancelled")}
+                          onClick={() => cancellationAction(b._id, "operator-cancel")}
                           className="bg-error/10 text-error text-xs px-3 py-1 rounded-full hover:bg-error/20"
                         >
                           Cancel
                         </button>
                       )}
+                      {b.bookingStatus === "confirmed" && <button onClick={() => cancellationAction(b._id, "no-show")} className="bg-error/10 text-error text-xs px-3 py-1 rounded-full hover:bg-error/20">No Show</button>}
                       <button
                         onClick={() => {
                           setDeleteTarget({ type: "booking", id: b._id, name: b.bookingCode });
                           setShowDeleteConfirm(true);
                         }}
+                        aria-label={`Delete reservation ${b.bookingCode}`}
                         className="text-on-surface-variant hover:text-error text-xs"
                       >
                         <span className="material-symbols-outlined text-[16px]">delete</span>
@@ -1164,6 +816,7 @@ function HotelDashboard() {
         </div>
         {!filteredBookings.length && renderEmpty("No bookings found", "Try another search or status filter.", "search_off")}
       </div>
+      <CancellationCasesPanel role="hotel" headers={headers} refreshKey={bookings.map((item) => `${item._id}:${item.bookingStatus}`).join("|")} />
     </>
   );
 
@@ -1172,30 +825,11 @@ function HotelDashboard() {
       headers={headers}
       setMessage={setMessage}
       setMessageType={setMessageType}
-      onCreate={() => setShowCreateBuffet(true)}
+      onCreate={() => navigate("/hotel/create")}
       onChanged={fetchAll}
     />
   );
 
-
-  const renderCreateSection = () => (
-    <div className="space-y-6">
-      <div className="card-ambient p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-5">
-        <div>
-          <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">Buffet publishing</span>
-          <h2 className="font-headline-lg text-headline-lg text-text-deep-green mt-2">Create a new buffet experience</h2>
-          <p className="font-body-md text-body-md text-on-surface-variant mt-2 max-w-2xl">
-            Add schedule, seating capacity, pricing and availability without leaving the hotel portal.
-          </p>
-        </div>
-        <button onClick={() => setShowCreateBuffet(true)} className="btn-primary flex items-center justify-center gap-2">
-          <span className="material-symbols-outlined">add_circle</span>
-          Open Buffet Creator
-        </button>
-      </div>
-      {renderBuffets()}
-    </div>
-  );
 
   const renderMediaSection = () => {
     const media = [hotel?.logo, hotel?.coverMediaUrl, ...(hotel?.galleryImages || []), ...(hotel?.images || [])].filter(Boolean);
@@ -1240,9 +874,9 @@ function HotelDashboard() {
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                 <div>
                   <h3 className="font-headline-md text-headline-md text-text-deep-green">{review.user?.name || "Guest"}</h3>
-                  <p className="text-sm text-on-surface-variant">{review.buffet?.title || "Hotel review"} â€¢ {formatDate(review.createdAt)}</p>
+                  <p className="text-sm text-on-surface-variant">{review.buffet?.title || "Hotel review"} • {formatDate(review.createdAt)}</p>
                 </div>
-                <span className="badge-gold">â˜… {Number(review.rating || 0).toFixed(1)}</span>
+                <span className="badge-gold">★ {Number(review.rating || 0).toFixed(1)}</span>
               </div>
               <p className="mt-4 text-on-surface-variant leading-relaxed">{review.comment || review.reviewText || "No written comment."}</p>
               {review.hotelReply?.message && (
@@ -1288,7 +922,7 @@ function HotelDashboard() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[650px]">
                 <thead><tr className="text-left bg-surface-container-low"><th className="p-4">Buffet</th><th className="p-4">Bookings</th><th className="p-4">Seats</th><th className="p-4">Revenue</th><th className="p-4">Rating</th></tr></thead>
-                <tbody>{analytics.buffetPerformance.map((item) => <tr key={item.buffetId} className="border-t border-border-subtle"><td className="p-4 font-medium">{item.title}</td><td className="p-4">{item.bookings}</td><td className="p-4">{item.seats}</td><td className="p-4">{money(item.revenue)}</td><td className="p-4">â˜… {Number(item.rating || 0).toFixed(1)}</td></tr>)}</tbody>
+                <tbody>{analytics.buffetPerformance.map((item) => <tr key={item.buffetId} className="border-t border-border-subtle"><td className="p-4 font-medium">{item.title}</td><td className="p-4">{item.bookings}</td><td className="p-4">{item.seats}</td><td className="p-4">{money(item.revenue)}</td><td className="p-4">★ {Number(item.rating || 0).toFixed(1)}</td></tr>)}</tbody>
               </table>
             </div>
           </div>
@@ -1310,7 +944,7 @@ function HotelDashboard() {
         <div className="card-ambient p-5"><p className="text-sm text-on-surface-variant">Pending</p><strong className="text-2xl text-text-deep-green">{money(summary.pendingPayments)}</strong></div>
       </div>
       {payments.length ? (
-        <div className="card-ambient overflow-hidden"><div className="overflow-x-auto"><table className="w-full min-w-[760px]"><thead><tr className="text-left bg-surface-container-low"><th className="p-4">Invoice</th><th className="p-4">Customer</th><th className="p-4">Method</th><th className="p-4">Amount</th><th className="p-4">Hotel earning</th><th className="p-4">Status</th></tr></thead><tbody>{payments.map((payment) => <tr key={payment._id} className="border-t border-border-subtle"><td className="p-4">{payment.invoiceNumber || "Pending"}</td><td className="p-4">{payment.user?.name || payment.user?.email || "Customer"}</td><td className="p-4">{String(payment.gateway || "pay_at_hotel").replaceAll("_", " ")}</td><td className="p-4">{money(payment.amount)}</td><td className="p-4">{money(payment.hotelEarning)}</td><td className="p-4"><span className={`status-pill ${payment.status === "paid" ? "approved" : payment.status === "failed" ? "rejected" : "pending"}`}>{payment.status}</span></td></tr>)}</tbody></table></div></div>
+        <div className="card-ambient overflow-hidden"><div className="overflow-x-auto"><table className="w-full min-w-[760px]"><thead><tr className="text-left bg-surface-container-low"><th className="p-4">Invoice</th><th className="p-4">Customer</th><th className="p-4">Method</th><th className="p-4">Amount</th><th className="p-4">Hotel earning</th><th className="p-4">Status</th></tr></thead><tbody>{payments.map((payment) => <tr key={payment._id} className="border-t border-border-subtle"><td className="p-4">{payment.invoiceNumber || "Pending"}</td><td className="p-4">{payment.user?.name || "Customer"}</td><td className="p-4">{String(payment.gateway || "pay_at_hotel").replaceAll("_", " ")}</td><td className="p-4">{money(payment.amount)}</td><td className="p-4">{money(payment.hotelEarning)}</td><td className="p-4"><span className={`status-pill ${payment.status === "paid" ? "approved" : payment.status === "failed" ? "rejected" : "pending"}`}>{payment.status}</span></td></tr>)}</tbody></table></div></div>
       ) : renderEmpty("No payment records yet", "Payment records will appear after reservations are created.", "payments")}
     </div>
   );
@@ -1336,10 +970,10 @@ function HotelDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20">
+    <div className="df-hotel-suite min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20">
       <div className="flex min-h-[calc(100vh-5rem)]">
         {/* Sidebar */}
-        <aside className="hidden md:flex flex-col w-64 fixed left-0 top-20 h-[calc(100vh-5rem)] bg-surface-container-lowest border-r border-border-subtle overflow-y-auto">
+        <aside className="df-hotel-sidebar hidden md:flex flex-col w-64 fixed left-0 top-20 h-[calc(100vh-5rem)] bg-surface-container-lowest border-r border-border-subtle overflow-y-auto">
           <div className="p-6 border-b border-border-subtle">
             {hotel?.logo ? (
               <img src={hotel.logo} alt={hotel.hotelName} className="w-12 h-12 rounded-full object-cover mb-2" />
@@ -1398,23 +1032,37 @@ function HotelDashboard() {
         </aside>
 
         {/* Main Content */}
-        <div className="flex-1 md:ml-64 p-4 sm:p-6 md:p-8">
-          <nav className="df-mobile-section-tabs md:hidden" aria-label="Hotel portal sections">
-            {hotelSections.map((section) => (
-              <NavLink key={section.key} to={section.path} end={section.path === "/hotel"} className={({ isActive }) => `df-mobile-section-tab ${isActive ? "is-active" : ""}`}>
-                <span className="material-symbols-outlined">{section.icon}</span><span>{section.label}</span>
-              </NavLink>
-            ))}
-          </nav>
+        <div className="df-hotel-main flex-1 md:ml-64 p-4 sm:p-6 md:p-8">
+          <label className="df-portal-mobile-nav md:hidden">
+            <span>Workspace section</span>
+            <select className="form-select" value={currentSection.path} onChange={(event) => navigate(event.target.value)}>
+              {hotelSections.map((section) => <option key={section.key} value={section.path}>{section.label}</option>)}
+            </select>
+          </label>
+          <section className={`df-hotel-heading ${["overview","create"].includes(currentSection.key)?"has-art":"is-compact"}`} aria-label="Hotel workspace">
+            <div className="df-hotel-heading-copy">
+              <span className="df-hotel-eyebrow">DINEFOR PARTNER WORKSPACE · {hotel?.status || "Application"}</span>
+              <h1>{currentSection.label}</h1>
+              <p>{hotel?.hotelName || "Your hotel"} · Manage buffet experiences, reservations and guest service from one place.</p>
+              <div className="df-hotel-heading-actions">
+                <button type="button" onClick={() => navigate("/hotel/reservations")}><span className="material-symbols-outlined">event_seat</span> Reservations</button>
+                <button type="button" onClick={() => navigate("/hotel/buffets")}><span className="material-symbols-outlined">restaurant_menu</span> Buffets</button>
+                <button type="button" onClick={() => navigate("/hotel/check-in")}><span className="material-symbols-outlined">qr_code_scanner</span> QR desk</button>
+              </div>
+            </div>
+            {["overview","create"].includes(currentSection.key) && <div className="df-hotel-heading-art"><CrewArt role={currentSection.key === "create" ? "chef" : "host"} /></div>}
+          </section>
           {renderMessage()}
           {renderDeleteConfirmModal()}
-          {renderCreateBuffetModal()}
 
           {currentSection.key === "overview" && renderOverview()}
           {currentSection.key === "reservations" && renderReservations()}
           {currentSection.key === "buffets" && renderBuffets()}
 
-          {currentSection.key === "create" && renderCreateSection()}
+          {currentSection.key === "create" && <BuffetCreationWizard headers={headers} onCreated={() => {
+            navigate("/hotel/buffets");
+            fetchAll();
+          }} />}
           {currentSection.key === "media" && (
             <HotelMediaWorkspace
               hotel={hotel}
@@ -1433,8 +1081,8 @@ function HotelDashboard() {
               setMessageType={setMessageType}
             />
           )}
-          {currentSection.key === "analytics" && renderAnalyticsSection()}
-          {currentSection.key === "finance" && renderFinanceSection()}
+          {currentSection.key === "analytics" && <HotelAnalyticsPanel />}
+          {currentSection.key === "finance" && <HotelFinancePanel />}
           {currentSection.key === "settings" && (
             <HotelSettingsWorkspace
               hotel={hotel}

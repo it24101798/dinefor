@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 
 export const evaluatePassword = (password = "") => {
   const checks = {
-    length: password.length >= 8,
+    length: password.length >= 8 && new TextEncoder().encode(password).length <= 72,
     lower: /[a-z]/.test(password),
     upper: /[A-Z]/.test(password),
     number: /\d/.test(password),
@@ -97,7 +97,7 @@ export default function PasswordField({
           </div>
           <div className="grid sm:grid-cols-2 gap-1 mt-2 text-xs text-on-surface-variant">
             {[
-              ["length", "8+ characters"],
+              ["length", "8+ characters, up to 72 bytes"],
               ["upper", "Uppercase letter"],
               ["lower", "Lowercase letter"],
               ["number", "Number"],

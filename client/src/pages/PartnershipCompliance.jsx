@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import React, { useEffect, useMemo, useState } from "react";
 import api from "../services/api";
 
@@ -163,7 +164,7 @@ export default function PartnershipCompliance() {
 
   if (loading)
     return (
-      <main className="min-h-screen pt-24 px-margin-mobile md:px-margin-desktop">
+      <main className="df-compliance-page min-h-screen pt-24 px-margin-mobile md:px-margin-desktop">
         <div className="card-ambient p-8 animate-pulse">
           Loading partnership...
         </div>
@@ -174,7 +175,7 @@ export default function PartnershipCompliance() {
 
   if (!hotel)
     return (
-      <main className="min-h-screen pt-24 px-margin-mobile md:px-margin-desktop">
+      <main className="df-compliance-page min-h-screen pt-24 px-margin-mobile md:px-margin-desktop">
         <div className="card-ambient p-8">
           {message || "Hotel application not found."}
         </div>
@@ -187,7 +188,7 @@ export default function PartnershipCompliance() {
   );
 
   return (
-    <main className="df-partnership-page min-h-screen bg-surface-cream pt-24 pb-28 px-margin-mobile md:px-margin-desktop">
+    <main className="df-compliance-page df-partnership-page min-h-screen bg-surface-cream pt-24 pb-28 px-margin-mobile md:px-margin-desktop">
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
           <span className="badge-gold">Hotel Partnership</span>
@@ -217,6 +218,10 @@ export default function PartnershipCompliance() {
                   hotel.partnershipStatus || "application_submitted"
                 )}
               </h2>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {hotel.invitedOnboarding && <Link className="btn-outline" to="/hotel/bank-details">Settlement account</Link>}
+              {hotel.portalAccess && <Link className="btn-outline" to="/hotel/staff">Staff invitations</Link>}
             </div>
             <span className="status-pill bg-secondary-container text-text-deep-green">
               {hotel.portalAccess ? "Portal enabled" : "Activation pending"}
@@ -297,6 +302,7 @@ export default function PartnershipCompliance() {
                       {agreement.terms?.settlementCycle || "Monthly"}
                     </dd>
                   </div>
+                  {agreement.signedDueAt && <div><dt>Signed copy requested by</dt><dd>{new Intl.DateTimeFormat("en-GB", { dateStyle: "long", timeZone: "Asia/Colombo" }).format(new Date(agreement.signedDueAt))}</dd></div>}
                 </dl>
               </div>
 

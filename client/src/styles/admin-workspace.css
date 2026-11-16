@@ -1,0 +1,57 @@
+.df-admin-suite .df-admin-sidebar {
+  background: #063e40 !important;
+  color: #e5f5ef;
+  border-color: #145759 !important;
+}
+.df-admin-suite .df-admin-sidebar :is(h2, p, span, button, a) { color: inherit; }
+.df-admin-suite .df-admin-sidebar > div { border-color: #356769; }
+.df-admin-suite .df-admin-sidebar nav a {
+  color: #e5f5ef !important;
+  background: transparent !important;
+  border: 1px solid transparent;
+  min-height: 44px;
+}
+.df-admin-suite .df-admin-sidebar nav a:hover { background: #164e51 !important; }
+.df-admin-suite .df-admin-sidebar nav a[aria-current="page"] {
+  background: #d5efe8 !important;
+  color: #063e40 !important;
+  border-color: #d5efe8;
+}
+.df-admin-suite .df-admin-sidebar a:focus-visible, .df-admin-suite .df-admin-sidebar button:focus-visible {
+  outline: 2px solid #a4efdd;
+  outline-offset: 2px;
+}
+.df-admin-suite .df-admin-sidebar .status-pill,
+.df-admin-suite .df-admin-sidebar > div button { background: #d5efe8; color: #063e40; }
+.df-admin-suite .df-admin-main { min-width: 0; }
+.df-admin-shortcuts, .df-admin-audit-filters, .df-admin-audit-pages, .df-finance-stages { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; }
+.df-admin-shortcuts { margin-bottom: 1.5rem; }
+.df-admin-shortcuts a { display: inline-flex; align-items: center; min-height: 44px; }
+.df-admin-audit { padding: clamp(1rem, 3vw, 1.75rem); }
+.df-admin-audit-filters { align-items: end; padding-bottom: 1rem; }
+.df-admin-audit-filters label { display: grid; gap: .4rem; flex: 1 1 12rem; min-width: 0; }
+.df-admin-audit-filters input { width: 100%; min-width: 0; }
+.df-admin-audit-events { list-style: none; margin: 0; padding: 0; }
+.df-admin-audit-events li {
+  border-top: 1px solid #d2e5de;
+  padding: .85rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem 1rem;
+  justify-content: space-between;
+  overflow-wrap: anywhere;
+}
+.df-admin-audit-events strong { text-transform: capitalize; }
+.df-admin-audit-events time { display: block; color: #456460; font-size: .85rem; }
+.df-admin-audit-pages { justify-content: space-between; padding-top: 1rem; }
+.df-admin-mobile-nav { display: none; }
+.df-finance-stages button[aria-pressed="true"] { background: #063e40; color: #fff; }
+.df-finance-stage-group { margin-top: 1.25rem; }
+.df-finance-row-actions { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+.df-finance-row-actions button { min-height: 40px; }
+@media (max-width: 767px) {
+  .df-admin-mobile-nav { display: grid; gap: .4rem; margin-bottom: 1rem; }
+  .df-admin-mobile-nav select { width: 100%; min-width: 0; }
+}
+.df-admin-suite :is(#settlement-batches, #payment-ledger, #finance-reconciliation) { scroll-margin-top: 6rem; }
+.df-admin-suite .payment-table td:first-child { overflow-wrap: anywhere; }

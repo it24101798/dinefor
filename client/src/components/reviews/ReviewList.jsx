@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import api from "../../services/api";
+import { toImageUrl } from "../../utils/media";
 
 const categoryLabels = {
   food: "Food",
@@ -7,6 +8,24 @@ const categoryLabels = {
   ambience: "Ambience",
   value: "Value",
 };
+
+// Shows the reviewer photo when it loads, otherwise their initial.
+function ReviewAvatar({ user }) {
+  const [failed, setFailed] = useState(false);
+  const src = toImageUrl(user?.avatarUrl);
+  if (src && !failed) {
+    return (
+      <img
+        src={src}
+        alt={user?.name || "Guest avatar"}
+        className="w-full h-full object-cover"
+        loading="lazy"
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+  return <>{user?.name?.[0]?.toUpperCase() || "G"}</>;
+}
 
 function StarRow({ value, size = "text-[18px]" }) {
   const rating = Math.round(Number(value || 0));
@@ -272,15 +291,7 @@ export default function ReviewList({
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                 <div className="flex gap-3">
                   <div className="w-11 h-11 rounded-full overflow-hidden bg-secondary-container/30 text-secondary grid place-items-center font-semibold shrink-0">
-                    {review.user?.avatarUrl ? (
-                      <img
-                        src={review.user.avatarUrl}
-                        alt={review.user.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      review.user?.name?.[0]?.toUpperCase() || "G"
-                    )}
+                    <ReviewAvatar user={review.user} />
                   </div>
 
                   <div>

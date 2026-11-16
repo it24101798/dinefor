@@ -5,6 +5,8 @@ const hotelSchema = new mongoose.Schema(
   {
     owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
+    onboardingApplication: { type: mongoose.Schema.Types.ObjectId, ref: "HotelOnboarding", sparse: true, unique: true, select: false },
+
     hotelName: { type: String, required: true, trim: true },
     slug: { type: String, trim: true, lowercase: true, unique: true, sparse: true, index: true },
     location: { type: String, required: true, trim: true },
@@ -70,6 +72,34 @@ const hotelSchema = new mongoose.Schema(
       ],
     },
 
+    paymentPolicy: {
+      acceptedModes: {
+        type: [String],
+        enum: ["pay_at_hotel", "deposit", "full_payment"],
+        default: ["pay_at_hotel"],
+      },
+      depositRate: { type: Number, default: 20, min: 1, max: 100 },
+      paymentExpiryMinutes: { type: Number, default: 15, min: 5, max: 60 },
+      settlementFrequency: { type: String, enum: ["weekly", "fortnightly", "monthly"], default: "weekly" },
+      updatedAt: { type: Date, default: null },
+    },
+
+    cancellationPolicy: {
+      freeCancellationHours: { type: Number, default: 24, min: 0, max: 168 },
+      lateCancellationHours: { type: Number, default: 6, min: 0, max: 72 },
+      lateRefundPercent: { type: Number, default: 50, min: 0, max: 100 },
+      lastMinuteRefundPercent: { type: Number, default: 0, min: 0, max: 100 },
+      depositRefundableWithinFreeWindow: { type: Boolean, default: true },
+      hotelCancellationRefundPercent: { type: Number, default: 100, min: 0, max: 100 },
+      noShowRefundPercent: { type: Number, default: 0, min: 0, max: 100 },
+      allowCustomerReschedule: { type: Boolean, default: true },
+      rescheduleCutoffHours: { type: Number, default: 12, min: 0, max: 168 },
+      maxCustomerReschedules: { type: Number, default: 1, min: 0, max: 10 },
+      noShowGraceMinutes: { type: Number, default: 30, min: 0, max: 240 },
+      autoApprovePolicyRefunds: { type: Boolean, default: false },
+      updatedAt: { type: Date, default: null },
+    },
+
     partnershipStatus: {
       type: String,
       enum: [
@@ -123,9 +153,8 @@ const hotelSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-hotelSchema.pre("validate", function ensureSeoSlug(next) {
+hotelSchema.pre("validate", function ensureSeoSlug() {
   if (!this.slug && this.hotelName) this.slug = buildDocumentSlug(this.hotelName, this._id);
-  next();
 });
 
 module.exports = mongoose.model("Hotel", hotelSchema);

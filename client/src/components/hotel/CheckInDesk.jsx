@@ -1,3 +1,4 @@
+import QrScanner from "./QrScanner";
 import React, { useState } from "react";
 import api from "../../services/api";
 import { Link } from "react-router-dom";
@@ -47,11 +48,13 @@ function CheckInDesk({ bookings = [], onChanged, setMessage }) {
   // HANDLERS
   // ============================================
   const handleSearch = async () => {
+    if (loading) return;
     if (!searchCode.trim()) {
       setMessage("Please enter a booking code.");
       return;
     }
 
+    setSelectedBooking(null);
     setLoading(true);
     try {
       const res = await api.get(`/bookings/verify/${searchCode.trim()}`, { headers });
@@ -72,7 +75,7 @@ function CheckInDesk({ bookings = [], onChanged, setMessage }) {
   };
 
   const handleCheckIn = async () => {
-    if (!selectedBooking) return;
+    if (!selectedBooking || checkingIn || selectedBooking.bookingStatus !== "confirmed" || selectedBooking.qrUsed) return;
 
     setCheckingIn(true);
     try {
@@ -249,14 +252,15 @@ function CheckInDesk({ bookings = [], onChanged, setMessage }) {
         <div className="flex flex-col md:flex-row gap-3">
           <input
             value={searchCode}
-            onChange={(e) => setSearchCode(e.target.value.toUpperCase())}
+            onChange={(e) => {setSearchCode(e.target.value.toUpperCase());setSelectedBooking(null);}}
+            aria-label="Booking code"
             placeholder="Enter booking code (e.g. DF-2024-001)"
             className="form-input flex-1"
             onKeyPress={handleKeyPress}
           />
           <button
             onClick={handleSearch}
-            disabled={loading}
+            disabled={loading || checkingIn}
             className="btn-primary flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-[18px]">search</span>
@@ -264,16 +268,7 @@ function CheckInDesk({ bookings = [], onChanged, setMessage }) {
           </button>
         </div>
 
-        {/* QR Scanner Placeholder */}
-        <div className="mt-4 p-6 rounded-xl border-2 border-dashed border-border-subtle bg-surface-container-low text-center">
-          <span className="material-symbols-outlined text-4xl text-outline">qr_code_scanner</span>
-          <p className="font-body-md text-body-md text-on-surface-variant mt-2">
-            QR scanner integration coming soon
-          </p>
-          <p className="font-label-sm text-label-sm text-outline">
-            Manually enter the booking code above
-          </p>
-        </div>
+        <QrScanner onCode={code => {setSearchCode(code);setSelectedBooking(null);}} />
       </div>
 
       {/* Selected Booking */}

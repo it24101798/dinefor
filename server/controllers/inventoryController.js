@@ -217,14 +217,8 @@ exports.getAvailabilityCalendar = async (req, res) => {
       "hotelName status isApproved"
     );
 
-    if (!buffet) {
+    if (!buffet?.isActive || (buffet.status && buffet.status !== "active") || buffet.hotel?.status !== "approved") {
       return res.status(404).json({ message: "Buffet not found." });
-    }
-
-    if (!buffet.isActive || buffet.status !== "active") {
-      return res.status(400).json({
-        message: "This buffet is not currently open for reservations.",
-      });
     }
 
     const requestedStart =
@@ -246,6 +240,7 @@ exports.getAvailabilityCalendar = async (req, res) => {
 
       dates.push({
         ...availability,
+        slots: availability.slots.map(({ overrideReason, ...slot }) => slot),
         canFitGuests:
           availability.slots.some(
             (slot) => Number(slot.availableSeats || 0) >= guests
@@ -356,6 +351,8 @@ exports.updateInventoryOverride = async (req, res) => {
       Number(inventory.totalSeats || 0) - Number(inventory.availableSeats || 0)
     );
 
+    const update = { overrideUpdatedAt: new Date(), overrideUpdatedBy: req.user.id };
+
     if (req.body.totalSeats !== undefined) {
       const requestedTotal = Number(req.body.totalSeats);
 
@@ -365,33 +362,34 @@ exports.updateInventoryOverride = async (req, res) => {
         });
       }
 
-      inventory.totalSeats = requestedTotal;
-      inventory.availableSeats = Math.max(
+      update.totalSeats = requestedTotal;
+      update.availableSeats = Math.max(
         requestedTotal - currentlyReserved,
         0
       );
     }
 
     if (req.body.isClosed !== undefined) {
-      inventory.isClosed = Boolean(req.body.isClosed);
+      update.isClosed = Boolean(req.body.isClosed);
     }
 
     if (req.body.overrideReason !== undefined) {
-      inventory.overrideReason = String(req.body.overrideReason || "")
+      update.overrideReason = String(req.body.overrideReason || "")
         .trim()
         .slice(0, 300);
     }
 
-    inventory.overrideUpdatedAt = new Date();
-    inventory.overrideUpdatedBy = req.user.id;
-
-    await inventory.save();
+    const updated = await BuffetSeatInventory.findOneAndUpdate({
+      _id: inventory._id, totalSeats: inventory.totalSeats, availableSeats: inventory.availableSeats,
+      isClosed: inventory.isClosed, overrideUpdatedAt: inventory.overrideUpdatedAt || null,
+    }, { $set: update }, { new: true });
+    if (!updated) return res.status(409).json({ message: "The reservation inventory changed. Refresh and try again." });
 
     return res.json({
-      message: inventory.isClosed
+      message: updated.isClosed
         ? "This buffet slot is closed for the selected date."
         : "Inventory exception updated successfully.",
-      inventory: buildSlot(inventory, slot),
+      inventory: buildSlot(updated, slot),
     });
   } catch (error) {
     return res.status(500).json({
@@ -405,6 +403,7 @@ exports.resetInventoryOverride = async (req, res) => {
   try {
     const { buffetId, dateKey, slotId } = req.params;
     const normalizedDate = normalizeDateKey(dateKey);
+    if (!normalizedDate) return res.status(400).json({ message: "Valid inventory date required." });
 
     const buffet = await Buffet.findById(buffetId);
     if (!buffet) return res.status(404).json({ message: "Buffet not found." });
@@ -431,21 +430,20 @@ exports.resetInventoryOverride = async (req, res) => {
       slot,
     });
 
-    inventory.totalSeats = Number(slot.totalSeats || 0);
-    inventory.availableSeats = Math.max(
-      Number(slot.totalSeats || 0) - bookedSeats,
-      0
-    );
-    inventory.isClosed = false;
-    inventory.overrideReason = "";
-    inventory.overrideUpdatedAt = new Date();
-    inventory.overrideUpdatedBy = req.user.id;
-
-    await inventory.save();
+    const defaultSeats = Number(slot.totalSeats || 0);
+    if (defaultSeats < bookedSeats) {
+      return res.status(409).json({ message: `Default capacity is below the ${bookedSeats} reserved guests.` });
+    }
+    const updated = await BuffetSeatInventory.findOneAndUpdate({
+      _id: inventory._id, totalSeats: inventory.totalSeats, availableSeats: inventory.availableSeats,
+      isClosed: inventory.isClosed, overrideUpdatedAt: inventory.overrideUpdatedAt || null,
+    }, { $set: { totalSeats: defaultSeats, availableSeats: defaultSeats - bookedSeats, isClosed: false,
+      overrideReason: "", overrideUpdatedAt: new Date(), overrideUpdatedBy: req.user.id } }, { new: true });
+    if (!updated) return res.status(409).json({ message: "The reservation inventory changed. Refresh and try again." });
 
     return res.json({
       message: "Inventory returned to the buffet's default capacity.",
-      inventory: buildSlot(inventory, slot),
+      inventory: buildSlot(updated, slot),
     });
   } catch (error) {
     return res.status(500).json({

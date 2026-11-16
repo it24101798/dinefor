@@ -1,0 +1,56 @@
+/* DineFor combined redesign: revisions 12–15; style-only, no checkout/settlement changes */
+.df-hotel-suite { --df-ink:#0b3735; --df-teal:#006b63; --df-line:#d9e9e3; --df-mist:#e7f7f1; background: #f7faf8; }
+.df-hotel-suite .df-hotel-sidebar {background:#fff; border-color:var(--df-line);}
+.df-hotel-suite .df-hotel-sidebar nav a {border-radius:14px; margin-bottom:3px;}
+.df-hotel-suite .df-hotel-main {min-width:0; max-width:100%;}
+.df-hotel-suite .card-ambient {border:1px solid var(--df-line);border-radius:22px;box-shadow:0 7px 25px rgba(0,50,44,.045);}
+.df-hotel-heading {position:relative;overflow:hidden;border-radius:26px;background:linear-gradient(115deg,#e3f5ee 0%,#f2fbf6 72%);border:1px solid #d8eae0;display:flex;align-items:center;justify-content:space-between;padding:28px 32px;min-height:208px;margin:0 0 24px;isolation:isolate;}
+.df-hotel-heading::before {content:'';position:absolute;width:310px;height:310px;border:2px solid #9adbd0;border-radius:50%;right:-70px;top:-170px;z-index:-1;}
+.df-hotel-heading-copy {position:relative;z-index:2;max-width:650px;}
+.df-hotel-eyebrow {font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#006b63;}
+.df-hotel-heading h1 {font-size:clamp(27px,3vw,41px);line-height:1.15;font-weight:800;color:#083b38;margin:8px 0;}
+.df-hotel-heading p {color:#456c65;font-size:14px;line-height:1.6;max-width:550px;}
+.df-hotel-heading-actions {display:flex;gap:9px;flex-wrap:wrap;margin-top:20px;}
+.df-hotel-heading-actions button {display:inline-flex;align-items:center;gap:7px;border:1px solid #b9dcd2;background:rgba(255,255,255,.87);padding:9px 13px;border-radius:12px;color:#075c54;font-size:13px;font-weight:700;transition:background .15s;}
+.df-hotel-heading-actions button:hover {background:#d3f0e4;}
+.df-hotel-heading-actions .material-symbols-outlined {font-size:18px;}
+.df-hotel-heading-art {position:absolute;right:22px;bottom:0;width:210px;height:205px;pointer-events:none;display:flex;align-items:end;justify-content:center;overflow:hidden;}
+.df-hotel-heading-art img {max-width:100%;max-height:100%;object-fit:contain;object-position:bottom;}
+.df-hotel-next-steps {display:flex;justify-content:space-between;align-items:center;gap:22px;margin:0 0 25px;padding:22px 26px;background:#fff;border:1px solid #d8e9e2;border-radius:22px;}
+.df-hotel-next-steps h2 {color:#0a403c;font-weight:800;font-size:20px;margin:5px 0;}
+.df-hotel-next-steps p {color:#607d73;font-size:13px;max-width:520px;}
+.df-hotel-next-links {display:flex;gap:9px;flex-wrap:wrap;}
+.df-hotel-next-links button {padding:11px 13px;border-radius:12px;background:#006b63;color:white;font-size:12px;font-weight:700;white-space:nowrap;}
+.df-hotel-next-links button + button {background:#e6f5ef;color:#006b63;}
+.df-hotel-suite .hf-buffet-workspace .hf-buffet-grid {grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));}
+.df-hotel-suite .hf-buffet-card {border-radius:19px;overflow:hidden;}
+.df-hotel-suite .hf-buffet-cover {aspect-ratio:16/10;overflow:hidden;}
+.df-hotel-suite .hf-buffet-cover img {width:100%;height:100%;object-fit:cover;}
+.df-buffet-checklist {display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 20px;background:#eef8f3;border:1px solid #cce9db;border-radius:18px;margin:14px 0 20px;}
+.df-buffet-checklist div {display:flex;flex-direction:column;gap:4px;}
+.df-buffet-checklist strong {font-size:15px;color:#0a5149;}
+.df-buffet-checklist span {font-size:12px;color:#52756b;}
+.df-buffet-checklist-badge {padding:8px 12px;border-radius:24px;background:white;white-space:nowrap;font-weight:700;color:#0a5149!important;}
+.df-breadcrumbs {display:flex;align-items:center;gap:9px;color:#607d76;font-size:12px;flex-wrap:wrap;margin:4px 0 18px;padding:0 4px;}
+.df-breadcrumbs a {color:#006b63;text-decoration:none;font-weight:700;}
+.df-breadcrumbs a:hover {text-decoration:underline;}
+.df-public-hotel .card-ambient,.df-hotel-apply .card-ambient,.rf-detail .card-ambient {border-radius:19px;overflow:hidden;}
+.df-public-hotel img,.rf-detail img {max-width:100%;}
+.df-hotel-apply .df-apply-guidance {display:flex;align-items:center;justify-content:space-between;gap:20px;position:relative;overflow:hidden;background:#e8f7ef;border:1px solid #d5eadd;border-radius:25px;padding:28px 35px;min-height:177px;margin-bottom:16px;}
+.df-hotel-apply .df-apply-guidance>div:first-child {position:relative;z-index:2;max-width:690px;}
+.df-hotel-apply .df-apply-guidance h2 {font-size:clamp(23px,3vw,31px);font-weight:800;color:#073f3a;margin:8px 0;line-height:1.2;}
+.df-hotel-apply .df-apply-guidance p {font-size:14px;color:#496d62;line-height:1.6;}
+.df-apply-guidance-art {align-self:stretch;flex:0 0 160px;position:relative;}
+.df-apply-guidance-art img {position:absolute;right:0;bottom:-28px;width:165px;height:175px;object-fit:contain;object-position:bottom;}
+.df-apply-benefits {display:flex;gap:12px;flex-wrap:wrap;margin:0 0 24px;}
+.df-apply-benefits span {display:inline-flex;align-items:center;background:#fff;color:#0d6457;border:1px solid #cde5d9;border-radius:24px;padding:9px 13px;font-size:12px;font-weight:700;}
+.df-detail-assurance {display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:12px 0 20px;}
+.df-detail-assurance>span {display:inline-flex;align-items:center;gap:6px;color:#326e62;background:#eff9f4;border:1px solid #d2eade;border-radius:16px;padding:8px 11px;font-size:12px;font-weight:650;}
+.df-detail-assurance .material-symbols-outlined {font-size:17px;}
+@media(min-width:901px){.df-hotel-heading-copy {padding-right:140px;}}
+@media(max-width:900px){.df-hotel-heading-art {width:145px;opacity:.7;right:0}.df-hotel-heading-copy {max-width:100%;padding-right:100px;}.df-hotel-next-steps {align-items:stretch;flex-direction:column;}.df-hotel-next-links {width:100%;}}
+@media(max-width:640px){.df-hotel-heading {padding:22px 18px 118px;min-height:300px;border-radius:23px;align-items:start;}.df-hotel-heading h1 {font-size:29px;}.df-hotel-heading-copy {padding-right:0;}.df-hotel-heading-copy p {max-width:95%;}.df-hotel-heading-art {width:150px;height:128px;right:0;bottom:0;opacity:1;}.df-hotel-heading-art img {max-height:150px;}.df-hotel-heading-actions {padding-right:70px;gap:6px;}.df-hotel-heading-actions button {padding:8px 9px;font-size:11px;}.df-hotel-next-steps {padding:18px;}.df-hotel-next-links {flex-direction:column;}.df-hotel-next-links button {white-space:normal;}.df-buffet-checklist {flex-direction:column;align-items:start;}.df-apply-guidance-art {display:none;}.df-hotel-apply .df-apply-guidance {padding:22px 18px;border-radius:19px;}.df-hotel-apply .df-apply-benefits {gap:6px;}.df-hotel-apply .df-apply-benefits span {font-size:11px;}.df-detail-assurance {gap:6px;}.df-detail-assurance>span {font-size:11px;}.df-hotel-suite .df-hotel-main {padding:14px;}.df-hotel-suite .df-mobile-section-tabs {margin-bottom:20px;}}
+@media(prefers-reduced-motion:reduce){.df-hotel-heading-actions button{transition:none;}}
+
+.df-export-button {display:inline-flex;align-items:center;justify-content:center;gap:7px;}
+.df-export-button:disabled {opacity:.5;cursor:not-allowed;}

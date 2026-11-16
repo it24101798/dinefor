@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
@@ -14,6 +15,8 @@ export default defineConfig({
       "127.0.0.1",
       "dinefor.com",
       "www.dinefor.com",
+      "screenshot-online-valued-correlation.trycloudflare.com",
+      "emails-elections-remains-heat.trycloudflare.com",
     ],
 
     proxy: {
@@ -21,12 +24,24 @@ export default defineConfig({
         target: "http://localhost:5000",
         changeOrigin: true,
         secure: false,
+        configure(proxy) {
+          // Preserve existing backend CORS configuration.
+          proxy.on("proxyReq", (proxyReq) =>
+            proxyReq.setHeader("Origin", "http://localhost:5173")
+          );
+        },
       },
 
       "/uploads": {
         target: "http://localhost:5000",
         changeOrigin: true,
         secure: false,
+        configure(proxy) {
+          // Preserve existing backend CORS configuration.
+          proxy.on("proxyReq", (proxyReq) =>
+            proxyReq.setHeader("Origin", "http://localhost:5173")
+          );
+        },
       },
     },
   },
@@ -40,6 +55,8 @@ export default defineConfig({
       "127.0.0.1",
       "dinefor.com",
       "www.dinefor.com",
+      "screenshot-online-valued-correlation.trycloudflare.com",
+      "emails-elections-remains-heat.trycloudflare.com",
     ],
   },
 

@@ -1,3 +1,5 @@
+const Buffet = require("../models/Buffet");
+const mongoose = require("mongoose");
 const Coupon = require("../models/Coupon");
 const { calculateTotals } = require("../utils/pricing");
 
@@ -21,7 +23,17 @@ const validateCouponData = async ({ code, subtotal }) => {
 
 exports.validateCoupon = async (req, res) => {
   try {
-    const { code, price, seats } = req.body;
+    const { code, buffetId, seats } = req.body;
+    let price = req.body.price;
+    if (buffetId !== undefined) {
+      if (!mongoose.isValidObjectId(buffetId)) return res.status(400).json({ message: "Select a valid buffet." });
+      const buffet = await Buffet.findById(buffetId).select("price isActive maxGuestsPerBooking");
+      if (!buffet?.isActive) return res.status(404).json({ message: "This buffet is unavailable." });
+      if (!Number.isInteger(seats) || seats < 1 || seats > Number(buffet.maxGuestsPerBooking || 20)) {
+        return res.status(400).json({ message: "Select a valid guest count." });
+      }
+      price = buffet.price;
+    }
     const subtotal = Number(price || 0) * Number(seats || 1);
     const result = await validateCouponData({ code, subtotal });
 

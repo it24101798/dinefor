@@ -10,6 +10,7 @@ function HotelAnalyticsPanel() {
   const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
   const [analytics, setAnalytics] = useState(null);
+  const [months, setMonths] = useState("all");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -41,7 +42,8 @@ function HotelAnalyticsPanel() {
       </section>
 
       <AnalyticsStatCards totals={analytics.totals} scope="hotel" />
-      <MonthlyTrendChart monthly={analytics.monthly} />
+      <label className="df-chart-filter">Chart period<select value={months} onChange={e=>setMonths(e.target.value)}><option value="all">All available months</option><option value="3">Last 3 available months</option><option value="6">Last 6 available months</option></select></label>
+      <MonthlyTrendChart monthly={months === "all" ? analytics.monthly : (analytics.monthly || []).slice(-Number(months))} />
       <TopPerformersTable title="Best Performing Buffets" rows={analytics.topBuffets} type="buffet" />
 
       <div className="analytics-two-col">

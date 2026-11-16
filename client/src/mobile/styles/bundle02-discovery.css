@@ -1,0 +1,17 @@
+/* Bundle 02: customer discovery interactions. Layered over original responsive design. */
+.dfm-save-notice{margin:8px 0 12px;padding:10px 14px;border-radius:12px;background:#eaf8f3;color:#006b63;font-size:13px;font-weight:650}
+.dfm-buffet-card{position:relative}
+.dfm-save-btn{position:absolute;z-index:3;top:12px;right:12px;width:38px;height:38px;border:1px solid #e4eee9;border-radius:50%;display:grid;place-items:center;background:#fff;color:#006b63;box-shadow:0 4px 14px #082f2a21;cursor:pointer}
+.dfm-save-btn.is-saved{background:#fff0f0;color:#ce4755}
+.dfm-save-btn:disabled{opacity:.55;cursor:wait}
+.dfm-discovery-shortcuts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0 24px}
+.dfm-discovery-shortcuts a{display:flex;align-items:center;justify-content:center;gap:7px;padding:14px 9px;text-align:center;border-radius:13px;text-decoration:none;background:#eaf8f3;color:#006b63;font-size:12px;font-weight:750}
+.dfm-discovery-shortcuts .material-symbols-outlined{font-size:19px}
+.dfm-area-strip{display:flex;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:none;padding:9px 0 18px;white-space:nowrap}
+.dfm-area-strip span{font-size:13px;font-weight:700;color:#43635d}
+.dfm-area-strip button{flex-shrink:0;border:1px solid #d9e8e2;border-radius:999px;background:#fff;padding:9px 14px;color:#18584e;cursor:pointer;font-size:13px;font-weight:650}
+.dfm-area-strip button[aria-pressed=true]{background:#006b63;color:#fff;border-color:#006b63}
+.dfm-active-filters{display:flex;align-items:center;gap:7px;overflow-x:auto;scrollbar-width:none;padding:4px 0 14px}
+.dfm-active-filters button{flex-shrink:0;cursor:pointer;border:1px solid #cfe9de;border-radius:999px;background:#eaf8f3;color:#006b63;font-size:12px;font-weight:650;padding:8px 12px}
+.dfm-active-filters button:last-child{background:#fff;border-color:#e2e8e5;color:#506963}
+@media(max-width:767px){.dfm-area-strip{margin-top:4px}.dfm-active-filters{padding-bottom:13px}.dfm-discovery-shortcuts{grid-template-columns:1fr 1fr}}

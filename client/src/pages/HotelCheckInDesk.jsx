@@ -1,3 +1,4 @@
+import "../styles/hotel-partner-portal.css";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import api from "../services/api";
 import { Link, useNavigate } from "react-router-dom";
@@ -118,7 +119,7 @@ function HotelCheckInDesk() {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       result = result.filter((b) =>
-        [b.bookingCode, b.user?.name, b.user?.email, b.buffet?.title, b.buffet?.hotel?.hotelName]
+        [b.bookingCode, b.user?.name, b.buffet?.title, b.buffet?.hotel?.hotelName]
           .filter(Boolean)
           .join(" ")
           .toLowerCase()
@@ -137,14 +138,19 @@ function HotelCheckInDesk() {
   // ============================================
   const handleBookingAction = async (bookingId, action) => {
     try {
-      const res = await api.put(
-        `/bookings/${bookingId}/${action}`,
-        {},
-        { headers }
-      );
-      setMessage(res.data.message || `Booking ${action}ed successfully.`);
-      setMessageType("success");
+      let response;
+      if (action === "cancel") {
+        const reason = window.prompt("Why are you cancelling this reservation?");
+        if (!reason?.trim()) return;
+        response = await api.post(`/cancellations/bookings/${bookingId}/operator-cancel`, { reason, reasonCode: "hotel_operational" }, { headers });
+      } else if (action === "complete") {
+        response = await api.put(`/bookings/${bookingId}/status`, { bookingStatus: "completed" }, { headers });
+      } else {
+        response = await api.put(`/bookings/${bookingId}/check-in`, {}, { headers });
+      }
       await fetchBookings();
+      setMessage(response.data.message || "Reservation updated.");
+      setMessageType("success");
     } catch (error) {
       const errorMsg = error.response?.data?.message || `Failed to ${action} booking.`;
       setMessage(errorMsg);
@@ -259,7 +265,7 @@ function HotelCheckInDesk() {
   const renderBookingTable = () => (
     <div className="card-ambient overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full df-portal-reservation-table">
           <thead className="bg-surface-container-low">
             <tr>
               <th className="text-left p-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
@@ -288,7 +294,7 @@ function HotelCheckInDesk() {
           <tbody>
             {filteredBookings.map((booking) => (
               <tr key={booking._id} className="border-t border-border-subtle hover:bg-surface-container-low/50">
-                <td className="p-4">
+                <td data-label="Reference" className="p-4">
                   <p className="font-label-sm text-label-sm text-text-deep-green font-medium">
                     {booking.bookingCode}
                   </p>
@@ -296,15 +302,12 @@ function HotelCheckInDesk() {
                     {formatDate(booking.createdAt)}
                   </p>
                 </td>
-                <td className="p-4">
+                <td data-label="Guest" className="p-4">
                   <p className="font-body-md text-body-md text-text-deep-green">
                     {booking.user?.name || "Guest"}
                   </p>
-                  <p className="font-label-sm text-label-sm text-on-surface-variant">
-                    {booking.user?.email || "No email"}
-                  </p>
                 </td>
-                <td className="p-4">
+                <td data-label="Buffet" className="p-4">
                   <p className="font-body-md text-body-md text-text-deep-green">
                     {booking.buffet?.title || "N/A"}
                   </p>
@@ -312,7 +315,7 @@ function HotelCheckInDesk() {
                     {booking.buffet?.hotel?.hotelName || ""}
                   </p>
                 </td>
-                <td className="p-4">
+                <td data-label="Date and time" className="p-4">
                   <p className="font-body-md text-body-md text-text-deep-green">
                     {formatDate(booking.selectedDate)}
                   </p>
@@ -320,12 +323,12 @@ function HotelCheckInDesk() {
                     {booking.selectedTimeSlot?.startTime} - {booking.selectedTimeSlot?.endTime}
                   </p>
                 </td>
-                <td className="p-4 text-center">
+                <td data-label="Seats" className="p-4 text-center">
                   <span className="font-label-md text-label-md text-text-deep-green">
                     {booking.seats}
                   </span>
                 </td>
-                <td className="p-4">
+                <td data-label="Status" className="p-4">
                   <span className={`status-pill ${getStatusColor(booking.bookingStatus)}`}>
                     {booking.bookingStatus}
                   </span>
@@ -333,7 +336,7 @@ function HotelCheckInDesk() {
                     <span className="badge-gold text-xs ml-1">QR Used</span>
                   )}
                 </td>
-                <td className="p-4">
+                <td data-label="Actions" className="p-4">
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => viewBookingDetails(booking)}
@@ -406,11 +409,6 @@ function HotelCheckInDesk() {
             <div className="p-3 rounded-xl bg-surface-container-low">
               <p className="font-label-sm text-label-sm text-on-surface-variant">Customer</p>
               <p className="font-body-md text-body-md text-text-deep-green">{b.user?.name || "Guest"}</p>
-              <p className="font-label-sm text-label-sm text-on-surface-variant">{b.user?.email || "No email"}</p>
-            </div>
-            <div className="p-3 rounded-xl bg-surface-container-low">
-              <p className="font-label-sm text-label-sm text-on-surface-variant">Contact</p>
-              <p className="font-body-md text-body-md text-text-deep-green">{b.user?.phone || "No phone"}</p>
             </div>
             <div className="p-3 rounded-xl bg-surface-container-low">
               <p className="font-label-sm text-label-sm text-on-surface-variant">Buffet</p>
@@ -489,7 +487,7 @@ function HotelCheckInDesk() {
   // ============================================
   if (!token) {
     return (
-      <main className="min-h-screen bg-surface-cream pt-20">
+      <main className="df-checkin-page min-h-screen bg-surface-cream pt-20">
         <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
           <div className="text-center py-16">
             <span className="material-symbols-outlined text-6xl text-outline mb-4">lock</span>
@@ -508,7 +506,7 @@ function HotelCheckInDesk() {
   }
 
   return (
-    <main className="min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20">
+    <main className="df-checkin-page min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20">
       <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
         {/* Header */}
         <div className="mb-8">

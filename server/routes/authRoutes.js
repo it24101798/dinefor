@@ -4,7 +4,6 @@ const {
   loginUser,
   googleLogin,
   verifyEmail,
-  getVerificationStatus,
   resendVerification,
   forgotPassword,
   verifyPasswordResetOtp,
@@ -14,16 +13,22 @@ const {
 const { protect } = require("../middleware/authMiddleware");
 
 const router = express.Router();
+const codeRequests = require("express-rate-limit")({
+  windowMs: 15 * 60000,
+  limit: 12,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many code requests. Please wait and try again." },
+});
 
-router.post("/register", registerUser);
+router.post("/register", codeRequests, registerUser);
 router.post("/login", loginUser);
 router.post("/google", googleLogin);
 
-router.get("/verification-status", getVerificationStatus);
 router.post("/verify-email", verifyEmail);
-router.post("/resend-verification", resendVerification);
+router.post("/resend-verification", codeRequests, resendVerification);
 
-router.post("/forgot-password", forgotPassword);
+router.post("/forgot-password", codeRequests, forgotPassword);
 router.post("/verify-reset-otp", verifyPasswordResetOtp);
 router.post("/reset-password", resetPassword);
 router.put("/change-password", protect, changePassword);

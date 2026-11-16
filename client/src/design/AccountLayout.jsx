@@ -1,0 +1,8 @@
+import CrewArt from './CrewArt';
+import React from 'react';
+import {NavLink} from 'react-router-dom';
+import {Icon,Ribbon} from './ReferenceUI';
+const links=[['/customer','home','Overview'],['/my-bookings','calendar_month','My bookings'],['/saved','bookmark_border','Saved items'],['/payments','credit_card','Payment history'],['/my-reviews','rate_review','My reviews'],['/account-security','shield','Security'],['/notifications','notifications','Notifications'],['/recommendations','restaurant','For you'],['/recently-viewed','history','Recently viewed'],['/profile','person','Profile'],['/help','support_agent','Help & support']];
+export default function AccountLayout({title='Your next dining moment.',description='Manage your reservations and keep every dining plan in one place.',children,showBanner=true,className='',artwork='/images/characters/account-concierge.png',artAlt='Your DineFor account assistant'}){
+ return <main className={`rf-page rf-account ${className}`}><aside className="rf-account-nav"><div className="rf-account-label"><Icon name="account_circle"/><div><strong>My account</strong><p>Your dining, together.</p></div></div><nav aria-label="Account">{links.map(([to,icon,label])=><NavLink key={to} to={to}><Icon name={icon}/>{label}</NavLink>)}</nav></aside><div className="rf-account-content">{showBanner && <section className="rf-account-banner"><div><p className="rf-eyebrow">MAKE TIME FOR A GOOD MEAL</p><h1>{title}</h1><p>{description}</p></div><Ribbon/>{artwork === "/images/characters/account-concierge.png" ? <CrewArt role="assistant"/> : <img src={artwork} alt={artAlt}/>}</section>}{children}</div></main>;
+}

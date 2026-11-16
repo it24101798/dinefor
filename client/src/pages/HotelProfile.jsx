@@ -1,3 +1,4 @@
+import "../styles/revision12-15.css";
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import api, { resolveMediaUrl } from "../services/api";
@@ -775,8 +776,9 @@ function HotelProfile() {
   }
 
   return (
-    <main className="min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20">
+    <main className="df-public-hotel min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20">
       <div className="max-w-container-max mx-auto">
+        <div className="df-breadcrumbs"><Link to="/">Home</Link><span>/</span><Link to="/buffets">Explore buffets</Link><span>/</span><span>Hotel details</span></div>
         {renderMessage()}
         {renderHero()}
         {renderQuickActions()}

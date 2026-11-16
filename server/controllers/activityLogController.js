@@ -2,25 +2,30 @@ const ActivityLog = require("../models/ActivityLog");
 
 exports.getActivityLogs = async (req, res) => {
   try {
-    const page = Math.max(1, Number(req.query.page || 1));
-    const limit = Math.min(100, Math.max(10, Number(req.query.limit || 50)));
+    const integer = (value, fallback, max) => {
+      const parsed = Number(value);
+      return Number.isSafeInteger(parsed) && parsed > 0 ? Math.min(parsed, max) : fallback;
+    };
+    const page = integer(req.query.page, 1, 10000);
+    const limit = integer(req.query.limit, 25, 100);
     const filter = {};
 
     if (req.query.action) {
       filter.action = {
-        $regex: String(req.query.action),
+        $regex: String(req.query.action).trim().slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
         $options: "i",
       };
     }
 
     if (req.query.entityType) {
-      filter.entityType = String(req.query.entityType);
+      filter.entityType = String(req.query.entityType).trim().slice(0, 50);
     }
 
     const [logs, total] = await Promise.all([
       ActivityLog.find(filter)
-        .populate("actor", "name email role")
-        .sort({ createdAt: -1 })
+        .select("actor actorRole action entityType entityId message createdAt")
+        .populate("actor", "name role")
+        .sort({ createdAt: -1, _id: -1 })
         .skip((page - 1) * limit)
         .limit(limit),
       ActivityLog.countDocuments(filter),

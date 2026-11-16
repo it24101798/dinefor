@@ -123,7 +123,10 @@ exports.getBuffets = async (req, res) => {
 exports.getBuffetById = async (req, res) => {
   try {
     const buffetQuery = await findByIdentifier(Buffet, req.params.id);
-    const buffet = buffetQuery ? await buffetQuery.populate("hotel") : null;
+    const buffet = buffetQuery ? await buffetQuery.populate(
+      "hotel",
+      "hotelName slug city location address province coverMediaUrl galleryImages mapLocation amenities cancellationPolicy.freeCancellationHours cancellationPolicy.lateCancellationHours cancellationPolicy.lateRefundPercent cancellationPolicy.lastMinuteRefundPercent"
+    ) : null;
 
     if (!buffet) {
       return res.status(404).json({ message: "Buffet not found." });

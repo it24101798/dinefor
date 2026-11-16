@@ -4,7 +4,7 @@ const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
 const {
-  sendAccountEmail,
+  sendOtpEmail,
   sendWelcomeEmail,
   sendPasswordChangedEmail,
 } = require("../services/emailService");
@@ -19,8 +19,13 @@ const hashToken = (token) =>
 
 const issueToken = () => crypto.randomBytes(32).toString("hex");
 
-const clientUrl = () =>
-  (process.env.CLIENT_URL || "http://localhost:5173").replace(/\/+$/, "");
+const generateOtp = () => String(crypto.randomInt(100000, 1000000));
+const otpHash = (purpose, email, code) =>
+  crypto.createHmac("sha256", process.env.JWT_SECRET).update(JSON.stringify([purpose, email, code])).digest("hex");
+const validPassword = value => typeof value === "string" && value.length >= 8 &&
+  Buffer.byteLength(value) <= 72 && /[a-z]/.test(value) && /[A-Z]/.test(value) &&
+  /[0-9]/.test(value) && /[^A-Za-z0-9]/.test(value);
+const invalidCode = "This code is invalid or expired. Request a new code.";
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -41,48 +46,65 @@ const serializeUser = (user) => ({
 });
 
 const sendVerification = async (user) => {
-  const rawToken = issueToken();
-
-  user.emailVerificationToken = hashToken(rawToken);
-  user.emailVerificationExpires = new Date(
-    Date.now() + 24 * 60 * 60 * 1000
-  );
-  user.emailVerificationLastSentAt = new Date();
-  user.emailVerificationSendCount =
-    Number(user.emailVerificationSendCount || 0) + 1;
-
-  await user.save();
-
-  const verificationUrl =
-    `${clientUrl()}/verify-email?token=${rawToken}` +
-    `&email=${encodeURIComponent(user.email)}`;
-
-  return sendAccountEmail({
-    to: user.email,
-    subject: "Verify your DineFor email",
-    heading: "Verify your email address",
-    message:
-      "Confirm your email before signing in to DineFor. This protects your reservations and account.",
-    actionLabel: "Verify Email",
-    actionUrl: verificationUrl,
+  const code = generateOtp();
+  const now = new Date();
+  const hash = otpHash("email", user.email, code);
+  const changed = await User.updateOne({
+    _id: user._id, isEmailVerified: false, isActive: { $ne: false },
+    $or: [{ emailVerificationLastSentAt: null }, { emailVerificationLastSentAt: { $lte: new Date(now - 60000) } }],
+  }, {
+    $set: { emailVerificationToken: hash, emailVerificationExpires: new Date(+now + 600000),
+      emailVerificationAttempts: 0, emailVerificationLastSentAt: now },
+    $inc: { emailVerificationSendCount: 1 },
   });
+  if (!changed.modifiedCount) return;
+  try {
+    await sendOtpEmail({ to: user.email, code, purpose: "email" });
+  } catch {
+    await User.updateOne({ _id: user._id, emailVerificationToken: hash }, {
+      $set: { emailVerificationToken: null, emailVerificationExpires: null, emailVerificationLastSentAt: null },
+    });
+    return false;
+  }
+  return true;
 };
+
+async function consumeCode(email, code, emailVerification, updates) {
+  const hashField = emailVerification ? "emailVerificationToken" : "passwordResetOtpHash";
+  const expiresField = emailVerification ? "emailVerificationExpires" : "passwordResetOtpExpires";
+  const attemptsField = emailVerification ? "emailVerificationAttempts" : "passwordResetOtpAttempts";
+  const hash = otpHash(emailVerification ? "email" : "reset", email, code);
+  const query = {
+    email, isActive: { $ne: false }, authProvider: { $ne: "google" },
+    ...(emailVerification ? { isEmailVerified: false } : {}),
+    [expiresField]: { $gt: new Date() },
+    $or: [{ [attemptsField]: { $lt: 5 } }, { [attemptsField]: { $exists: false } }],
+  };
+  const user = await User.findOneAndUpdate({ ...query, [hashField]: hash }, {
+    $set: { ...updates, [hashField]: null, [expiresField]: null, [attemptsField]: 0 },
+  });
+  if (!user) {
+    await User.updateOne({ ...query, [hashField]: { $nin: [hash, null] } }, { $inc: { [attemptsField]: 1 } });
+  }
+  return user;
+}
 
 const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    const requestedRole =
-      req.body.role === "hotel" ? "hotel" : "customer";
+    const phone = typeof req.body.phone === "string" ? req.body.phone.trim() : "";
 
-    if (!name?.trim() || !email || !password) {
+    if (typeof name !== "string" || !name.trim() || name.length > 100 || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) || email.length > 254 || !password) {
       return res.status(400).json({
         message: "Name, email and password are required.",
       });
     }
 
-    if (password.length < 8) {
+    if (phone && !/^\+?[0-9 ()-]{7,24}$/.test(phone)) return res.status(400).json({ message: "Enter a valid phone number." });
+
+    if (!validPassword(password)) {
       return res.status(400).json({
-        message: "Password must contain at least 8 characters.",
+        message: "Use 8 or more characters with uppercase, lowercase, a number and a symbol. Keep it within 72 bytes.",
       });
     }
 
@@ -111,8 +133,9 @@ const registerUser = async (req, res) => {
       name: name.trim(),
       email: normalizedEmail,
       password: await bcrypt.hash(password, 12),
-      role: requestedRole,
-      isApproved: requestedRole !== "hotel",
+      phone,
+      role: "customer",
+      isApproved: true,
       isEmailVerified: false,
       authProvider: "local",
     });
@@ -126,22 +149,17 @@ const registerUser = async (req, res) => {
       message: `${user.email} registered a DineFor account.`,
     });
 
-    const mailResult = await sendVerification(user);
+    const delivered = await sendVerification(user);
 
     return res.status(201).json({
-      message:
-        "Account created. Verify your email before signing in.",
+      message: delivered === false ? "Account created. Email delivery failed. Request another code." : "Account created. Enter the code sent to your email.",
       requiresEmailVerification: true,
       email: user.email,
-      previewUrl: mailResult.previewUrl,
+      retryAfterSeconds: delivered ? 60 : 0,
     });
   } catch (error) {
     return res.status(500).json({
       message: "Registration failed.",
-      error:
-        process.env.NODE_ENV === "development"
-          ? error.message
-          : undefined,
     });
   }
 };
@@ -218,10 +236,6 @@ const loginUser = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       message: "Login failed.",
-      error:
-        process.env.NODE_ENV === "development"
-          ? error.message
-          : undefined,
     });
   }
 };
@@ -249,7 +263,7 @@ const googleLogin = async (req, res) => {
 
     const payload = ticket.getPayload();
 
-    if (!payload?.email || payload.email_verified !== true) {
+    if (!payload?.email || !payload.sub || payload.email_verified !== true) {
       return res.status(401).json({
         message: "Google could not verify this email address.",
       });
@@ -279,7 +293,13 @@ const googleLogin = async (req, res) => {
         });
       }
 
-      user.googleId = user.googleId || payload.sub;
+      const trustedEmail = email.endsWith("@gmail.com") || Boolean(payload.hd);
+      const subjectMatches = user.googleId === payload.sub;
+      const canLinkCustomer = !user.googleId && user.role === "customer" && trustedEmail;
+      if (user.mustResetPassword || (!subjectMatches && !canLinkCustomer)) {
+        return res.status(403).json({ message: "Sign in with your DineFor password to access this account." });
+      }
+      user.googleId = payload.sub;
       user.isEmailVerified = true;
       user.authProvider =
         user.authProvider === "local"
@@ -309,35 +329,10 @@ const googleLogin = async (req, res) => {
 const verifyEmail = async (req, res) => {
   try {
     const email = normalizeEmail(req.body.email);
-    const rawToken = String(req.body.token || "");
-
-    if (!email || !rawToken) {
-      return res.status(400).json({
-        message: "Verification email and token are required.",
-      });
-    }
-
-    const user = await User.findOne({
-      email,
-      emailVerificationToken: hashToken(rawToken),
-      emailVerificationExpires: { $gt: new Date() },
-    }).select(
-      "+emailVerificationToken +emailVerificationExpires"
-    );
-
-    if (!user) {
-      return res.status(400).json({
-        message:
-          "This verification link is invalid or expired. Request a new link.",
-        code: "VERIFICATION_LINK_INVALID",
-      });
-    }
-
-    user.isEmailVerified = true;
-    user.emailVerificationToken = null;
-    user.emailVerificationExpires = null;
-    user.emailVerifiedAt = new Date();
-    await user.save();
+    const code = String(req.body.code || "").trim();
+    if (!email || !/^\d{6}$/.test(code)) return res.status(400).json({ message: "Enter the six-digit email code." });
+    const user = await consumeCode(email, code, true, { isEmailVerified: true, emailVerifiedAt: new Date() });
+    if (!user) return res.status(400).json({ message: invalidCode });
 
     Promise.allSettled([
       sendWelcomeEmail({
@@ -375,101 +370,17 @@ const verifyEmail = async (req, res) => {
   }
 };
 
-const getVerificationStatus = async (req, res) => {
-  try {
-    const email = normalizeEmail(req.query.email);
-
-    if (!email) {
-      return res.status(400).json({
-        message: "Email is required.",
-      });
-    }
-
-    const user = await User.findOne({ email }).select(
-      "email authProvider isEmailVerified emailVerificationExpires"
-    );
-
-    if (!user) {
-      return res.status(200).json({
-        exists: false,
-        verified: false,
-      });
-    }
-
-    return res.status(200).json({
-      exists: true,
-      verified:
-        user.authProvider === "google" ||
-        user.isEmailVerified === true,
-      authProvider: user.authProvider,
-      verificationLinkActive:
-        user.emailVerificationExpires &&
-        user.emailVerificationExpires > new Date(),
-    });
-  } catch (error) {
-    return res.status(500).json({
-      message: "Could not check verification status.",
-    });
-  }
-};
-
 const resendVerification = async (req, res) => {
   try {
     const email = normalizeEmail(req.body.email);
-
-    if (!email) {
-      return res.status(400).json({
-        message: "Email is required.",
-      });
-    }
-
-    const user = await User.findOne({ email }).select(
-      "+emailVerificationToken +emailVerificationExpires"
-    );
-
-    if (
-      !user ||
-      user.authProvider === "google" ||
-      user.isEmailVerified === true
-    ) {
-      return res.status(200).json({
-        message:
-          "If verification is required, a new email has been sent.",
-      });
-    }
-
-    const lastSent = user.emailVerificationLastSentAt
-      ? new Date(user.emailVerificationLastSentAt).getTime()
-      : 0;
-
-    const waitMs = 60 * 1000 - (Date.now() - lastSent);
-
-    if (waitMs > 0) {
-      return res.status(429).json({
-        message: `Please wait ${Math.ceil(
-          waitMs / 1000
-        )} seconds before requesting another email.`,
-        retryAfterSeconds: Math.ceil(waitMs / 1000),
-      });
-    }
-
-    const mailResult = await sendVerification(user);
-
-    return res.status(200).json({
-      message:
-        "Verification email sent. Check your inbox and spam folder.",
-      email: user.email,
-      previewUrl: mailResult.previewUrl,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      message: "Could not resend verification email.",
-    });
+    if (!email) return res.status(400).json({ message: "Email is required." });
+    const user = await User.findOne({ email, isEmailVerified: false, isActive: { $ne: false }, authProvider: { $ne: "google" } });
+    if (user) await sendVerification(user);
+    return res.json({ message: "If verification is needed, check your inbox or try again in one minute.", retryAfterSeconds: 60 });
+  } catch {
+    return res.status(500).json({ message: "Could not request an email code." });
   }
 };
-
-const generateOtp = () =>
-  String(crypto.randomInt(100000, 1000000));
 
 const forgotPassword = async (req, res) => {
   try {
@@ -481,162 +392,53 @@ const forgotPassword = async (req, res) => {
       return res.status(400).json({ message: "Email is required." });
     }
 
-    const user = await User.findOne({ email }).select(
-      "+passwordResetOtpHash +passwordResetOtpExpires +passwordResetOtpAttempts"
-    );
-
-    if (!user) {
-      return res.status(200).json({ message: genericMessage });
+    const user = await User.findOne({ email, isActive: { $ne: false }, authProvider: { $ne: "google" } });
+    if (user) {
+      const now = new Date();
+      const code = generateOtp();
+      const hash = otpHash("reset", email, code);
+      const changed = await User.updateOne({
+        _id: user._id,
+        $or: [{ passwordResetOtpLastSentAt: null }, { passwordResetOtpLastSentAt: { $lte: new Date(now - 60000) } }],
+      }, { $set: {
+        passwordResetOtpHash: hash, passwordResetOtpExpires: new Date(+now + 600000),
+        passwordResetOtpAttempts: 0, passwordResetOtpLastSentAt: now,
+        passwordResetSessionHash: null, passwordResetSessionExpires: null,
+      } });
+      if (changed.modifiedCount) {
+        try {
+          await sendOtpEmail({ to: email, code });
+        } catch {
+          await User.updateOne({ _id: user._id, passwordResetOtpHash: hash }, {
+            $set: { passwordResetOtpHash: null, passwordResetOtpExpires: null },
+          });
+        }
+      }
     }
-
-    if (user.authProvider === "google") {
-      return res.status(200).json({
-        message:
-          "This account uses Google Sign-In. Continue with Google instead of resetting a DineFor password.",
-        code: "GOOGLE_ACCOUNT",
-      });
-    }
-
-    const lastSent = user.passwordResetOtpLastSentAt
-      ? new Date(user.passwordResetOtpLastSentAt).getTime()
-      : 0;
-    const waitMs = 60 * 1000 - (Date.now() - lastSent);
-
-    if (waitMs > 0) {
-      return res.status(429).json({
-        message: `Please wait ${Math.ceil(
-          waitMs / 1000
-        )} seconds before requesting another code.`,
-        retryAfterSeconds: Math.ceil(waitMs / 1000),
-      });
-    }
-
-    const code = generateOtp();
-    user.passwordResetOtpHash = hashToken(code);
-    user.passwordResetOtpExpires = new Date(
-      Date.now() + 10 * 60 * 1000
-    );
-    user.passwordResetOtpAttempts = 0;
-    user.passwordResetOtpLastSentAt = new Date();
-    user.passwordResetOtpVerifiedAt = null;
-    user.passwordResetSessionHash = null;
-    user.passwordResetSessionExpires = null;
-    await user.save();
-
-    const { sendOtpEmail } = require("../services/emailService");
-
-    try {
-      await sendOtpEmail({
-        to: user.email,
-        name: user.name,
-        code,
-        expiresMinutes: 10,
-      });
-    } catch (emailError) {
-      user.passwordResetOtpHash = null;
-      user.passwordResetOtpExpires = null;
-      user.passwordResetOtpAttempts = 0;
-      user.passwordResetOtpLastSentAt = null;
-      await user.save();
-
-      console.error("PASSWORD RESET EMAIL ERROR");
-      console.error("Message:", emailError.message);
-      console.error("Code:", emailError.code);
-      console.error("Command:", emailError.command);
-      console.error("Response:", emailError.response);
-      console.error("Response code:", emailError.responseCode);
-
-      return res.status(503).json({
-        message:
-          process.env.NODE_ENV === "development"
-            ? `Email delivery failed: ${emailError.message}`
-            : "We could not send the verification code. Please try again shortly.",
-        code: "EMAIL_DELIVERY_FAILED",
-      });
-    }
-
-    return res.status(200).json({
-      message: genericMessage,
-      email: user.email,
-      nextStep: "verify_otp",
-    });
-  } catch (error) {
-    console.error("PASSWORD RESET REQUEST ERROR");
-    console.error("Message:", error.message);
-    console.error("Code:", error.code);
-    console.error("Stack:", error.stack);
-
-    return res.status(500).json({
-      message:
-        process.env.NODE_ENV === "development"
-          ? `Password reset request failed: ${error.message}`
-          : "Password reset request failed.",
-      code: "PASSWORD_RESET_REQUEST_FAILED",
-    });
+    return res.json({ message: genericMessage, retryAfterSeconds: 60 });
+  } catch {
+    return res.status(500).json({ message: "Password reset request failed." });
   }
 };
 
 const verifyPasswordResetOtp = async (req, res) => {
   try {
     const email = normalizeEmail(req.body.email);
-    const code = String(req.body.code || "").replace(/\D/g, "");
+    const code = String(req.body.code || "").trim();
 
-    if (!email || code.length !== 6) {
+    if (!email || !/^\d{6}$/.test(code)) {
       return res.status(400).json({
         message: "Enter the six-digit verification code.",
       });
     }
 
-    const user = await User.findOne({ email }).select(
-      "+passwordResetOtpHash +passwordResetOtpExpires +passwordResetOtpAttempts +passwordResetSessionHash +passwordResetSessionExpires"
-    );
-
-    if (
-      !user ||
-      !user.passwordResetOtpHash ||
-      !user.passwordResetOtpExpires ||
-      user.passwordResetOtpExpires <= new Date()
-    ) {
-      return res.status(400).json({
-        message:
-          "This verification code is invalid or expired. Request a new code.",
-      });
-    }
-
-    if (Number(user.passwordResetOtpAttempts || 0) >= 5) {
-      user.passwordResetOtpHash = null;
-      user.passwordResetOtpExpires = null;
-      await user.save();
-      return res.status(429).json({
-        message:
-          "Too many incorrect attempts. Request a new verification code.",
-      });
-    }
-
-    if (hashToken(code) !== user.passwordResetOtpHash) {
-      user.passwordResetOtpAttempts =
-        Number(user.passwordResetOtpAttempts || 0) + 1;
-      await user.save();
-
-      return res.status(400).json({
-        message: "Incorrect verification code.",
-        remainingAttempts: Math.max(
-          0,
-          5 - user.passwordResetOtpAttempts
-        ),
-      });
-    }
-
     const resetSession = issueToken();
-    user.passwordResetOtpHash = null;
-    user.passwordResetOtpExpires = null;
-    user.passwordResetOtpAttempts = 0;
-    user.passwordResetOtpVerifiedAt = new Date();
-    user.passwordResetSessionHash = hashToken(resetSession);
-    user.passwordResetSessionExpires = new Date(
-      Date.now() + 15 * 60 * 1000
-    );
-    await user.save();
+    const user = await consumeCode(email, code, false, {
+      passwordResetSessionHash: hashToken(resetSession),
+      passwordResetSessionExpires: new Date(Date.now() + 15 * 60000),
+      passwordResetOtpVerifiedAt: new Date(),
+    });
+    if (!user) return res.status(400).json({ message: invalidCode });
 
     return res.status(200).json({
       message: "Code verified. Create your new password.",
@@ -655,45 +457,23 @@ const resetPassword = async (req, res) => {
   try {
     const email = normalizeEmail(req.body.email);
     const resetSession = String(req.body.resetSession || "");
-    const password = String(req.body.password || "");
+    const password = req.body.password;
 
-    const strongPassword =
-      password.length >= 8 &&
-      /[a-z]/.test(password) &&
-      /[A-Z]/.test(password) &&
-      /\d/.test(password) &&
-      /[^A-Za-z0-9]/.test(password);
-
-    if (!strongPassword) {
-      return res.status(400).json({
-        message:
-          "Password must contain at least 8 characters, uppercase, lowercase, number and special character.",
-      });
+    if (!validPassword(password)) {
+      return res.status(400).json({ message: "Use 8 or more characters with uppercase, lowercase, a number and a symbol. Keep it within 72 bytes." });
     }
 
-    const user = await User.findOne({
-      email,
-      passwordResetSessionHash: hashToken(resetSession),
-      passwordResetSessionExpires: { $gt: new Date() },
-    }).select(
-      "+password +passwordResetSessionHash +passwordResetSessionExpires"
-    );
-
-    if (!user) {
-      return res.status(400).json({
-        message:
-          "Your verified reset session is invalid or expired. Start again.",
-      });
+    const filter = { email, isActive: { $ne: false }, passwordResetSessionHash: hashToken(resetSession),
+      passwordResetSessionExpires: { $gt: new Date() } };
+    if (!/^[a-f0-9]{64}$/.test(resetSession) || !await User.exists(filter)) {
+      return res.status(400).json({ message: "Your verified reset session is invalid or expired. Start again." });
     }
-
-    user.password = await bcrypt.hash(password, 12);
-    user.passwordResetSessionHash = null;
-    user.passwordResetSessionExpires = null;
-    user.passwordResetOtpVerifiedAt = null;
-    user.passwordResetToken = null;
-    user.passwordResetExpires = null;
-    user.mustResetPassword = false;
-    await user.save();
+    const user = await User.findOneAndUpdate({ ...filter, passwordResetSessionExpires: { $gt: new Date() } }, { $set: {
+      password: await bcrypt.hash(password, 12), passwordResetSessionHash: null,
+      passwordResetSessionExpires: null, passwordResetOtpVerifiedAt: null,
+      passwordResetToken: null, passwordResetExpires: null, mustResetPassword: false,
+    } });
+    if (!user) return res.status(400).json({ message: "Your verified reset session is invalid or expired. Start again." });
 
     Promise.allSettled([
       sendPasswordChangedEmail({
@@ -796,7 +576,6 @@ module.exports = {
   loginUser,
   googleLogin,
   verifyEmail,
-  getVerificationStatus,
   resendVerification,
   forgotPassword,
   verifyPasswordResetOtp,

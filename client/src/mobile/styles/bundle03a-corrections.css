@@ -1,0 +1,59 @@
+/* Bundle 03A: responsive + accessibility corrections from the 14 Nov 2026 browser QA.
+   Imported last in src/main.jsx. Each block names the finding it addresses. */
+
+/* ---- F01: tablet hero must grow with its copy and actions instead of clipping them ---- */
+@media (min-width:768px) and (max-width:1050px){
+  .df-app .rf-home-next .rf-hero-home{height:auto;min-height:clamp(340px,46vw,390px);padding-block:34px 40px;overflow:hidden}
+  .df-app .rf-home-next .rf-hero-home .rf-hero-copy{max-width:54%}
+  .df-app .rf-home-next .rf-hero-home .rf-home-hero-actions{row-gap:12px;column-gap:18px;padding-bottom:2px}
+  .df-app .rf-home-next .rf-hero-home .rf-home-text-link{display:inline-flex;align-items:center;gap:6px;min-height:44px}
+}
+
+/* ---- F05: spacing for city shortcuts, mobile utility links and the date hint ---- */
+.dfm-area-strip{gap:8px}
+.dfm-area-strip>span{flex-shrink:0;margin-right:4px}
+.dfm-area-strip button{min-height:40px}
+.df-date-field{margin-top:2px}
+.df-date-hint{padding-left:0}
+@media (max-width:420px){
+  .dfm-discovery-shortcuts{grid-template-columns:1fr;gap:10px}
+  .dfm-discovery-shortcuts a{justify-content:flex-start;padding:14px 16px;gap:10px;font-size:13px}
+  .dfm-discovery-shortcuts a>.material-symbols-outlined:last-child{margin-left:auto}
+}
+
+/* ---- F06: keep both characters fully inside the mobile welcome card ---- */
+@media (max-width:767px){
+  .dfm-couple{right:0!important;bottom:0!important;object-position:right bottom!important}
+}
+@media (max-width:420px){
+  .dfm-couple{width:72%!important}
+}
+@media (max-width:365px){
+  .dfm-couple{width:74%!important;right:0!important}
+}
+
+/* ---- F03: consistent image fallback ---- */
+img.df-image-fallback{object-fit:contain!important;background:#e8f6f1}
+
+/* ---- F04: accessible gallery lightbox ---- */
+.df-lightbox-overlay{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;background:rgba(4,27,24,.93);padding:max(16px,env(safe-area-inset-top,0px)) 16px max(16px,env(safe-area-inset-bottom,0px))}
+.df-lightbox-dialog{position:relative;width:min(1100px,100%);max-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.df-lightbox-image{display:block;max-width:100%;max-height:calc(100dvh - 150px);width:auto;height:auto;object-fit:contain;border-radius:14px;background:#0b2f2a}
+.df-lightbox-close,.df-lightbox-nav{display:grid;place-items:center;width:48px;height:48px;border:0;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;cursor:pointer;backdrop-filter:blur(6px)}
+.df-lightbox-close:hover,.df-lightbox-nav:hover{background:rgba(255,255,255,.28)}
+.df-lightbox-close:focus-visible,.df-lightbox-nav:focus-visible,.df-lightbox-dots button:focus-visible{outline:3px solid #98d8c1;outline-offset:3px}
+.df-lightbox-close{position:absolute;top:-4px;right:0;z-index:2;transform:translateY(-100%)}
+.df-lightbox-nav{position:absolute;top:calc(50% - 38px);z-index:2}
+.df-lightbox-nav.is-prev{left:6px}.df-lightbox-nav.is-next{right:6px}
+.df-lightbox-footer{margin-top:14px;display:flex;flex-direction:column;align-items:center;gap:10px;color:#fff}
+.df-lightbox-count{margin:0;font-size:13px;font-weight:700;letter-spacing:.04em}
+.df-lightbox-dots{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;max-width:100%}
+.df-lightbox-dots button{width:24px;height:24px;border:0;background:none;padding:0;cursor:pointer;position:relative}
+.df-lightbox-dots button::after{content:"";position:absolute;inset:8px;border-radius:999px;background:rgba(255,255,255,.5);transition:all .15s}
+.df-lightbox-dots button.is-current::after{inset:8px -2px;background:#98d8c1}
+@media (max-width:767px){
+  .df-lightbox-close{top:0;right:0;transform:none;background:rgba(0,0,0,.45)}
+  .df-lightbox-nav{width:44px;height:44px;top:calc(50% - 50px)}
+  .df-lightbox-image{max-height:calc(100dvh - 160px)}
+}
+@media (prefers-reduced-motion:reduce){.df-lightbox-dots button::after{transition:none}}

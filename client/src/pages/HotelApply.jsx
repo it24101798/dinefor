@@ -1,3 +1,4 @@
+import "../styles/revision12-15.css";
 import React, { useEffect, useState, useCallback } from "react";
 import api from "../services/api";
 import MediaUploader from "../components/MediaUploader";
@@ -96,6 +97,10 @@ function HotelApply() {
       setLoading(true);
       const res = await api.get(`/hotels/my-hotel`);
       const h = res.data?.hotel ?? res.data;
+      if (res.data?.hotel?.invitedOnboarding) {
+        navigate("/hotel-partnership", { replace: true });
+        return;
+      }
       if (!h) {
         setHotel(null);
         setFormData((prev) => ({ ...prev, email: user?.email || "", application: { ...prev.application, managerEmail: user?.email || "" } }));
@@ -919,7 +924,7 @@ function HotelApply() {
   }
 
   return (
-    <main className="min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20">
+    <main className="df-hotel-apply min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20">
       <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
         {/* Header */}
         <div className="mb-8">
@@ -945,6 +950,11 @@ function HotelApply() {
           </p>
         </div>
 
+        <div className="df-apply-guidance">
+          <div><span className="df-hotel-eyebrow">PARTNERSHIP APPLICATION</span><h2>Your buffet business, one simple platform.</h2><p>DineFor brings guests to your existing dining service. You retain control of buffet content, service times and seating.</p></div>
+          <div className="df-apply-guidance-art"><img src="/images/characters/discovery-chef.png" alt="Friendly DineFor chef" onError={(event) => { event.currentTarget.style.display = "none"; }} /></div>
+        </div>
+        <div className="df-apply-benefits"><span>✓ Existing hotel channels stay yours</span><span>✓ Add and manage buffet availability</span><span>✓ DineFor helps guests discover and reserve</span></div>
         {/* Message */}
         {renderMessage()}
 

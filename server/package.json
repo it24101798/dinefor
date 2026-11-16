@@ -9,7 +9,19 @@
     "reminders": "node scripts/run-booking-reminders.js",
     "smtp:test": "node --dns-result-order=ipv4first scripts/test-email.js",
     "maintenance": "node --dns-result-order=ipv4first scripts/run-release2-maintenance.js",
-    "seo:backfill-slugs": "node scripts/backfill-seo-slugs.js"
+    "seo:backfill-slugs": "node scripts/backfill-seo-slugs.js",
+    "payments:expire": "node scripts/run-payment-expiry.js",
+    "validate:release-4.5": "node scripts/validate-release-4-5.js",
+    "payments:migrate-4.5": "node scripts/migrate-release-4-5-payments.js",
+    "finance:migrate-4.6": "node scripts/migrate-release-4-6-finance.js",
+    "validate:release-4.6": "node scripts/validate-release-4-6.js",
+    "lifecycle:migrate-4.7": "node scripts/migrate-release-4-7-lifecycle.js",
+    "validate:release-4.7": "node scripts/validate-release-4-7.js",
+    "documents:migrate-4.8": "node scripts/migrate-release-4-8-documents.js",
+    "validate:release-4.8": "node scripts/validate-release-4-8.js",
+    "payments:migrate-4.9": "node scripts/migrate-release-4-9-monitoring.js",
+    "validate:release-4.9": "node scripts/validate-release-4-9.js",
+    "readiness:production": "node scripts/check-production-readiness.js"
   },
   "dependencies": {
     "bcryptjs": "latest",

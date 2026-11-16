@@ -1,841 +1,246 @@
-import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import api, { resolveMediaUrl } from "../services/api";
-import ReviewForm from "../components/reviews/ReviewForm";
-import useResponsive from "../hooks/useResponsive";
-import MobileBottomSheet from "../mobile/components/MobileBottomSheet";
-import ReviewList from "../components/reviews/ReviewList";
-import AvailabilityDateStrip from "../components/booking/AvailabilityDateStrip";
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import useResponsive from '../hooks/useResponsive';
+import { Photo, Ribbon } from '../design/ReferenceUI';
+import CrewArt from '../design/CrewArt';
+import ShellIcon from '../mobile/shell/ShellIcon';
+import { SaveHeart } from '../discovery/DiscoveryCard';
+import { mealLabel, money } from '../discovery/query';
+import { toImageUrl } from '../utils/media';
+import GalleryLightbox from '../components/shared/GalleryLightbox';
+import ReservationPanel, { sriLankaToday } from '../components/buffet/ReservationPanel';
+import ReviewForm from '../components/reviews/ReviewForm';
+import ReviewList from '../components/reviews/ReviewList';
+import '../components/buffet/buffet-details.css';
 
+const tabs = [['details', 'Details'], ['menu', 'Menu'], ['reviews', 'Reviews']];
+const dateKey = value => typeof value === 'string' ? value.slice(0, 10) : '';
+const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '')
+  && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
 
-const fallbackImage = "https://images.unsplash.com/photo-1555244162-803834f70033";
-
-const toDateInput = (value) => {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toISOString().slice(0, 10);
-};
-
-const resolveMedia = (value) => {
-  if (!value) return fallbackImage;
-  if (typeof value === "string") {
-    if (value.startsWith("http") || value.startsWith("data:")) return value;
-    if (value.startsWith("/uploads")) return resolveMediaUrl(value);
-    if (value.startsWith("uploads")) return resolveMediaUrl(`/${value}`);
-    return value;
-  }
-  return value.url || value.path || value.secure_url || fallbackImage;
-};
-
-const formatPrice = (value) => `Rs. ${Number(value || 0).toLocaleString("en-LK")}`;
-const formatDate = (value) => {
-  if (!value) return "-";
-  return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-};
-
-const buildGallery = (buffet) => {
-  const raw = [
-    buffet?.thumbnail,
-    ...(buffet?.images || []),
-    ...(buffet?.gallery || []),
-    buffet?.hotel?.coverImage,
-    buffet?.hotel?.coverPhoto,
-    ...(buffet?.hotel?.images || []),
-    ...(buffet?.hotel?.gallery || []),
-  ];
-  const unique = [];
-  raw.map(resolveMedia).filter(Boolean).forEach((item) => {
-    if (!unique.includes(item)) unique.push(item);
-  });
-  return unique.length ? unique : [fallbackImage];
-};
-
-const getUrgencyLabel = (slot) => {
-  const seats = Number(slot?.availableSeats || 0);
-  if (seats <= 0) return { label: "Sold Out", tone: "error" };
-  if (seats <= 5) return { label: `🔥 Only ${seats} seats left`, tone: "warning" };
-  if (seats <= 15) return { label: `⚡ ${seats} seats left`, tone: "info" };
-  return { label: `✅ ${seats} seats available`, tone: "good" };
-};
-
-// ============================================
-// MAIN COMPONENT
-// ============================================
-function BuffetDetails() {
-  const { isMobile } = useResponsive();
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const bookingRef = useRef(null);
-  const recentlyViewedRecordedRef = useRef("");
-
-  // ============================================
-  // STATE
-  // ============================================
-  const [buffet, setBuffet] = useState(null);
-  const [reviews, setReviews] = useState([]);
-  const [availability, setAvailability] = useState(null);
-  const [similarBuffets, setSimilarBuffets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [availabilityLoading, setAvailabilityLoading] = useState(false);
-  const [selectedDate, setSelectedDate] = useState("");
-  const [selectedSlotId, setSelectedSlotId] = useState("");
-  const [seats, setSeats] = useState(1);
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState("info");
-  const [activeImage, setActiveImage] = useState(0);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [mobileBookingOpen, setMobileBookingOpen] = useState(false);
-  const [bookingLoading, setBookingLoading] = useState(false);
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const storedUser = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem("dineforUser") || "null");
-    } catch {
-      return null;
-    }
-  }, []);
-
-  // ============================================
-  // FETCH DATA
-  // ============================================
-  const fetchBuffet = useCallback(async () => {
-    try {
-      const res = await api.get(`/buffets/${id}`);
-      setBuffet(res.data);
-
-      if (res.data.specialDate) {
-        setSelectedDate(toDateInput(res.data.specialDate));
-      } else {
-        setSelectedDate((current) => current || toDateInput(res.data.availableFromDate) || new Date().toISOString().slice(0, 10));
-      }
-
-      // Check if saved
-      if (storedUser?.token) {
-        try {
-          const savedRes = await api.get("/users/saved-buffets", {
-            headers: { Authorization: `Bearer ${storedUser.token}` },
-          });
-          const savedIds = savedRes.data.map((b) => b._id);
-          setIsSaved(savedIds.includes(id));
-        } catch {
-          // Ignore
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch buffet:", error);
-      setBuffet(null);
-      setMessage(error.response?.data?.message || "Buffet details could not be loaded.");
-      setMessageType("error");
-    }
-  }, [id, storedUser?.token]);
-
-  const fetchReviews = useCallback(async () => {
-    try {
-      const res = await api.get(`/reviews/buffet/${id}`);
-      setReviews(Array.isArray(res.data) ? res.data : res.data?.reviews || []);
-    } catch (error) {
-      console.error("Failed to fetch reviews:", error);
-      setReviews([]);
-    }
-  }, [id]);
-
-  const fetchSimilarBuffets = useCallback(async () => {
-    try {
-      const res = await api.get("/buffets");
-      const items = Array.isArray(res.data) ? res.data : res.data?.buffets || [];
-      setSimilarBuffets(items.filter((item) => item._id !== id).slice(0, 4));
-    } catch (error) {
-      console.error("Failed to fetch similar buffets:", error);
-      setSimilarBuffets([]);
-    }
-  }, [id]);
-
-  const fetchAvailability = useCallback(async (dateValue) => {
-    if (!dateValue) return;
-    setAvailabilityLoading(true);
-    setMessage("");
-
-    try {
-      const res = await api.get(`/bookings/availability/${id}?date=${dateValue}`);
-      setAvailability(res.data);
-
-      const firstAvailableSlot = res.data.slots?.find((slot) => Number(slot.availableSeats) > 0) || res.data.slots?.[0];
-      setSelectedSlotId((current) => {
-        const currentStillExists = res.data.slots?.some((slot) => slot._id === current && Number(slot.availableSeats) > 0);
-        return currentStillExists ? current : firstAvailableSlot?._id || "";
-      });
-    } catch (error) {
-      console.error("Failed to fetch availability:", error);
-      setAvailability({ isAvailableDate: false, slots: [] });
-      setSelectedSlotId("");
-      setMessage(error.response?.data?.message || "Availability could not be loaded for this date.");
-      setMessageType("error");
-    } finally {
-      setAvailabilityLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadData = async () => {
-      setLoading(true);
-      await Promise.all([fetchBuffet(), fetchReviews(), fetchSimilarBuffets()]);
-      if (!cancelled) setLoading(false);
-    };
-
-    loadData();
-    return () => {
-      cancelled = true;
-    };
-  }, [fetchBuffet, fetchReviews, fetchSimilarBuffets]);
-
-  useEffect(() => {
-    if (!storedUser?.token || !id || recentlyViewedRecordedRef.current === id) return;
-    recentlyViewedRecordedRef.current = id;
-    api.put(`/discovery/recently-viewed/${id}`).catch((error) => {
-      console.warn("Recently viewed could not be recorded:", error.response?.data?.message || error.message);
-    });
-  }, [id, storedUser?.token]);
-
-  useEffect(() => {
-    if (selectedDate && buffet) {
-      fetchAvailability(selectedDate);
-    }
-  }, [selectedDate, buffet, fetchAvailability]);
-
-  // ============================================
-  // COMPUTED DATA
-  // ============================================
-  const gallery = useMemo(() => buildGallery(buffet), [buffet]);
-  const availabilitySlots = availability?.slots || [];
-  const selectedSlot = availabilitySlots.find((slot) => slot._id === selectedSlotId);
-  const hasSlots = Boolean(availabilitySlots.length);
-  const urgency = getUrgencyLabel(selectedSlot);
-  const rating = Number(buffet?.averageRating || 0);
-  const reviewCount = Number(buffet?.totalReviews || reviews.length || 0);
-  const experienceScore = Math.min(9.8, Math.max(7.2, rating ? rating * 1.9 : 8.6)).toFixed(1);
-
-  const dateWindow = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    if (!buffet) return { min: today, max: "" };
-    if (buffet.buffetType === "special") {
-      const special = toDateInput(buffet.specialDate);
-      return { min: special || today, max: special || "" };
-    }
-    return {
-      min: toDateInput(buffet.availableFromDate) || today,
-      max: toDateInput(buffet.availableToDate) || "",
-    };
-  }, [buffet]);
-
-  const totals = useMemo(() => {
-    const subtotal = Number(buffet?.price || 0) * Number(seats || 1);
-    return { subtotal, total: subtotal };
-  }, [buffet?.price, seats]);
-
-  // ============================================
-  // HANDLERS
-  // ============================================
-  const toggleSave = async () => {
-    if (!storedUser?.token) {
-      navigate("/login");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const response = await api.put(`/users/saved-buffets/${id}`, null, {
-        headers: { Authorization: `Bearer ${storedUser.token}` },
-      });
-      const nextSaved = Boolean(response.data?.saved);
-      setIsSaved(nextSaved);
-      setMessage(nextSaved ? "Added to saved buffets!" : "Removed from saved buffets.");
-      setMessageType("success");
-      setTimeout(() => setMessage(""), 3000);
-    } catch (error) {
-      setMessage(error.response?.data?.message || "Failed to update saved buffets.");
-      setMessageType("error");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleBooking = async () => {
-    setMessage("");
-    setMessageType("info");
-
-    if (!storedUser) {
-      navigate("/login");
-      return;
-    }
-
-    if (!selectedDate || !selectedSlotId || !hasSlots) {
-      setMessage("Please select an available date and time slot before reserving.");
-      setMessageType("error");
-      return;
-    }
-
-    if (!selectedSlot || Number(selectedSlot.availableSeats) <= 0) {
-      setMessage("This selected slot is fully booked. Please select another slot.");
-      setMessageType("error");
-      return;
-    }
-
-    if (Number(seats) > Number(selectedSlot.availableSeats)) {
-      setMessage(`Only ${selectedSlot.availableSeats} seats are available for this date and time.`);
-      setMessageType("error");
-      return;
-    }
-
-    setBookingLoading(true);
-    try {
-      const res = await api.post(
-        "/bookings",
-        { 
-          buffetId: buffet._id, 
-          selectedDate, 
-          slotId: selectedSlotId, 
-          seats: Number(seats) 
-        },
-        { headers: { Authorization: `Bearer ${storedUser.token}` } }
-      );
-
-      setMessage(res.data.message || "🎉 Reservation confirmed!");
-      setMessageType("success");
-      await fetchAvailability(selectedDate);
-      await fetchBuffet();
-      setTimeout(() => navigate("/my-bookings"), 1500);
-    } catch (error) {
-      setMessage(error.response?.data?.message || "Booking failed. Please try again.");
-      setMessageType("error");
-      await fetchAvailability(selectedDate);
-    } finally {
-      setBookingLoading(false);
-    }
-  };
-
-  // ============================================
-  // RENDER HELPERS
-  // ============================================
-  const renderMessage = () => {
-    if (!message) return null;
-
-    const styles = {
-      success: "bg-secondary-container/30 text-secondary border border-secondary/30",
-      error: "bg-error/10 text-error border border-error/20",
-      warning: "bg-tertiary-container/20 text-tertiary border border-tertiary-container/30",
-      info: "bg-primary-container/10 text-primary border border-primary-container/20",
-    };
-
-    return (
-      <div className={`p-3 rounded-lg text-sm font-medium ${styles[messageType] || styles.info}`}>
-        {message}
-        <button
-          onClick={() => setMessage("")}
-          className="float-right text-inherit opacity-70 hover:opacity-100"
-        >
-          <span className="material-symbols-outlined text-[16px]">close</span>
-        </button>
-      </div>
-    );
-  };
-
-  const renderLoading = () => (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="text-center">
-        <div className="animate-pulse">
-          <span className="material-symbols-outlined text-5xl text-secondary mb-3 block">restaurant</span>
-          <p className="font-headline-md text-headline-md text-text-deep-green">Loading buffet experience...</p>
-        </div>
-      </div>
-    </div>
-  );
-
-  // ============================================
-  // SECTION RENDERERS
-  // ============================================
-  const renderGallery = () => (
-    <div className="relative w-full h-[300px] md:h-[450px] rounded-2xl overflow-hidden">
-      <img
-        src={gallery[activeImage] || fallbackImage}
-        alt={buffet?.title}
-        className="w-full h-full object-cover"
-        onError={(e) => { e.target.src = fallbackImage; }}
-      />
-      
-      {gallery.length > 1 && (
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
-          {gallery.slice(0, 6).map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setActiveImage(index)}
-              className={`w-2 h-2 rounded-full transition-all ${
-                index === activeImage ? "bg-surface-cream w-6" : "bg-surface-cream/50"
-              }`}
-            />
-          ))}
-          {gallery.length > 6 && (
-            <button
-              onClick={() => setLightboxOpen(true)}
-              className="text-xs text-surface-cream/70 hover:text-surface-cream ml-2"
-            >
-              +{gallery.length - 6}
-            </button>
-          )}
-        </div>
-      )}
-
-      <button
-        onClick={toggleSave}
-        disabled={saving}
-        className={`absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-surface-cream/90 backdrop-blur-sm flex items-center justify-center transition-all hover:scale-110 ${
-          isSaved ? "text-highlight-gold" : "text-on-surface-variant"
-        }`}
-      >
-        <span className="material-symbols-outlined" style={{ fontVariationSettings: isSaved ? "'FILL' 1" : "'FILL' 0" }}>
-          favorite
-        </span>
+function Gallery({ photos, title, index, select, open }) {
+  return <section className="df06-gallery" aria-label="Buffet photos">
+    {photos.length ? <button type="button" className="df06-cover" onClick={() => open(index)} aria-label="Open buffet photo gallery">
+      <Photo sources={[photos[index]]} alt={title} loading="eager" />
+      <span className="df06-photo-count">{index + 1} / {photos.length}</span>
+    </button> : <div className="df06-cover"><Photo alt={title} /></div>}
+    {photos.length > 1 && <div className="df06-thumbs">{photos.slice(0, 4).map((photo, number) => (
+      <button type="button" key={photo} aria-label={`Show photo ${number + 1}`} aria-pressed={index === number} onClick={() => select(number)}>
+        <Photo sources={[photo]} alt="" />
       </button>
-
-      {gallery.length > 1 && (
-        <button
-          onClick={() => setLightboxOpen(true)}
-          className="absolute bottom-4 right-4 z-10 bg-surface-cream/90 backdrop-blur-sm px-4 py-2 rounded-full font-label-sm text-label-sm text-text-deep-green flex items-center gap-2 hover:bg-surface-cream transition-colors"
-        >
-          <span className="material-symbols-outlined text-[16px]">grid_view</span>
-          View All Photos
-        </button>
-      )}
-    </div>
-  );
-
-  const renderHeader = () => (
-    <div className="space-y-4">
-      <div>
-        <Link 
-          to={`/hotels/${buffet?.hotel?._id}`}
-          className="font-label-sm text-label-sm text-secondary hover:underline hover:text-highlight-gold transition-colors uppercase tracking-wider"
-        >
-          {buffet?.hotel?.hotelName || "Hotel Partner"}
-        </Link>
-        <h1 className="font-headline-lg text-headline-lg text-text-deep-green mt-1">{buffet?.title}</h1>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-4">
-        {rating > 0 && (
-          <span className="flex items-center gap-1 text-highlight-gold">
-            <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-              star
-            </span>
-            {rating.toFixed(1)} ({reviewCount} reviews)
-          </span>
-        )}
-        <Link 
-          to={`/hotels/${buffet?.hotel?._id}`}
-          className="text-on-surface-variant flex items-center gap-1 hover:text-secondary transition-colors"
-        >
-          <span className="material-symbols-outlined text-[18px]">location_on</span>
-          {buffet?.location?.city || buffet?.hotel?.location || "Sri Lanka"}
-        </Link>
-        <span className="badge-gold">Experience {experienceScore}/10</span>
-        {buffet?.isFeatured && (
-          <span className="badge-gold bg-highlight-gold/20 text-highlight-gold">⭐ Featured</span>
-        )}
-        {false && (
-          <span className="badge-gold bg-tertiary-container/20 text-tertiary">Preview Mode</span>
-        )}
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <span className={`status-pill ${urgency.tone === "error" ? "rejected" : urgency.tone === "warning" ? "pending" : "approved"}`}>
-          {urgency.label}
-        </span>
-        {buffet?.category && (
-          <span className="chip">{buffet.category}</span>
-        )}
-        {buffet?.buffetType && (
-          <span className="chip">{buffet.buffetType}</span>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderDescription = () => (
-    <section className="space-y-4">
-      <h2 className="font-headline-md text-headline-md text-text-deep-green">About the Experience</h2>
-      <p className="font-body-md text-body-md text-on-surface-variant leading-relaxed">
-        {buffet?.description || "A premium hotel buffet experience selected for DineFor guests."}
-      </p>
-    </section>
-  );
-
-  const renderHighlights = () => (
-    buffet?.highlights?.length > 0 && (
-      <section className="space-y-4">
-        <h2 className="font-headline-md text-headline-md text-text-deep-green">Menu Highlights</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {buffet.highlights.map((item, index) => (
-            <div key={index} className="flex items-center gap-3 p-3 rounded-xl bg-surface-container-low border border-border-subtle">
-              <span className="material-symbols-outlined text-secondary">restaurant</span>
-              <span className="font-body-md text-body-md text-text-deep-green">{item}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-    )
-  );
-
-  const renderReviews = () => (
-    <section className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="font-headline-md text-headline-md text-text-deep-green">Guest Reviews</h2>
-        <button
-          onClick={() => setShowReviewForm(!showReviewForm)}
-          className="text-secondary font-label-md text-label-md hover:underline"
-        >
-          {showReviewForm ? "Hide Form" : "Write a Review"}
-        </button>
-      </div>
-      {showReviewForm && (
-        <ReviewForm
-          buffetId={id}
-          onReviewCreated={() => {
-            setShowReviewForm(false);
-            fetchReviews();
-            fetchBuffet();
-          }}
-        />
-      )}
-      <ReviewList reviews={reviews} />
-    </section>
-  );
-
-  const renderSimilar = () => (
-    similarBuffets.length > 0 && (
-      <section className="space-y-4">
-        <h2 className="font-headline-md text-headline-md text-text-deep-green">You May Also Like</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {similarBuffets.map((item) => (
-            <Link
-              key={item._id}
-              to={`/buffets/${item._id}`}
-              className="card-ambient-hover overflow-hidden"
-            >
-              <img
-                src={resolveMedia(item.thumbnail || item.images?.[0])}
-                alt={item.title}
-                className="w-full h-40 object-cover"
-              />
-              <div className="p-3">
-                <h4 className="font-label-sm text-label-sm text-text-deep-green">{item.title}</h4>
-                <p className="font-label-sm text-label-sm text-highlight-gold">{formatPrice(item.price)}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-    )
-  );
-
-  const renderBookingPanel = () => (
-    <div className="sticky top-28">
-      <div className="card-ambient p-6">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <span className="font-headline-lg text-headline-lg text-highlight-gold">{formatPrice(buffet?.price)}</span>
-            <span className="font-body-md text-body-md text-on-surface-variant ml-1">/ person</span>
-          </div>
-          {buffet?.price && buffet?.originalPrice && buffet.originalPrice > buffet.price && (
-            <span className="font-label-sm text-label-sm text-on-surface-variant line-through">
-              {formatPrice(buffet.originalPrice)}
-            </span>
-          )}
-        </div>
-
-        <div className="space-y-4">
-          <AvailabilityDateStrip
-            buffetId={buffet?._id}
-            selectedDate={selectedDate}
-            guests={seats}
-            onSelect={setSelectedDate}
-            days={14}
-          />
-
-          <div>
-            <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Select Date</label>
-            <input
-              type="date"
-              value={selectedDate}
-              min={dateWindow.min}
-              max={dateWindow.max}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="form-input w-full"
-              readOnly={buffet?.buffetType === "special"}
-            />
-          </div>
-
-          {availabilityLoading && (
-            <p className="font-body-md text-body-md text-on-surface-variant text-center py-2">
-              <span className="animate-pulse">Checking live seats...</span>
-            </p>
-          )}
-
-          {availability && !availability.isAvailableDate && (
-            <div className="p-3 rounded-xl bg-error/10 text-error text-sm">
-              {availability.message}
-            </div>
-          )}
-
-          <div>
-            <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Time Slot</label>
-            <div className="grid grid-cols-2 gap-2">
-              {hasSlots ? (
-                availabilitySlots.map((slot) => {
-                  const isAvailable = Number(slot.availableSeats) > 0;
-                  const isSelected = slot._id === selectedSlotId;
-                  return (
-                    <button
-                      key={slot._id}
-                      type="button"
-                      disabled={!isAvailable}
-                      onClick={() => setSelectedSlotId(slot._id)}
-                      className={`p-3 rounded-xl border text-center transition-all ${
-                        isSelected && isAvailable
-                          ? "border-secondary bg-secondary-container/20 text-text-deep-green ring-1 ring-secondary"
-                          : isAvailable
-                          ? "border-border-subtle hover:border-secondary cursor-pointer"
-                          : "border-border-subtle bg-surface-container-low text-on-surface-variant/50 cursor-not-allowed"
-                      }`}
-                    >
-                      <div className="font-label-sm text-label-sm">
-                        {slot.startTime} - {slot.endTime}
-                      </div>
-                      <div className="font-label-xs text-label-sm text-on-surface-variant">
-                        {slot.availableSeats} / {slot.totalSeats} seats
-                      </div>
-                    </button>
-                  );
-                })
-              ) : (
-                <p className="font-body-md text-body-md text-on-surface-variant col-span-2 text-center py-4">
-                  No time slots available for this date.
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <label className="font-label-sm text-label-sm text-on-surface-variant block mb-1">Number of Guests</label>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setSeats((v) => Math.max(1, v - 1))}
-                className="w-10 h-10 rounded-full border border-border-subtle flex items-center justify-center hover:bg-surface-container-low transition-colors"
-              >
-                <span className="material-symbols-outlined">remove</span>
-              </button>
-              <input
-                type="number"
-                min="1"
-                max={Math.min(
-                  Number(selectedSlot?.availableSeats || 1),
-                  Number(availability?.reservationPolicy?.maxGuestsPerBooking || 20)
-                )}
-                value={seats}
-                onChange={(e) => {
-                  const val = Math.min(
-                    Number(selectedSlot?.availableSeats || 1),
-                    Number(availability?.reservationPolicy?.maxGuestsPerBooking || 20),
-                    Math.max(1, Number(e.target.value) || 1)
-                  );
-                  setSeats(val);
-                }}
-                className="form-input w-20 text-center"
-              />
-              <button
-                onClick={() =>
-                  setSeats((v) =>
-                    Math.min(
-                      Number(selectedSlot?.availableSeats || 1),
-                      Number(availability?.reservationPolicy?.maxGuestsPerBooking || 20),
-                      v + 1
-                    )
-                  )
-                }
-                className="w-10 h-10 rounded-full border border-border-subtle flex items-center justify-center hover:bg-surface-container-low transition-colors"
-              >
-                <span className="material-symbols-outlined">add</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-border-subtle space-y-2">
-            <div className="flex justify-between">
-              <span className="font-body-md text-body-md text-on-surface-variant">Subtotal</span>
-              <span className="font-body-md text-body-md text-text-deep-green">{formatPrice(totals.subtotal)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-body-md text-body-md text-on-surface-variant">Service & Tax</span>
-              <span className="font-body-md text-body-md text-text-deep-green">Included</span>
-            </div>
-            <div className="flex justify-between border-t border-border-subtle pt-3">
-              <span className="font-headline-md text-headline-md text-text-deep-green">Total</span>
-              <span className="font-headline-md text-headline-md text-highlight-gold">{formatPrice(totals.total)}</span>
-            </div>
-          </div>
-
-          {renderMessage()}
-
-          <button
-            onClick={handleBooking}
-            disabled={bookingLoading || !selectedSlot || Number(selectedSlot.availableSeats) <= 0}
-            className="btn-secondary w-full flex items-center justify-center gap-2"
-          >
-            {bookingLoading ? (
-              <>
-                <span className="animate-spin rounded-full h-4 w-4 border-2 border-text-deep-green border-t-transparent" />
-                Reserving...
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                Reserve Buffet
-              </>
-            )}
-          </button>
-          <p className="font-label-sm text-label-sm text-on-surface-variant text-center">
-            {availability?.reservationPolicy?.instantConfirmation
-              ? "Instant confirmation — no hotel callback is required."
-              : "This hotel reviews reservation requests before confirmation."}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-
-  // ============================================
-  // MAIN RENDER
-  // ============================================
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-surface-cream pt-20">
-        <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
-          {renderLoading()}
-        </div>
-      </main>
-    );
-  }
-
-  if (!buffet) {
-    return (
-      <main className="min-h-screen bg-surface-cream pt-20">
-        <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-8">
-          <div className="text-center py-16">
-            <span className="material-symbols-outlined text-6xl text-outline mb-4">restaurant</span>
-            <h3 className="font-headline-md text-headline-md text-text-deep-green">Buffet Not Found</h3>
-            <p className="font-body-md text-body-md text-on-surface-variant mt-2">
-              The buffet you're looking for doesn't exist or has been removed.
-            </p>
-            <Link to="/feed" className="btn-primary inline-flex items-center gap-2 mt-6">
-              Browse Buffets
-              <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-            </Link>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  return (
-    <main className="min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20 pb-24 md:pb-0">
-      <div className="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            {renderGallery()}
-            {renderHeader()}
-            {renderDescription()}
-            {renderHighlights()}
-            {renderReviews()}
-            {renderSimilar()}
-          </div>
-
-          <div className="hidden lg:block lg:col-span-1">
-            {renderBookingPanel()}
-          </div>
-        </div>
-      </div>
-
-      {isMobile && (
-        <>
-          <div className="df-mobile-booking-bar">
-            <div><strong>{formatPrice(buffet?.price)}</strong><span>per person</span></div>
-            <button type="button" className="btn-secondary" onClick={() => setMobileBookingOpen(true)}>Reserve</button>
-          </div>
-          <MobileBottomSheet open={mobileBookingOpen} onClose={() => setMobileBookingOpen(false)} title="Reserve this buffet">
-            <div className="df-mobile-booking-sheet">{renderBookingPanel()}</div>
-          </MobileBottomSheet>
-        </>
-      )}
-
-      {lightboxOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-          onClick={() => setLightboxOpen(false)}
-        >
-          <button
-            onClick={() => setLightboxOpen(false)}
-            className="absolute top-4 right-4 text-white hover:text-highlight-gold transition-colors"
-          >
-            <span className="material-symbols-outlined text-3xl">close</span>
-          </button>
-          <div className="relative max-w-5xl w-full">
-            <img
-              src={gallery[activeImage] || fallbackImage}
-              alt={buffet.title}
-              className="w-full h-auto max-h-[85vh] object-contain rounded-xl"
-              onClick={(e) => e.stopPropagation()}
-            />
-            <div className="flex justify-center gap-2 mt-4">
-              {gallery.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveImage(index);
-                  }}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    index === activeImage ? "bg-highlight-gold w-6" : "bg-white/50"
-                  }`}
-                />
-              ))}
-            </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setActiveImage((prev) => (prev - 1 + gallery.length) % gallery.length);
-              }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:text-highlight-gold transition-colors"
-            >
-              <span className="material-symbols-outlined text-4xl">chevron_left</span>
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setActiveImage((prev) => (prev + 1) % gallery.length);
-              }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:text-highlight-gold transition-colors"
-            >
-              <span className="material-symbols-outlined text-4xl">chevron_right</span>
-            </button>
-          </div>
-        </div>
-      )}
-    </main>
-  );
+    ))}</div>}
+  </section>;
 }
 
-export default BuffetDetails;
+function Reviews({ buffetId, returnTo }) {
+  const { user } = useAuth();
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setError(false);
+    setData(null);
+    api.get(`/reviews/buffet/${buffetId}`, { signal: controller.signal })
+      .then(({ data }) => {
+        const response = Array.isArray(data) ? { reviews: data } : data;
+        if (!Array.isArray(response?.reviews)) throw new Error('Invalid reviews response');
+        if (!controller.signal.aborted) setData(response);
+      }).catch(() => { if (!controller.signal.aborted) setError(true); });
+    return () => controller.abort();
+  }, [buffetId, attempt]);
+
+  const reviews = Array.isArray(data?.reviews) ? data.reviews : [];
+  const total = reviews.length;
+  const average = total ? reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / total : 0;
+  return <section className="df06-review-panel">
+    <header><h2>Guest reviews</h2>
+      {user?.role === 'customer'
+        ? <button type="button" className="df06-text-button" aria-expanded={showForm} onClick={() => setShowForm(value => !value)}>{showForm ? 'Hide review form' : 'Write a review'}</button>
+        : !user && <Link className="df06-text-button" to="/login" state={{ returnTo }}>Sign in to review</Link>}
+    </header>
+    {showForm && <ReviewForm buffetId={buffetId} onReviewCreated={() => { setShowForm(false); setAttempt(value => value + 1); }} />}
+    {!data && !error && <p role="status">Loading reviews…</p>}
+    {error && <p role="alert">Couldn’t load reviews. <button type="button" className="df06-text-button" onClick={() => setAttempt(value => value + 1)}>Try again</button></p>}
+    {data && (total ? <>
+      <div className="df06-review-score">
+        <div><strong>{average.toFixed(1)}</strong><span>out of 5 · {total} {total === 1 ? 'review' : 'reviews'}</span></div>
+        <div>{[5, 4, 3, 2, 1].map(star => {
+          const percent = Math.round(100 * reviews.filter(review => Math.round(Number(review.rating)) === star).length / total);
+          return <div key={star} className="df06-rating-row"><span>{star} <b aria-hidden="true">★</b></span><progress aria-label={`${star}-star reviews`} value={percent} max="100" /><span>{percent}%</span></div>;
+        })}</div>
+      </div>
+      <ReviewList reviews={reviews} />
+    </> : <p>No published reviews yet.</p>)}
+  </section>;
+}
+
+function LocationAndPolicy({ buffet }) {
+  const hotel = buffet.hotel;
+  const town = buffet.location?.city || hotel?.city || hotel?.location;
+  const address = buffet.location?.address || hotel?.address;
+  const policy = hotel?.cancellationPolicy;
+  const location = [hotel?.hotelName, town].filter(Boolean).join(', ');
+  return <>
+    {(location || address) && <section className="df06-info"><ShellIcon name="pin" /><div><h2>Location & directions</h2>
+      {location && <p>{location}</p>}{address && address !== town && <p>{address}</p>}
+      {hotel?._id && <Link to={`/hotels/${hotel._id}`}>View hotel and map →</Link>}
+      {!hotel?._id && town && <Link to={`/explore-map?location=${encodeURIComponent(town)}`}>Explore the map →</Link>}
+    </div></section>}
+    <details className="df06-policy"><summary><ShellIcon name="calendar" /> Cancellation policy</summary>
+      <div>{policy && Number.isFinite(policy.freeCancellationHours)
+        ? <p>The hotel’s advance cancellation window is {policy.freeCancellationHours} hours before your session. Your booking’s cancellation quote will show the applicable refund before you confirm.</p>
+        : <p>Review the cancellation terms in checkout before you book. For an existing booking, open My bookings to see its cancellation options.</p>}</div>
+    </details>
+  </>;
+}
+
+function ReserveDialog({ children, close }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    const opener = document.activeElement;
+    const previous = document.body.style.overflow;
+    dialog.showModal();
+    document.body.style.overflow = 'hidden';
+    return () => {
+      dialog.close();
+      document.body.style.overflow = previous;
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus({ preventScroll: true });
+    };
+  }, []);
+  return <dialog ref={ref} className="df06-reserve-dialog" aria-label="Reserve a buffet" onCancel={event => { event.preventDefault(); close(); }}>
+    <div><button type="button" aria-label="Close reservation" className="df06-close" onClick={close}><ShellIcon name="close" /></button>{children}</div>
+  </dialog>;
+}
+
+function BuffetDetailPage({ id }) {
+  const { user } = useAuth();
+  const { isDesktop } = useResponsive();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const requested = new URLSearchParams(location.search);
+  const [buffet, setBuffet] = useState(null);
+  const [date, setDate] = useState('');
+  const [guests, setGuests] = useState(1);
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [tab, setTab] = useState('details');
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const [lightbox, setLightbox] = useState(false);
+  const [reserve, setReserve] = useState(requested.get('reserve') === '1');
+  const tabRefs = useRef({});
+  const recorded = useRef('');
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setError(false);
+    api.get(`/buffets/${encodeURIComponent(id)}`, { signal: controller.signal }).then(({ data }) => {
+      if (!data?._id) throw new Error('Missing buffet');
+      if (controller.signal.aborted) return;
+      const params = new URLSearchParams(location.search);
+      const requestedDate = params.get('date');
+      const party = Number(params.get('guests'));
+      const today = sriLankaToday();
+      const start = dateKey(data.availableFromDate);
+      const end = dateKey(data.availableToDate);
+      const earliest = start > today ? start : today;
+      const desiredDate = validDate(requestedDate) && requestedDate >= earliest && (!end || requestedDate <= end)
+        ? requestedDate : earliest;
+      setDate(dateKey(data.specialDate) || desiredDate);
+      setGuests(Number.isInteger(party) && party > 0 ? Math.min(party, data.maxGuestsPerBooking || 20) : 1);
+      setBuffet(data);
+    }).catch(() => { if (!controller.signal.aborted) setError(true); });
+    return () => controller.abort();
+  }, [id, attempt, location.search]);
+
+  useEffect(() => {
+    if (!user?.token || !buffet?._id || recorded.current === buffet._id) return;
+    recorded.current = buffet._id;
+    api.put(`/discovery/recently-viewed/${buffet._id}`).catch(() => {});
+  }, [user?.token, buffet?._id]);
+
+  function continueToCheckout(slot) {
+    if (!user) {
+      const query = new URLSearchParams({ date, guests: String(guests), slot: slot._id, reserve: '1' });
+      navigate('/login', { state: { returnTo: `${location.pathname}?${query}` } });
+      return;
+    }
+    const query = new URLSearchParams({ buffet: buffet._id, date, slot: slot._id, guests: String(guests) });
+    navigate(`/reserve?${query}`, { state: location.state });
+  }
+
+  if (!buffet) return <main className="df06-page"><div className="df06-wrap">
+    {error && <p role="alert">This buffet couldn’t be loaded. <Link to="/listings">Browse buffets</Link> <button type="button" onClick={() => setAttempt(value => value + 1)}>Try again</button></p>}
+    {!error && <p role="status">Loading buffet details…</p>}
+  </div></main>;
+
+  const hotel = buffet.hotel;
+  const city = buffet.location?.city || hotel?.city || hotel?.location;
+  const photos = [...new Set([buffet.thumbnail, ...(buffet.images || []), hotel?.coverMediaUrl, ...(hotel?.galleryImages || [])].map(toImageUrl).filter(Boolean))];
+  const highlights = (buffet.highlights || []).filter(item => typeof item === 'string' && item.trim());
+  const amenities = (hotel?.amenities || []).filter(item => typeof item === 'string' && item.trim());
+  const booking = <ReservationPanel buffet={buffet} date={date} guests={guests} initialSlot={requested.get('slot')} onDate={setDate} onGuests={setGuests} onContinue={continueToCheckout} />;
+  const openGallery = number => { setGalleryIndex(number); setLightbox(true); };
+
+  return <main className="df06-page">
+    <div className="df06-wrap">
+      <div className="df06-toolbar"><Link to="/listings"><ShellIcon name="right" /> Buffets</Link><SaveHeart buffet={buffet} /></div>
+      <div className="df06-layout">
+        <div className="df06-main">
+          <Gallery photos={photos} title={buffet.title} index={galleryIndex} select={setGalleryIndex} open={openGallery} />
+          <header className="df06-title">
+            <h1>{buffet.title}</h1>
+            <div className="df06-facts">
+              {buffet.totalReviews > 0 && <span><b aria-hidden="true">★</b> {Number(buffet.averageRating || 0).toFixed(1)} ({buffet.totalReviews} {buffet.totalReviews === 1 ? 'review' : 'reviews'})</span>}
+              {city && <span><ShellIcon name="pin" />{city}</span>}
+              {buffet.category && <span><ShellIcon name="buffet" />{mealLabel(buffet.category)} buffet</span>}
+            </div>
+          </header>
+          <div className="df06-tabs" role="tablist" aria-label="Buffet information">
+            {tabs.map(([key, label], index) => <button type="button" key={key} id={`df06-tab-${key}`} ref={element => { tabRefs.current[key] = element; }}
+              role="tab" aria-selected={key === tab} tabIndex={key === tab ? 0 : -1} aria-controls="df06-panel"
+              onClick={() => setTab(key)} onKeyDown={event => {
+                const direction = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
+                if (!direction && !['Home', 'End'].includes(event.key)) return;
+                event.preventDefault();
+                const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + direction + tabs.length) % tabs.length;
+                setTab(tabs[next][0]);
+                tabRefs.current[tabs[next][0]]?.focus();
+              }}>{label}</button>)}
+          </div>
+          <div className="df06-tab-panel" id="df06-panel" role="tabpanel" aria-labelledby={`df06-tab-${tab}`} tabIndex={0}>
+            {tab === 'details' && <>
+              {buffet.description && <p className="df06-description">{buffet.description}</p>}
+              {amenities.length > 0 && <ul className="df06-amenities">{amenities.map((label, index) => <li key={index}>{label}</li>)}</ul>}
+              <div className="df06-couple"><Ribbon /><img src="/images/home/nila-kavin.png" alt="" loading="lazy" /></div>
+            </>}
+            {tab === 'menu' && <>
+              <div className="df06-menu-heading"><div><h2>Buffet menu</h2><p>Menu highlights supplied by the hotel.</p></div><CrewArt role="chef" /></div>
+              {highlights.length ? <ul className="df06-menu">{highlights.map((item, index) => <li key={index}><ShellIcon name="buffet" />{item}</li>)}</ul> : <p>The hotel hasn’t published menu highlights for this buffet.</p>}
+              <aside className="df06-info"><div><h2>Dietary information</h2><p>Menu items may change. Check allergens and dietary needs with the hotel before booking.</p></div></aside>
+            </>}
+            {tab === 'reviews' && <Reviews buffetId={buffet._id} returnTo={location.pathname + location.search} />}
+          </div>
+          <LocationAndPolicy buffet={buffet} />
+        </div>
+        {isDesktop && <aside className="df06-desktop-booking">{booking}</aside>}
+      </div>
+    </div>
+    {!isDesktop && <div className="df06-booking-bar">
+      <div><strong>{money(buffet.price)}</strong><small> per guest</small></div>
+      <button type="button" className="df-shell-primary" onClick={() => setReserve(true)}>Reserve</button>
+    </div>}
+    {reserve && !isDesktop && <ReserveDialog close={() => setReserve(false)}>{booking}</ReserveDialog>}
+    {lightbox && <GalleryLightbox title={buffet.title} images={photos} index={galleryIndex} onIndexChange={setGalleryIndex} onClose={() => setLightbox(false)} />}
+  </main>;
+}
+
+export default function BuffetDetails() {
+  const { id } = useParams();
+  return <BuffetDetailPage key={id} id={id} />;
+}

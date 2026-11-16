@@ -58,6 +58,20 @@ const eventTemplates = {
     type: "booking",
     link: "/my-bookings",
   },
+  rescheduled: {
+    title: "Reservation rescheduled",
+    heading: "Your reservation was updated",
+    intro: "Your new buffet date and time are confirmed. Your booking code and linked payment remain unchanged.",
+    type: "booking",
+    link: "/my-bookings",
+  },
+  no_show: {
+    title: "Reservation marked as no-show",
+    heading: "No-show recorded",
+    intro: "The hotel recorded that this reservation was not used. Review the booking timeline and applicable refund outcome in DineFor.",
+    type: "booking",
+    link: "/my-bookings",
+  },
   payment_paid: {
     title: "Payment confirmed",
     heading: "Your payment was successful",
@@ -96,7 +110,7 @@ const communicateBookingEvent = async ({
       }.`,
       type: template.type,
       link: template.link,
-      dedupeKey: `booking:${booking._id}:${event}`,
+      dedupeKey: `booking:${booking._id}:${event}${event === "rescheduled" ? `:${booking.modificationCount || 0}` : ""}`,
     }),
   ];
 
@@ -122,7 +136,7 @@ const communicateBookingEvent = async ({
     );
   }
 
-  if (["confirmed", "cancelled"].includes(event) && hotel?.owner) {
+  if (["confirmed", "cancelled", "rescheduled", "no_show"].includes(event) && hotel?.owner) {
     const owner =
       hotel.owner?._id
         ? hotel.owner
@@ -135,15 +149,13 @@ const communicateBookingEvent = async ({
         notifyUser({
           userId: owner._id,
           title:
-            event === "confirmed"
-              ? "New reservation"
-              : "Reservation cancelled",
+            event === "confirmed" ? "New reservation" : event === "rescheduled" ? "Reservation rescheduled" : event === "no_show" ? "No-show recorded" : "Reservation cancelled",
           message: `${buffet?.title || "Buffet"} — ${
             booking.bookingCode
           }.`,
           type: "booking",
           link: "/hotel/reservations",
-          dedupeKey: `hotel-booking:${booking._id}:${event}`,
+          dedupeKey: `hotel-booking:${booking._id}:${event}${event === "rescheduled" ? `:${booking.modificationCount || 0}` : ""}`,
         })
       );
 

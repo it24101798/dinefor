@@ -1,5 +1,8 @@
+const { hotelProfileView } = require("../services/hotelPortalViews");
 const Hotel = require("../models/Hotel");
-const { findByIdentifier } = require("../utils/seoSlug");
+const { isObjectId } = require("../utils/seoSlug");
+const publicFields = "-owner -application -authorizedRepresentative -compliance -paymentPolicy";
+const { normalizeCancellationPolicy } = require("../services/cancellationPolicyService");
 let ActivityLog;
 try {
   ActivityLog = require("../models/ActivityLog");
@@ -48,6 +51,23 @@ const buildHotelPayload = (reqBody, existingHotel = null) => {
     application.applicationNumber = generateApplicationNumber();
   }
 
+  const requestedModes = Array.isArray(reqBody.paymentPolicy?.acceptedModes)
+    ? reqBody.paymentPolicy.acceptedModes.filter((mode) => ["pay_at_hotel", "deposit", "full_payment"].includes(mode))
+    : existingHotel?.paymentPolicy?.acceptedModes || ["pay_at_hotel"];
+  const paymentPolicy = {
+    acceptedModes: requestedModes.length ? requestedModes : ["pay_at_hotel"],
+    depositRate: Math.min(100, Math.max(1, Number(reqBody.paymentPolicy?.depositRate ?? existingHotel?.paymentPolicy?.depositRate ?? 20))),
+    paymentExpiryMinutes: Math.min(60, Math.max(5, Number(reqBody.paymentPolicy?.paymentExpiryMinutes ?? existingHotel?.paymentPolicy?.paymentExpiryMinutes ?? 15))),
+    settlementFrequency: ["weekly", "fortnightly", "monthly"].includes(reqBody.paymentPolicy?.settlementFrequency)
+      ? reqBody.paymentPolicy.settlementFrequency
+      : existingHotel?.paymentPolicy?.settlementFrequency || "weekly",
+    updatedAt: reqBody.paymentPolicy ? new Date() : existingHotel?.paymentPolicy?.updatedAt || null,
+  };
+  const cancellationPolicy = {
+    ...normalizeCancellationPolicy(reqBody.cancellationPolicy || existingHotel?.cancellationPolicy || {}),
+    updatedAt: reqBody.cancellationPolicy ? new Date() : existingHotel?.cancellationPolicy?.updatedAt || null,
+  };
+
   return {
     hotelName: reqBody.hotelName ?? existingHotel?.hotelName,
     location: reqBody.location ?? existingHotel?.location,
@@ -79,48 +99,9 @@ const buildHotelPayload = (reqBody, existingHotel = null) => {
           : Number(reqBody.mapLocation.longitude),
     },
     application,
+    paymentPolicy,
+    cancellationPolicy,
   };
-};
-
-exports.createHotel = async (req, res) => {
-  try {
-    const { hotelName, location, application } = req.body;
-
-    if (!hotelName || !location) {
-      return res.status(400).json({ message: "Hotel name and main location are required." });
-    }
-
-    if (!application?.managerName || !application?.managerPhone || !application?.termsAccepted) {
-      return res.status(400).json({
-        message: "Manager name, manager phone, and terms acceptance are required for the hotel application.",
-      });
-    }
-
-    const existingHotel = await Hotel.findOne({ owner: req.user.id });
-    if (existingHotel) {
-      return res.status(400).json({ message: "You already submitted a hotel application. Please update the existing application." });
-    }
-
-    const payload = buildHotelPayload(req.body);
-    payload.owner = req.user.id;
-    payload.isApproved = false;
-    payload.status = "pending";
-    payload.partnershipStatus = "under_review";
-    payload.application.submittedAt = new Date();
-    payload.application.history = [
-      { status: "pending", note: "Application submitted by hotel partner.", by: req.user.id, at: new Date() },
-    ];
-
-    const hotel = await Hotel.create(payload);
-    await writeActivity(req, "hotel_application_submitted", hotel, `${hotel.hotelName} submitted a hotel application.`);
-
-    res.status(201).json({
-      message: `Hotel application submitted successfully. Application No: ${hotel.application.applicationNumber}`,
-      hotel,
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to submit hotel application.", error: error.message });
-  }
 };
 
 exports.getHotels = async (req, res) => {
@@ -139,7 +120,7 @@ exports.getHotels = async (req, res) => {
       ];
     }
 
-    const hotels = await Hotel.find(filter).populate("owner", "name email role").sort({ createdAt: -1 });
+    const hotels = await Hotel.find(filter).select("+onboardingApplication").populate("owner", "name email role").sort({ createdAt: -1 });
     res.status(200).json(hotels);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch hotels.", error: error.message });
@@ -148,7 +129,7 @@ exports.getHotels = async (req, res) => {
 
 exports.getApprovedHotels = async (req, res) => {
   try {
-    const hotels = await Hotel.find({ isApproved: true, status: "approved" }).sort({ featured: -1, createdAt: -1 });
+    const hotels = await Hotel.find({ isApproved: true, status: "approved" }).select(publicFields).sort({ featured: -1, createdAt: -1 });
     res.status(200).json(hotels);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch approved hotels.", error: error.message });
@@ -176,7 +157,7 @@ exports.getMapHotels = async (req, res) => {
       ];
     }
 
-    const hotels = await Hotel.find(filter).sort({ featured: -1, averageRating: -1, createdAt: -1 });
+    const hotels = await Hotel.find(filter).select(publicFields).sort({ featured: -1, averageRating: -1, createdAt: -1 });
     res.status(200).json(hotels);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch map hotels.", error: error.message });
@@ -185,11 +166,13 @@ exports.getMapHotels = async (req, res) => {
 
 exports.getMyHotel = async (req, res) => {
   try {
-    const hotel = await Hotel.findOne({ owner: req.user.id }).populate("owner", "name email role");
+    const hotel = await Hotel.findOne({ owner: req.user.id }).select("+onboardingApplication").populate("owner", "name email role");
     if (!hotel) {
       return res.status(200).json({ hotel: null, hasHotel: false, message: "No hotel application has been submitted yet." });
     }
-    return res.status(200).json({ hotel, hasHotel: true });
+    const { onboardingApplication } = hotel;
+    const profile = hotelProfileView(hotel);
+    return res.status(200).json({ hotel: { ...profile, invitedOnboarding: Boolean(onboardingApplication) }, hasHotel: true });
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch hotel profile.", error: error.message });
   }
@@ -197,10 +180,13 @@ exports.getMyHotel = async (req, res) => {
 
 exports.updateMyHotel = async (req, res) => {
   try {
-    const hotel = await Hotel.findOne({ owner: req.user.id });
+    const hotel = await Hotel.findOne({ owner: req.user.id }).select("+onboardingApplication");
     if (!hotel) return res.status(404).json({ message: "Hotel profile not found." });
 
     const payload = buildHotelPayload(req.body, hotel);
+    for (const key of ["accountNumber", "accountHolderName", "bankName", "bankBranch"]) {
+      payload.application[key] = hotel.application?.[key] || "";
+    }
 
     if (["rejected", "need_more_info"].includes(hotel.status)) {
       payload.status = "pending";
@@ -216,7 +202,7 @@ exports.updateMyHotel = async (req, res) => {
     const updatedHotel = await Hotel.findByIdAndUpdate(hotel._id, payload, { new: true, runValidators: true });
     await writeActivity(req, "hotel_application_updated", updatedHotel, `${updatedHotel.hotelName} updated their hotel application.`);
 
-    res.status(200).json({ message: "Hotel application/profile updated successfully.", hotel: updatedHotel });
+    res.status(200).json({ message: "Hotel application/profile updated successfully.", hotel: { ...hotelProfileView(updatedHotel), invitedOnboarding: Boolean(hotel.onboardingApplication) } });
   } catch (error) {
     res.status(500).json({ message: "Failed to update hotel profile.", error: error.message });
   }
@@ -228,9 +214,12 @@ const moderateHotel = async (req, res, status, defaultNote) => {
     const isApproved = status === "approved";
     const note = reviewNote || defaultNote;
 
-    const hotel = await Hotel.findById(req.params.id);
+    const hotel = await Hotel.findById(req.params.id).select("+onboardingApplication");
     if (!hotel) return res.status(404).json({ message: "Hotel not found." });
 
+    if (hotel.onboardingApplication && ["approved", "need_more_info", "pending"].includes(status)) {
+      return res.status(409).json({ message: "Use the hotel onboarding and partnership review to make this decision." });
+    }
     hotel.status = status;
     hotel.isApproved = isApproved;
     const partnershipMap = {
@@ -268,11 +257,12 @@ exports.reopenHotel = (req, res) => moderateHotel(req, res, "pending", "Applicat
 
 exports.getHotelById = async (req, res) => {
   try {
-    const hotelQuery = await findByIdentifier(Hotel, req.params.id);
-    const hotel = hotelQuery ? await hotelQuery.populate("owner", "name email role") : null;
+    const identifier = req.params.id;
+    const filter = isObjectId(identifier) ? { _id: identifier } : { slug: identifier.toLowerCase() };
+    const hotel = await Hotel.findOne({ ...filter, status: "approved" }).select(publicFields);
     if (!hotel) return res.status(404).json({ message: "Hotel not found." });
 
-    if (hotel.status !== "approved" && req.user?.role !== "admin" && String(hotel.owner?._id || hotel.owner) !== String(req.user?.id)) {
+    if (hotel.status !== "approved") {
       return res.status(404).json({ message: "Hotel not found." });
     }
 

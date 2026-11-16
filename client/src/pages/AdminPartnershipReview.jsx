@@ -30,7 +30,7 @@ export default function AdminPartnershipReview() {
   const [partnerMessage, setPartnerMessage] = useState("");
   const [internalNote, setInternalNote] = useState("");
   const [commissionRate, setCommissionRate] = useState("5");
-  const [settlementCycle, setSettlementCycle] = useState("Monthly");
+  const [settlementCycle, setSettlementCycle] = useState("Weekly");
   const [agreementBusy, setAgreementBusy] = useState(false);
 
   const load = async () => {
@@ -169,6 +169,16 @@ export default function AdminPartnershipReview() {
     }
   };
 
+  const remindOfferLetter = async () => {
+    setAgreementBusy(true);
+    try {
+      const { data } = await api.post(`/partnership/admin/${hotelId}/agreement/reminder`);
+      setMessage(data.message);
+      await load();
+    } catch (error) { setMessage(error.response?.data?.message || "Unable to send a reminder."); }
+    finally { setAgreementBusy(false); }
+  };
+
   const verifyAgreement = async () => {
     try {
       setAgreementBusy(true);
@@ -214,7 +224,7 @@ export default function AdminPartnershipReview() {
 
   if (loading)
     return (
-      <main className="min-h-screen pt-24 px-6">
+      <main className="df-compliance-page min-h-screen pt-24 px-6">
         <div className="card-ambient p-8 animate-pulse">
           Loading partner record...
         </div>
@@ -226,13 +236,13 @@ export default function AdminPartnershipReview() {
 
   if (!hotel)
     return (
-      <main className="min-h-screen pt-24 px-6">
+      <main className="df-compliance-page min-h-screen pt-24 px-6">
         {message || "Hotel not found."}
       </main>
     );
 
   return (
-    <main className="min-h-screen bg-surface-cream pt-24 pb-16 px-margin-mobile md:px-margin-desktop">
+    <main className="df-compliance-page min-h-screen bg-surface-cream pt-24 pb-16 px-margin-mobile md:px-margin-desktop">
       <div className="max-w-6xl mx-auto">
         <Link to="/admin/hotels" className="text-secondary">
           ← Hotel Applications
@@ -349,11 +359,12 @@ export default function AdminPartnershipReview() {
                 </button>
                 <button
                   className="btn-outline"
-                  disabled={agreementBusy}
+                  disabled={agreementBusy || (agreement.offerLetter && agreement.status !== "draft")}
                   onClick={sendAgreement}
                 >
-                  Send Agreement
+                  {agreement.offerLetter ? "Send offer letter" : "Send Agreement"}
                 </button>
+                {agreement.offerLetter && agreement.signedDueAt && ["sent", "viewed", "acknowledged"].includes(agreement.status) && <button className="btn-outline" type="button" disabled={agreementBusy} onClick={remindOfferLetter}>Send reminder</button>}
                 <button
                   className="btn-primary"
                   disabled={agreementBusy}

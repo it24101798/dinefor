@@ -1,0 +1,37 @@
+.df07 { padding: 106px 16px 32px; min-height: 100dvh; background: #f3faf7; color: var(--df-shell-ink); font-family: var(--df-shell-font); }
+.df07-shell { max-width: 480px; margin: auto; border: 1px solid var(--df-shell-line); border-radius: 22px; overflow: hidden; background: white; }
+.df07-hero { height: 150px; position: relative; display: grid; justify-items: center; overflow: hidden; background: #e4f6ef; }
+.df07-hero img { position: relative; height: 150px; width: auto; max-width: 100%; object-fit: contain; }
+.df07-hero svg { position: absolute; width: 100%; height: 100%; }
+.df07-content { display: grid; gap: 12px; padding: 20px; min-width: 0; }
+.df07-content h1 { margin: 0; font-size: clamp(27px,7vw,38px); line-height: 1.08; letter-spacing: -.045em; font-weight: 800; }
+.df07-content p { margin: 0; line-height: 1.5; font-size: 14px; overflow-wrap: anywhere; }
+.df07-content a:not(.df-shell-secondary) { color: var(--df-shell-teal); font-weight: 750; text-decoration: underline; }
+.df07-form { display: grid; gap: 11px; min-width: 0; }
+.df07-form > label { display: block; font-size: 14px; font-weight: 700; }
+.df-app .df07-form input:not([type=checkbox]) { width: 100%; min-width: 0; min-height: 46px; border: 1px solid #81b9a9; border-radius: 10px; font-size: 16px; }
+.df07-form > label > input { margin-top: 4px; }
+.df07-form .df07-check { display:flex; align-items:flex-start; gap:8px; font-weight: 500; }
+.df07-check input { flex:none; accent-color: var(--df-shell-teal); }
+.df07 .df07-forgot { justify-self:end; font-size: 13px; }
+.df07-link { min-height: 44px; display: grid; place-items: center; text-align: center; color: var(--df-shell-teal); font-weight: 750; }
+.df07-message { background: #eaf8f4; padding: 9px 11px; border-radius: 9px; font-size: 14px; }
+.df07-message[role=alert] { color: #7d2733; background: #fff0f2; }
+.df07-divider { text-align: center; font-size: 13px; color: #465f5d; }
+.df07-help { display: grid; grid-template-columns: 75px minmax(0,1fr); align-items: center; gap: 9px; margin: 0 20px 16px; border-radius: 16px; background: #e5f6ef; }
+.df07-help .df-crew-art { display: block; width: 75px; height: 112px; align-self: end; background: url('/images/characters/dinefor-crew-roles.png') no-repeat; background-size: 300% 100%; }
+.df07-help > div { padding: 8px; font-size: 13px; }
+.df07-help a { text-decoration: underline; }
+.df07-code { position: relative; }
+.df07-code-cells { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 5px; }
+.df07-code-cells > span { display:grid; place-items:center; min-height:56px; border: 1px solid #81b9a9; border-radius: 8px; font-size:24px; }
+.df07-code input { position:absolute; inset:0; opacity:0; margin:0!important; cursor:text; }
+.df07-code:focus-within { outline:2px solid var(--df-shell-teal); outline-offset:3px; border-radius:8px; }
+.df07 button:disabled { opacity:.58; cursor:default; }
+.df07 :focus-visible { outline: 2px solid var(--df-shell-teal); outline-offset:2px; }
+@media(max-width:767px) {
+  .df07 { padding: 69px 0 20px; background:#fff; }
+  .df07-shell { border:0; border-radius:0; }
+  .df07-content { padding: 16px; }
+  .df07-help { margin-inline:16px; }
+}

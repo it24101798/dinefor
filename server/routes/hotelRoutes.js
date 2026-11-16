@@ -1,7 +1,6 @@
 const express = require("express");
 
 const {
-  createHotel,
   getHotels,
   getApprovedHotels,
   getMapHotels,
@@ -25,7 +24,7 @@ router.get("/approved", getApprovedHotels);
 router.get("/map", getMapHotels);
 
 // Hotel routes
-router.post("/", protect, authorize("hotel", "admin"), createHotel);
+router.post("/", protect, authorize("hotel", "admin"), (req, res) => res.status(403).json({ message: "New hotels must apply through a DineFor invitation." }));
 router.get("/my-hotel", protect, authorize("hotel", "admin"), getMyHotel);
 router.put("/my-hotel", protect, authorize("hotel", "admin"), updateMyHotel);
 

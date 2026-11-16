@@ -94,6 +94,7 @@ router.post(
         ? req.body.documentType
         : "other";
 
+      let signedAgreement;
       if (documentType === "signed_agreement") {
         const agreement = await HotelPartnershipAgreement.findOne({
           hotel: hotel._id,
@@ -118,6 +119,7 @@ router.post(
               "Review and acknowledge the current agreement before uploading the signed copy.",
           });
         }
+        signedAgreement = agreement;
       }
 
       const document = await HotelDocument.create({
@@ -131,15 +133,14 @@ router.post(
         size: req.file.size,
       });
 
-      if (documentType === "signed_agreement") {
-        const agreement = await HotelPartnershipAgreement.findOne({
-          hotel: hotel._id,
-        }).sort({ version: -1 });
-
-        if (agreement) {
-          agreement.status = "signed_submitted";
-          agreement.signedDocument = document._id;
-          await agreement.save();
+      if (signedAgreement) {
+        const linked = await HotelPartnershipAgreement.updateOne({
+          _id: signedAgreement._id, status: { $in: ["acknowledged", "signed_submitted"] },
+        }, { $set: { status: "signed_submitted", signedDocument: document._id } });
+        if (!linked.matchedCount) {
+          await HotelDocument.deleteOne({ _id: document._id });
+          fs.unlink(req.file.path, () => {});
+          return res.status(409).json({ message: "The offer letter changed. Reload and check the latest version before uploading." });
         }
 
         hotel.partnershipStatus = "signed_agreement_submitted";
@@ -217,6 +218,8 @@ router.post(
   authorize("admin"),
   controller.sendAgreement
 );
+
+router.post("/admin/:hotelId/agreement/reminder", protect, authorize("admin"), controller.remindOfferLetter);
 
 router.post(
   "/admin/:hotelId/agreement/verify",

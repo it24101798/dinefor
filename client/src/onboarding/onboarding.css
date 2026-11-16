@@ -1,0 +1,60 @@
+.df11 {
+  --intake-ink: #103a3b;
+  --intake-muted: #486267;
+  --intake-primary: #005957;
+  --intake-line: #c7e3d9;
+  --intake-mint: #e8f7f1;
+  width: min(100% - 2rem, 72rem);
+  margin: 0 auto;
+  padding: 100px 0 2.4rem;
+  display: grid;
+  gap: .85rem;
+  color: var(--intake-ink);
+  font-family: var(--df-shell-font, "Plus Jakarta Sans", sans-serif);
+}
+.df11-narrow { max-width: 52rem; }
+.df11 :is(h1,h2,h3,p,dl) { margin: 0; overflow-wrap: anywhere; }
+.df11 h1 { font-size: clamp(1.7rem, 5vw, 2.7rem); font-weight: 800; line-height: 1.12; letter-spacing: -.045em; }
+.df11 h2 { font-size: 1.3rem; font-weight: 800; }
+.df11 h3 { font-size: 1.02rem; font-weight: 800; }
+.df11 p, .df11 dd { color: var(--intake-muted); }
+.df11 a { color: var(--intake-primary); text-underline-offset: .17em; }
+.df11 :is(a,button,input,select,textarea,summary):focus-visible { outline: 2px solid var(--intake-primary); outline-offset: 3px; }
+.df11-back { width: fit-content; display: inline-flex; align-items: center; min-height: 44px; font-weight: 750; }
+.df11-hero { display: flex; align-items: center; justify-content: space-between; gap: .4rem; min-height: 8rem; padding: .85rem 1rem; border-radius: 1.1rem; background: var(--intake-mint); overflow: hidden; }
+.df11-hero p { margin-top: .42rem; }
+.df11-hero .df-crew-art { display: block; height: clamp(7rem, 29vw, 10rem); aspect-ratio: 2 / 3; align-self: end; flex: none; margin-bottom: -.85rem; background: url("/images/characters/dinefor-crew-roles.png") no-repeat; background-size: 300% 100%; }
+.df11-card { padding: 1rem; border: 1px solid var(--intake-line); border-radius: 1rem; background: white; min-width: 0; }
+.df11-form, .df11-flow, .df11-columns, .df11-grid, .df11-evidence { display: grid; gap: .75rem; align-content: start; min-width: 0; }
+.df11-flow { border: 0; padding: 0; margin: 0; }
+.df11-columns { grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); }
+.df11-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.df11 .df11-card label { display: grid; gap: .35rem; font-weight: 700; min-width: 0; }
+.df11 :is(input:not([type="checkbox"]),select,textarea) { width: 100%; min-height: 44px; min-width: 0; border: 1px solid #9ac0b5; border-radius: .57rem; padding: .5rem .65rem; background: #fff; color: var(--intake-ink); font-size: 1rem; font-weight: 500; }
+.df11 .df11-form .df11-check { display: flex; align-items: flex-start; gap: .6rem; }
+.df11-check input { width: 1.12rem; height: 1.12rem; flex: none; margin-top: .15rem; accent-color: var(--intake-primary); }
+.df11 .df11-button { display: inline-flex; justify-content: center; align-items: center; min-height: 44px; border-radius: .7rem; background: var(--intake-primary); color: white; border: 1px solid var(--intake-primary); padding: .48rem .85rem; text-align: center; font-weight: 750; text-decoration: none; line-height: 1.3; }
+.df11 .df11-button.secondary { color: var(--intake-primary); background: #f5faf8; border-color: var(--intake-line); }
+.df11 .df11-button.danger { color: #8a2731; background: #fff3f4; border-color: #e6aeb5; }
+.df11 .df11-button:disabled { opacity: .56; cursor: not-allowed; }
+.df11-actions { display: flex; flex-wrap: wrap; gap: .45rem; }
+.df11 .df11-notice, .df11 .df11-error { padding: .65rem .85rem; border-radius: .65rem; background: var(--intake-mint); color: var(--intake-ink); }
+.df11 .df11-error { background: #fff0ed; color: #773237; }
+.df11-steps { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .3rem; padding: 0; margin: 0; list-style: none; }
+.df11-steps button { width: 100%; min-height: 44px; border: 1px solid var(--intake-line); padding: .32rem; border-radius: .62rem; font-size: .8rem; font-weight: 750; }
+.df11-steps button[aria-current="step"] { color: white; background: var(--intake-primary); }
+.df11-map { min-height: 15rem; width: 100%; background: var(--intake-mint); border-radius: .7rem; isolation: isolate; }
+.df11-summary, .df11-items, .df11-corrections { display: grid; gap: .42rem; padding: 0; margin: 0; list-style: none; }
+.df11-summary > div, .df11-items li, .df11-corrections li { display: grid; gap: .15rem; padding: .5rem .65rem; border-radius: .56rem; background: #f2faf6; overflow-wrap: anywhere; }
+.df11-summary dt, .df11-items a { font-weight: 750; }
+.df11-summary dd { margin: 0; }
+.df11-evidence { padding: .5rem 0; border-top: 1px solid var(--intake-line); }
+.df11 details > summary { cursor: pointer; font-weight: 750; padding: .45rem 0; }
+@media (max-width: 767px) {
+  .df11 { width: min(100% - 1.45rem, 52rem); padding-top: 76px; }
+  .df11-columns { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 420px) {
+  .df11-grid { grid-template-columns: minmax(0, 1fr); }
+  .df11-actions > * { flex: 1 1 7rem; }
+}

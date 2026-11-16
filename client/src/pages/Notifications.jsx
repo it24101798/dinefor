@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import AccountLayout from "../design/AccountLayout";
 import api from "../services/api";
 
 const iconByType = {
@@ -13,6 +14,7 @@ const iconByType = {
 const formatTime = (value) => {
   if (!value) return "";
   const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
 
   return new Intl.DateTimeFormat("en", {
     dateStyle: "medium",
@@ -29,6 +31,7 @@ export default function Notifications() {
   const load = useCallback(async () => {
     try {
       setLoading(true);
+      setMessage("");
       const response = await api.get("/notifications");
       setNotifications(response.data?.notifications || []);
     } catch (error) {
@@ -118,14 +121,14 @@ export default function Notifications() {
   };
 
   return (
-    <main className="min-h-screen bg-surface-cream pt-24 sm:pt-28 pb-12 px-4">
-      <div className="max-w-4xl mx-auto">
+    <AccountLayout className="rf-notifications" title="Every update, in one place." description="Booking confirmations, dining reminders and news for your next visit.">
+      <div className="rf-notifications-body">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <span className="badge-gold">Customer Updates</span>
-            <h1 className="font-headline-lg text-headline-lg text-text-deep-green mt-2">
+            <p className="rf-eyebrow">YOUR DINING UPDATES</p>
+            <h2 className="rf-updates-title">
               Notifications
-            </h1>
+            </h2>
             <p className="text-on-surface-variant">
               Booking updates, reminders and important DineFor messages.
             </p>
@@ -135,7 +138,7 @@ export default function Notifications() {
             <button
               type="button"
               onClick={markAllRead}
-              disabled={!unreadCount}
+              disabled={loading || !unreadCount}
               className="btn-outline"
             >
               Mark all read
@@ -143,6 +146,7 @@ export default function Notifications() {
             <button
               type="button"
               onClick={clearRead}
+              disabled={loading || notifications.every(item => !item.isRead)}
               className="btn-secondary"
             >
               Clear read
@@ -151,12 +155,12 @@ export default function Notifications() {
         </div>
 
         {message && (
-          <div className="mt-5 p-3 rounded-xl bg-error/10 text-error">
-            {message}
+          <div role="alert" className="mt-5 p-3 rounded-xl bg-error/10 text-error">
+            {message} <button type="button" onClick={load} className="underline">Try again</button>
           </div>
         )}
 
-        <div className="flex gap-2 mt-6 overflow-x-auto hide-scrollbar">
+        <div className="rf-notification-tabs" aria-label="Filter notifications">
           {[
             ["all", `All (${notifications.length})`],
             ["unread", `Unread (${unreadCount})`],
@@ -169,8 +173,9 @@ export default function Notifications() {
               type="button"
               key={value}
               onClick={() => setFilter(value)}
+              aria-pressed={filter === value}
               className={`chip ${
-                filter === value ? "chip-active" : ""
+                filter === value ? "chip-active is-active" : ""
               }`}
             >
               {label}
@@ -187,15 +192,15 @@ export default function Notifications() {
               />
             ))}
           </div>
-        ) : visible.length ? (
+        ) : message && !notifications.length ? null : visible.length ? (
           <div className="mt-6 space-y-3">
             {visible.map((notification) => (
               <article
                 key={notification._id}
-                className={`card-ambient p-4 sm:p-5 flex gap-4 ${
+                className={`rf-notification-card card-ambient p-4 sm:p-5 flex gap-4 ${
                   notification.isRead
-                    ? "opacity-75"
-                    : "border-secondary/30"
+                    ? "is-read"
+                    : "is-unread"
                 }`}
               >
                 <div
@@ -279,6 +284,6 @@ export default function Notifications() {
           </section>
         )}
       </div>
-    </main>
+    </AccountLayout>
   );
 }

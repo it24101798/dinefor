@@ -253,3 +253,116 @@
 @media(prefers-reduced-motion:reduce){
   .df-map3-pin{transition:none}
 }
+
+/* DineFor Revision 09 — discovery layout and responsive map/results split */
+.df-map3-page{padding-top:0;min-height:100vh;background:#f6faf8;color:#173c38}
+.df-map3-intro{position:relative;display:flex;align-items:center;justify-content:space-between;min-height:180px;padding:30px clamp(18px,4.4vw,74px);overflow:hidden;background:linear-gradient(105deg,#e4f5ef 0%,#effbf7 57%,#f7f9f0 100%);border-bottom:1px solid #d9e9e3}
+.df-map3-intro>div{position:relative;z-index:1;max-width:760px}
+.df-map3-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:900;letter-spacing:.16em;color:#006b63}
+.df-map3-eyebrow .material-symbols-outlined{font-size:18px}
+.df-map3-intro h1{margin:5px 0 6px;font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-weight:800;letter-spacing:-.045em;font-size:clamp(24px,3vw,40px);line-height:1.18;color:#103c37}
+.df-map3-intro h1 em{font-style:normal;color:#006b63}
+.df-map3-intro p{color:#4e6e68;font-size:14px;line-height:1.55}
+.df-map3-intro-art{position:absolute;right:clamp(28px,9vw,160px);bottom:-43px;max-width:255px;width:21vw;height:205px;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 10px 15px rgba(0,92,75,.12));pointer-events:none}
+.df-map3-shell{min-height:0;display:flex;flex-direction:column;height:min(940px,calc(100dvh - 90px));min-height:570px;max-width:1920px;margin:0 auto;background:#fff}
+.df-map3-toolbar{position:relative;top:auto;left:auto;right:auto;z-index:15;padding:15px clamp(16px,2.7vw,34px) 8px;pointer-events:auto;background:#fff;gap:12px}
+.df-map3-search{width:min(640px,100%);flex:1;border:1px solid #d4e6df;border-radius:13px;box-shadow:none;background:#f8fbfa}
+.df-map3-search:focus-within{border-color:#006b63;box-shadow:0 0 0 3px rgba(0,107,99,.1)}
+.df-map3-search input{font-size:14px}
+.df-map3-search-clear{display:grid;place-items:center;border:0;background:transparent;color:#5c7972;padding:4px}
+.df-map3-control{box-shadow:none;border-color:#d4e6df;background:#fff;color:#164e47;font-size:13px}
+.df-map3-badge{background:#006b63}
+.df-map3-quick-filters{display:flex;gap:8px;overflow:auto;padding:3px clamp(16px,2.7vw,34px) 13px;background:#fff;scrollbar-width:thin}
+.df-map3-chip{flex:0 0 auto;padding:9px 16px;border:1px solid #d7e5df;border-radius:999px;color:#335f57;background:#fff;font-size:12px;font-weight:750;white-space:nowrap;transition:background .15s,color .15s}
+.df-map3-chip:hover{background:#eff9f4}
+.df-map3-chip.is-active{background:#006b63;color:#fff;border-color:#006b63}
+.df-map3-content{display:flex;flex:1;min-height:0;border-top:1px solid #e8f0ec}
+.df-map3-results{flex:0 0 min(400px,38%);width:min(400px,38%);display:flex;flex-direction:column;min-width:0;background:#fff;border-right:1px solid #e0ece6;transition:width .18s ease,flex-basis .18s ease}
+.df-map3-results.is-collapsed{flex-basis:64px;width:64px}
+.df-map3-results.is-collapsed .df-map3-results-heading>div{display:none}
+.df-map3-results-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:20px 19px 12px}
+.df-map3-results-kicker{color:#006b63;letter-spacing:.12em;font-size:10px;font-weight:900}
+.df-map3-results-heading h2{margin:3px 0 4px;font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:20px;font-weight:800;letter-spacing:-.035em;color:#103c37}
+.df-map3-results-heading p{font-size:12px;color:#7a8f89}
+.df-map3-collapse{border:1px solid #dceae3;background:#f7faf9;border-radius:10px;padding:7px;color:#006b63;display:grid;place-items:center;flex:none}
+.df-map3-results-scroll{overflow:auto;flex:1;padding:0 14px 22px;scrollbar-width:thin}
+.df-map3-sort-label{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#627a73;padding:0 5px 12px}
+.df-map3-sort-label select{border:1px solid #dbe8e2;border-radius:8px;padding:7px 8px;background:#fff;color:#174d45;font-size:12px;font-weight:700}
+.df-map3-result-card{margin-bottom:12px;border:1px solid #e3ece8;border-radius:15px;overflow:hidden;background:#fff;box-shadow:0 5px 20px rgba(24,69,57,.05);transition:border-color .15s,box-shadow .15s}
+.df-map3-result-card:hover,.df-map3-result-card.is-selected{border-color:#75bbb1;box-shadow:0 9px 26px rgba(0,107,99,.11)}
+.df-map3-result-select{display:flex;align-items:stretch;width:100%;min-height:140px;text-align:left;border:0;background:transparent;padding:10px;gap:12px}
+.df-map3-result-image{display:grid;place-items:center;align-self:stretch;flex:0 0 117px;width:117px;overflow:hidden;border-radius:10px;background:linear-gradient(135deg,#e1f4e9,#f8f0d9);color:#006b63}
+.df-map3-result-image img{width:100%;height:100%;min-height:126px;object-fit:cover}
+.df-map3-result-image .material-symbols-outlined{font-size:37px}
+.df-map3-result-info{display:flex;flex-direction:column;align-items:flex-start;min-width:0;flex:1;gap:7px;padding:3px 0}
+.df-map3-result-info>strong{color:#123b35;font-size:14px;font-weight:800;line-height:1.4}
+.df-map3-result-location{display:inline-flex;align-items:center;gap:3px;color:#778984;font-size:11px;line-height:1.3}
+.df-map3-result-location .material-symbols-outlined{font-size:14px;flex:none}
+.df-map3-result-rating{color:#aa6f08;font-size:12px;font-weight:750}
+.df-map3-result-rating small{color:#86948e;font-size:11px;font-weight:500}
+.df-map3-result-rating.is-new{color:#56877c}
+.df-map3-result-price{color:#3c6960;font-size:11px;line-height:1.4;margin-top:auto}
+.df-map3-result-price b{font-size:15px;color:#006b63;letter-spacing:-.02em}
+.df-map3-result-bottom{display:flex;align-items:center;justify-content:space-between;gap:6px;border-top:1px solid #edf2ef;padding:10px 14px;font-size:11px;color:#788d86}
+.df-map3-result-bottom a{color:#006b63;font-weight:800;text-decoration:none;font-size:12px}
+.df-map3-result-bottom a:hover{text-decoration:underline}
+.df-map3-map-column{position:relative;flex:1;min-width:0;min-height:0;background:#e7f0e9}
+.df-map3-stage{height:100%;min-height:0}
+.df-map3-map-note{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:18px 22px;border-radius:14px;background:#fff;box-shadow:0 9px 35px #0002;text-align:center;color:#34564e;font-size:13px}
+.df-map3-empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:38px 16px;text-align:center;color:#618278;line-height:1.5}
+.df-map3-empty>.material-symbols-outlined{font-size:40px;color:#006b63}
+.df-map3-empty strong{color:#17493f}
+.df-map3-empty p{font-size:12px}
+.df-map3-retry{border:0;border-radius:9px;background:#006b63;color:#fff;font-weight:700;padding:10px 18px}
+.df-map3-mobile-switch{display:none}
+.df-map3-property{z-index:650}
+.df-map3-pin{background:#006b63}
+.df-map3-pin::after{background:#006b63}
+.df-map3-pin:hover,.df-map3-pin.is-active,.df-map3-pin.is-active::after{background:#004e49}
+@media(max-width:920px){
+  .df-map3-intro-art{opacity:.32;right:10px}
+  .df-map3-results{flex-basis:330px;width:330px}
+}
+@media(max-width:767px){
+  .df-map3-intro{padding:22px 16px;min-height:128px}
+  .df-map3-intro h1{font-size:25px;max-width:330px}
+  .df-map3-intro p{font-size:12px;max-width:310px}
+  .df-map3-intro-art{width:150px;height:160px;bottom:-44px;right:-25px;opacity:.2}
+  .df-map3-shell{height:calc(100dvh - 112px);min-height:510px}
+  .df-map3-toolbar{padding:10px 12px 6px;gap:7px}
+  .df-map3-search{height:45px;min-height:45px;padding-inline:10px}
+  .df-map3-search input{font-size:13px}
+  .df-map3-control{min-width:45px;min-height:45px;padding:0 10px}
+  .df-map3-quick-filters{padding:5px 12px 11px}
+  .df-map3-chip{font-size:11px;padding:8px 12px}
+  .df-map3-content{position:relative;min-height:0}
+  .df-map3-results,.df-map3-map-column{display:none;position:absolute;inset:0;width:100%;height:100%;border:0;flex:none}
+  .df-map3-results.is-mobile-visible,.df-map3-map-column.is-mobile-visible{display:flex}
+  .df-map3-results.is-collapsed{width:100%;flex-basis:auto}
+  .df-map3-results .df-map3-collapse{display:none}
+  .df-map3-results-heading{padding:14px 16px 10px}
+  .df-map3-results-scroll{padding:0 12px 100px}
+  .df-map3-map-column{display:none}
+  .df-map3-map-column.is-mobile-visible{display:block}
+  .df-map3-stage{height:100%;min-height:0}
+  .df-map3-property{bottom:calc(76px + env(safe-area-inset-bottom))}
+  .df-map3-mobile-switch{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:720;display:flex;gap:3px;padding:5px;background:#fff;border:1px solid #dbe9e2;border-radius:999px;box-shadow:0 12px 26px #123d3040}
+  .df-map3-mobile-switch button{display:flex;align-items:center;gap:6px;padding:9px 21px;border:0;border-radius:999px;background:transparent;color:#2f635a;font-size:13px;font-weight:800}
+  .df-map3-mobile-switch button.is-active{background:#006b63;color:#fff}
+  .df-map3-mobile-switch .material-symbols-outlined{font-size:19px}
+}
+@media(prefers-reduced-motion:reduce){.df-map3-chip,.df-map3-result-card,.df-map3-results{transition:none}}
+
+/* Revision 10 — visible map introduction, balanced character and overflow-safe panels. */
+.df-map3-page{padding-top:84px!important}
+.df-map3-intro{min-height:195px;padding:32px clamp(20px,5vw,85px);isolation:isolate;overflow:hidden}
+.df-map3-intro>div{max-width:min(67%,800px);padding-right:16px}
+.df-map3-intro h1{overflow-wrap:break-word;line-height:1.18}
+.df-map3-intro-art{right:clamp(24px,8vw,140px);bottom:-8px;width:min(22%,245px);height:190px;object-position:center bottom}
+.df-map3-shell{height:min(940px,calc(100dvh - 84px));min-height:565px}
+.df-map3-result-info>strong{overflow-wrap:anywhere}
+.df-map3-result-image img{object-fit:cover}
+@media(max-width:767px){.df-map3-page{padding-top:68px!important}.df-map3-intro{min-height:157px;padding:21px 18px}.df-map3-intro>div{max-width:85%;padding:0}.df-map3-intro h1{max-width:290px;font-size:clamp(23px,5.2vw,30px)}.df-map3-intro p{max-width:260px}.df-map3-intro-art{right:-15px;bottom:-8px;width:130px;height:150px;opacity:.35}.df-map3-shell{height:calc(100dvh - 68px);min-height:510px}.df-map3-toolbar-actions .df-map3-control-label{display:none}}
+
+.df-map3-result-image .rf-photo-empty{width:100%;height:100%;min-height:126px;border:0;gap:4px;font-size:10px;text-align:center;padding:5px}
+.df-map3-result-image .rf-photo-empty .material-symbols-outlined{font-size:27px}

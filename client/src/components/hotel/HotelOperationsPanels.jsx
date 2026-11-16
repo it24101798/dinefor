@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import api from "../../services/api";
 
@@ -55,7 +56,7 @@ function MediaPreview({ url, alt, onRemove }) {
         )}
       </div>
       {onRemove && (
-        <button type="button" onClick={onRemove} className="absolute top-2 right-2 w-9 h-9 rounded-full bg-black/65 text-white flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity" aria-label="Remove media">
+        <button type="button" onClick={onRemove} className="absolute top-2 right-2 w-9 h-9 rounded-full bg-black/65 text-white flex items-center justify-center opacity-100 transition-opacity" aria-label="Remove media">
           <span className="material-symbols-outlined text-[18px]">delete</span>
         </button>
       )}
@@ -336,17 +337,17 @@ export function HotelReviewReplyWorkspace({ reviews = [], headers, refresh, setM
 
 export function HotelSettingsWorkspace({ hotel, headers, onUpdated, setMessage, setMessageType }) {
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ contactNumber: "", email: "", cancellationPolicy: "", refundPolicy: "", financeContactName: "", financeContactPhone: "", bankName: "", accountNumber: "", accountHolderName: "", bankBranch: "" });
+  const [form, setForm] = useState({ contactNumber: "", email: "", cancellationPolicy: "", refundPolicy: "", financeContactName: "", financeContactPhone: "", bankName: "", accountNumber: "", accountHolderName: "", bankBranch: "", acceptedModes: ["pay_at_hotel"], depositRate: 20, paymentExpiryMinutes: 15, settlementFrequency: "weekly", freeCancellationHours: 24, lateCancellationHours: 6, lateRefundPercent: 50, lastMinuteRefundPercent: 0, depositRefundableWithinFreeWindow: true, hotelCancellationRefundPercent: 100, noShowRefundPercent: 0, allowCustomerReschedule: true, rescheduleCutoffHours: 12, maxCustomerReschedules: 1, noShowGraceMinutes: 30, autoApprovePolicyRefunds: false });
 
   useEffect(() => {
-    setForm({ contactNumber: hotel?.contactNumber || "", email: hotel?.email || "", cancellationPolicy: hotel?.application?.cancellationPolicy || "", refundPolicy: hotel?.application?.refundPolicy || "", financeContactName: hotel?.application?.financeContactName || "", financeContactPhone: hotel?.application?.financeContactPhone || "", bankName: hotel?.application?.bankName || "", accountNumber: hotel?.application?.accountNumber || "", accountHolderName: hotel?.application?.accountHolderName || "", bankBranch: hotel?.application?.bankBranch || "" });
+    setForm({ contactNumber: hotel?.contactNumber || "", email: hotel?.email || "", cancellationPolicy: hotel?.application?.cancellationPolicy || "", refundPolicy: hotel?.application?.refundPolicy || "", financeContactName: hotel?.application?.financeContactName || "", financeContactPhone: hotel?.application?.financeContactPhone || "", acceptedModes: hotel?.paymentPolicy?.acceptedModes || ["pay_at_hotel"], depositRate: hotel?.paymentPolicy?.depositRate || 20, paymentExpiryMinutes: hotel?.paymentPolicy?.paymentExpiryMinutes || 15, settlementFrequency: hotel?.paymentPolicy?.settlementFrequency || "weekly", freeCancellationHours: hotel?.cancellationPolicy?.freeCancellationHours ?? 24, lateCancellationHours: hotel?.cancellationPolicy?.lateCancellationHours ?? 6, lateRefundPercent: hotel?.cancellationPolicy?.lateRefundPercent ?? 50, lastMinuteRefundPercent: hotel?.cancellationPolicy?.lastMinuteRefundPercent ?? 0, depositRefundableWithinFreeWindow: hotel?.cancellationPolicy?.depositRefundableWithinFreeWindow !== false, hotelCancellationRefundPercent: hotel?.cancellationPolicy?.hotelCancellationRefundPercent ?? 100, noShowRefundPercent: hotel?.cancellationPolicy?.noShowRefundPercent ?? 0, allowCustomerReschedule: hotel?.cancellationPolicy?.allowCustomerReschedule !== false, rescheduleCutoffHours: hotel?.cancellationPolicy?.rescheduleCutoffHours ?? 12, maxCustomerReschedules: hotel?.cancellationPolicy?.maxCustomerReschedules ?? 1, noShowGraceMinutes: hotel?.cancellationPolicy?.noShowGraceMinutes ?? 30, autoApprovePolicyRefunds: hotel?.cancellationPolicy?.autoApprovePolicyRefunds === true });
   }, [hotel]);
 
   const save = async (event) => {
     event.preventDefault();
     try {
       setSaving(true);
-      const payload = { contactNumber: form.contactNumber.trim(), email: form.email.trim(), application: { ...(hotel?.application || {}), cancellationPolicy: form.cancellationPolicy.trim(), refundPolicy: form.refundPolicy.trim(), financeContactName: form.financeContactName.trim(), financeContactPhone: form.financeContactPhone.trim(), bankName: form.bankName.trim(), accountNumber: form.accountNumber.trim(), accountHolderName: form.accountHolderName.trim(), bankBranch: form.bankBranch.trim() } };
+      const payload = { contactNumber: form.contactNumber.trim(), email: form.email.trim(), application: { ...(hotel?.application || {}), cancellationPolicy: form.cancellationPolicy.trim(), refundPolicy: form.refundPolicy.trim(), financeContactName: form.financeContactName.trim(), financeContactPhone: form.financeContactPhone.trim() }, paymentPolicy: { acceptedModes: form.acceptedModes, depositRate: Number(form.depositRate), paymentExpiryMinutes: Number(form.paymentExpiryMinutes), settlementFrequency: form.settlementFrequency }, cancellationPolicy: { freeCancellationHours: Number(form.freeCancellationHours), lateCancellationHours: Number(form.lateCancellationHours), lateRefundPercent: Number(form.lateRefundPercent), lastMinuteRefundPercent: Number(form.lastMinuteRefundPercent), depositRefundableWithinFreeWindow: form.depositRefundableWithinFreeWindow, hotelCancellationRefundPercent: Number(form.hotelCancellationRefundPercent), noShowRefundPercent: Number(form.noShowRefundPercent), allowCustomerReschedule: form.allowCustomerReschedule, rescheduleCutoffHours: Number(form.rescheduleCutoffHours), maxCustomerReschedules: Number(form.maxCustomerReschedules), noShowGraceMinutes: Number(form.noShowGraceMinutes), autoApprovePolicyRefunds: form.autoApprovePolicyRefunds } };
       const { data } = await api.put("/hotels/my-hotel", payload, { headers });
       onUpdated?.(data.hotel || { ...hotel, ...payload });
       setMessage("Hotel settings saved successfully.");
@@ -360,13 +361,47 @@ export function HotelSettingsWorkspace({ hotel, headers, onUpdated, setMessage, 
   };
 
   const field = (key, label, type = "text") => <label className="space-y-2"><span className="form-label">{label}</span><input type={type} className="form-input" value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} /></label>;
+  const toggleMode = (mode) => setForm((current) => ({ ...current, acceptedModes: current.acceptedModes.includes(mode) ? current.acceptedModes.filter((item) => item !== mode) : [...current.acceptedModes, mode] }));
 
   return (
     <form onSubmit={save} className="space-y-6">
       <div><span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">Hotel account</span><h2 className="font-headline-lg text-headline-lg text-text-deep-green mt-2">Settings</h2><p className="text-on-surface-variant mt-2">Manage operational contact, cancellation, refund and payout information.</p></div>
       <section className="card-ambient p-5 md:p-7 space-y-5"><h3 className="font-headline-md text-headline-md text-text-deep-green">Contact information</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{field("contactNumber", "Contact number")}{field("email", "Operational email", "email")}</div></section>
       <section className="card-ambient p-5 md:p-7 space-y-5"><h3 className="font-headline-md text-headline-md text-text-deep-green">Guest policies</h3><label className="space-y-2 block"><span className="form-label">Cancellation policy</span><textarea className="form-textarea" value={form.cancellationPolicy} onChange={(e) => setForm({ ...form, cancellationPolicy: e.target.value })} /></label><label className="space-y-2 block"><span className="form-label">Refund policy</span><textarea className="form-textarea" value={form.refundPolicy} onChange={(e) => setForm({ ...form, refundPolicy: e.target.value })} /></label></section>
-      <section className="card-ambient p-5 md:p-7 space-y-5"><h3 className="font-headline-md text-headline-md text-text-deep-green">Finance and payout details</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{field("financeContactName", "Finance contact name")}{field("financeContactPhone", "Finance contact phone")}{field("bankName", "Bank name")}{field("bankBranch", "Bank branch")}{field("accountHolderName", "Account holder name")}{field("accountNumber", "Account number")}</div><p className="form-hint">These details remain part of the hotel application/profile and should only be visible to authorized hotel and admin users.</p></section>
+      <section className="card-ambient p-5 md:p-7 space-y-5">
+        <div><h3 className="font-headline-md text-headline-md text-text-deep-green">Automated cancellation & no-show rules</h3><p className="text-sm text-on-surface-variant mt-1">DineFor calculates the customer quote from these rules on the server. Refund transfers still follow admin verification.</p></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {field("freeCancellationHours", "Full refund cutoff (hours)", "number")}
+          {field("lateCancellationHours", "Late tier cutoff (hours)", "number")}
+          {field("lateRefundPercent", "Late cancellation refund (%)", "number")}
+          {field("lastMinuteRefundPercent", "Last-minute refund (%)", "number")}
+          {field("noShowRefundPercent", "No-show refund (%)", "number")}
+          {field("rescheduleCutoffHours", "Reschedule cutoff (hours)", "number")}
+          {field("maxCustomerReschedules", "Maximum customer reschedules", "number")}
+          {field("noShowGraceMinutes", "No-show grace period (minutes)", "number")}
+        </div>
+        <p className="text-xs text-on-surface-variant">If the hotel or DineFor cancels, all collected customer funds are always quoted for a 100% refund.</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <label className="flex items-center gap-3 rounded-xl border border-border-subtle p-4"><input type="checkbox" checked={form.depositRefundableWithinFreeWindow} onChange={(e) => setForm({ ...form, depositRefundableWithinFreeWindow: e.target.checked })} /><span>Refund deposits inside free window</span></label>
+          <label className="flex items-center gap-3 rounded-xl border border-border-subtle p-4"><input type="checkbox" checked={form.allowCustomerReschedule} onChange={(e) => setForm({ ...form, allowCustomerReschedule: e.target.checked })} /><span>Allow customer rescheduling</span></label>
+          <label className="flex items-center gap-3 rounded-xl border border-border-subtle p-4"><input type="checkbox" checked={form.autoApprovePolicyRefunds} onChange={(e) => setForm({ ...form, autoApprovePolicyRefunds: e.target.checked })} /><span>Auto-approve eligible refund requests</span></label>
+        </div>
+      </section>
+      <section className="card-ambient p-5 md:p-7 space-y-5"><h3 className="font-headline-md text-headline-md text-text-deep-green">Reservation payment policy</h3><p className="text-sm text-on-surface-variant">Choose the payment choices customers may use. Online modes appear only after DineFor configures PayHere.</p><div className="grid grid-cols-1 md:grid-cols-3 gap-3">{[["pay_at_hotel","Pay at Hotel"],["deposit","Online Deposit"],["full_payment","Full Online Payment"]].map(([mode,label]) => <label key={mode} className="flex items-center gap-3 rounded-xl border border-border-subtle p-4"><input type="checkbox" checked={form.acceptedModes.includes(mode)} onChange={() => toggleMode(mode)} /><span>{label}</span></label>)}</div><div className="grid grid-cols-1 md:grid-cols-3 gap-4"><label className="space-y-2"><span className="form-label">Deposit percentage</span><input type="number" min="1" max="100" className="form-input" value={form.depositRate} onChange={(e) => setForm({ ...form, depositRate: e.target.value })} /></label><label className="space-y-2"><span className="form-label">Payment hold (minutes)</span><input type="number" min="5" max="60" className="form-input" value={form.paymentExpiryMinutes} onChange={(e) => setForm({ ...form, paymentExpiryMinutes: e.target.value })} /></label><label className="space-y-2"><span className="form-label">Settlement frequency</span><select className="form-select" value={form.settlementFrequency} onChange={(e) => setForm({ ...form, settlementFrequency: e.target.value })}><option value="weekly">Weekly</option><option value="fortnightly">Fortnightly</option><option value="monthly">Monthly</option></select></label></div></section>
+      <section className="card-ambient p-5 md:p-7 space-y-5">
+        <h3 className="font-headline-md text-headline-md text-text-deep-green">Finance and payout details</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {field("financeContactName", "Finance contact name")}
+          {field("financeContactPhone", "Finance contact phone")}
+        </div>
+        <dl>
+          <dt>Settlement account</dt>
+          <dd>{[hotel?.application?.bankName, hotel?.application?.accountNumber].filter(Boolean).join(" · ") || "No verified account on file"}</dd>
+        </dl>
+        {hotel?.invitedOnboarding
+          ? <Link className="btn-outline inline-flex" to="/hotel/bank-details">Request a bank details change</Link>
+          : <p className="form-hint">Contact DineFor to update your settlement account.</p>}
+      </section>
       <div className="flex justify-end"><button type="submit" className="btn-primary" disabled={saving}>{saving ? "Saving..." : "Save Settings"}</button></div>
     </form>
   );

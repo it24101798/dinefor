@@ -1,11 +1,13 @@
+const { hotelProfileView } = require("../services/hotelPortalViews");
 const fs = require("fs");
 const path = require("path");
 const Hotel = require("../models/Hotel");
+const { HotelOnboarding } = require("../models/HotelOnboarding");
 const HotelDocument = require("../models/HotelDocument");
 const HotelPartnershipAgreement = require("../models/HotelPartnershipAgreement");
 const ActivityLog = require("../models/ActivityLog");
 const { createAgreement, renderAgreementPdf } = require("../services/partnershipAgreementService");
-const { sendPartnershipAgreementEmail } = require("../services/emailService");
+const { sendMail, sendPartnershipAgreementEmail } = require("../services/emailService");
 
 const ACTIVE_PARTNERSHIP = new Set(["active", "active_legacy"]);
 const ADMIN_STATUSES = new Set([
@@ -55,7 +57,7 @@ const canHotelAccessAgreement = async (req, agreement) => {
 
 exports.getMyPartnership = async (req, res) => {
   const hotel = await myHotel(req.user._id).select(
-    "hotelName email contactNumber status isApproved partnershipStatus application authorizedRepresentative compliance createdAt updatedAt"
+    "hotelName email contactNumber status isApproved partnershipStatus application authorizedRepresentative compliance createdAt updatedAt +onboardingApplication"
   );
 
   if (!hotel)
@@ -74,8 +76,9 @@ exports.getMyPartnership = async (req, res) => {
 
   res.json({
     hotel: {
-      ...hotel.toObject(),
+      ...hotelProfileView(hotel),
       partnershipStatus: effectiveStatus,
+      invitedOnboarding: Boolean(hotel.onboardingApplication),
       portalAccess:
         ACTIVE_PARTNERSHIP.has(effectiveStatus) || hotel.status === "approved",
     },
@@ -109,8 +112,12 @@ exports.updatePartnershipStatus = async (req, res) => {
   if (!ADMIN_STATUSES.has(status))
     return res.status(400).json({ message: "Invalid partnership status." });
 
-  const hotel = await Hotel.findById(req.params.hotelId);
+  const hotel = await Hotel.findById(req.params.hotelId).select("+onboardingApplication");
   if (!hotel) return res.status(404).json({ message: "Hotel not found." });
+
+  if (hotel.onboardingApplication && status === "active_legacy") {
+    return res.status(409).json({ message: "Verify the signed offer letter before activating an invited hotel." });
+  }
 
   if (status === "active") {
     const agreement = await latestAgreementForHotel(hotel._id);
@@ -176,7 +183,7 @@ exports.reviewDocument = async (req, res) => {
       hotel: document.hotel,
     }).sort({ version: -1 });
 
-    if (agreement && agreement.status === "signed_submitted") {
+    if (agreement && agreement.status === "signed_submitted" && (!agreement.offerLetter || String(agreement.signedDocument) === String(document._id))) {
       agreement.signedDocument = document._id;
       agreement.status = "verified";
       agreement.verifiedAt = new Date();
@@ -239,17 +246,42 @@ exports.downloadDocument = async (req, res) => {
 };
 
 exports.createAgreement = async (req, res) => {
-  const hotel = await Hotel.findById(req.params.hotelId).populate(
+  const hotel = await Hotel.findById(req.params.hotelId).select("+onboardingApplication").populate(
     "owner",
     "name email role"
   );
 
   if (!hotel) return res.status(404).json({ message: "Hotel not found." });
 
+  if (hotel.onboardingApplication && (!hotel.compliance?.businessRegistrationVerified || !hotel.compliance?.representativeVerified || !hotel.compliance?.bankingVerified)) {
+    return res.status(409).json({ message: "Verify the business, representative and settlement evidence before generating an offer letter." });
+  }
+  if (hotel.onboardingApplication && Object.values(req.body || {}).some(value => typeof value === "string" && value.length > 350)) {
+    return res.status(400).json({ message: "Keep each offer letter field to 350 characters or fewer." });
+  }
+
+  const intake = hotel.onboardingApplication && await HotelOnboarding.findOne({
+    _id: hotel.onboardingApplication, hotel: hotel._id, status: "approved",
+  }).select("application").lean();
+  if (hotel.onboardingApplication && !intake) {
+    return res.status(409).json({ message: "The approved hotel application is unavailable." });
+  }
+  const approved = intake?.application;
+  const verifiedLegal = approved && {
+    hotelName: approved.tradingName,
+    legalBusinessName: approved.legalName,
+    businessRegistrationNumber: approved.registrationNumber,
+    representativeName: approved.representativeName,
+    representativeDesignation: approved.representativeTitle,
+    representativeEmail: approved.representativeEmail,
+    representativePhone: approved.contactPhone,
+  };
+
   const agreement = await createAgreement({
     hotel,
     adminUserId: req.user._id,
     overrides: req.body || {},
+    verifiedLegal,
   });
 
   hotel.partnershipStatus = "agreement_pending";
@@ -270,7 +302,7 @@ exports.createAgreement = async (req, res) => {
 };
 
 exports.sendAgreement = async (req, res) => {
-  const hotel = await Hotel.findById(req.params.hotelId).populate(
+  const hotel = await Hotel.findById(req.params.hotelId).select("+onboardingApplication").populate(
     "owner",
     "name email role"
   );
@@ -283,6 +315,13 @@ exports.sendAgreement = async (req, res) => {
 
   if (agreement.status === "superseded")
     return res.status(409).json({ message: "This agreement was superseded." });
+
+  if (agreement.offerLetter) {
+    if (agreement.status !== "draft") return res.status(409).json({ message: "Use Send reminder for an offer letter already issued." });
+    const due = new Date(Date.now() + 14 * 86_400_000);
+    if (!await sendOfferLetterNotice(hotel, agreement, due)) return res.status(503).json({ message: "Offer letter email could not be sent. Check SMTP and retry." });
+    agreement.signedDueAt = due;
+  }
 
   agreement.status = "sent";
   agreement.sentAt = new Date();
@@ -297,7 +336,7 @@ exports.sendAgreement = async (req, res) => {
     hotel.application?.managerEmail ||
     hotel.email;
 
-  if (recipient) {
+  if (recipient && !agreement.offerLetter) {
     await sendPartnershipAgreementEmail({
       to: recipient,
       name: hotel.owner?.name || hotel.authorizedRepresentative?.name,
@@ -318,6 +357,36 @@ exports.sendAgreement = async (req, res) => {
   );
 
   res.json({ message: "Agreement sent to hotel.", agreement });
+};
+
+async function sendOfferLetterNotice(hotel, agreement, due, reminder = false) {
+  const to = hotel.owner?.email || hotel.authorizedRepresentative?.email;
+  if (!to) return false;
+  const date = new Intl.DateTimeFormat("en-GB", { dateStyle: "long", timeZone: "Asia/Colombo" }).format(due);
+  const origin = new URL(process.env.CLIENT_URL || (process.env.NODE_ENV === "production" ? "https://dinefor.com" : "http://localhost:5173")).origin;
+  try {
+    const receipt = await sendMail({
+      to,
+      subject: reminder ? "Reminder to return your DineFor offer letter" : "Your DineFor partnership offer letter",
+      text: `Offer letter ${agreement.agreementNumber} is available in your partner portal. Please review, sign and upload it by ${date} (Sri Lanka time). If you need more time, contact DineFor.\n\n${origin}/hotel-partnership`,
+    });
+    return Boolean(receipt.accepted?.length);
+  } catch { return false; }
+}
+
+exports.remindOfferLetter = async (req, res) => {
+  const hotel = await Hotel.findById(req.params.hotelId).populate("owner", "email");
+  if (!hotel) return res.status(404).json({ message: "Hotel not found." });
+  const agreement = await latestAgreementForHotel(hotel._id);
+  if (!agreement?.offerLetter || !agreement.signedDueAt || !["sent", "viewed", "acknowledged"].includes(agreement.status)) {
+    return res.status(409).json({ message: "An issued offer letter awaiting signature is required." });
+  }
+  if (agreement.lastReminderAt && Date.now() - agreement.lastReminderAt.getTime() < 86_400_000) return res.status(409).json({ message: "A reminder has already been sent in the last day." });
+  if (!await sendOfferLetterNotice(hotel, agreement, agreement.signedDueAt, true)) return res.status(503).json({ message: "The reminder could not be sent. Check SMTP and retry." });
+  agreement.lastReminderAt = new Date();
+  await agreement.save();
+  await log(req, "hotel_offer_letter_reminded", hotel, "Offer letter reminder sent.", { agreementId: agreement._id });
+  return res.json({ message: "Offer letter reminder sent." });
 };
 
 exports.downloadAgreementPdf = async (req, res) => {
@@ -426,6 +495,7 @@ exports.verifyAgreement = async (req, res) => {
     hotel: hotel._id,
     documentType: "signed_agreement",
     status: "verified",
+    ...(agreement.offerLetter ? { _id: agreement.signedDocument } : {}),
   }).sort({ createdAt: -1 });
 
   if (!signedDocument)

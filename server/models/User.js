@@ -31,7 +31,7 @@ const notificationSchema = new mongoose.Schema(
     message: { type: String, default: "" },
     type: {
       type: String,
-      enum: ["booking", "review", "offer", "system", "reminder"],
+      enum: ["booking", "review", "offer", "system", "reminder", "payment", "refund", "settlement", "document"],
       default: "system",
     },
     isRead: { type: Boolean, default: false },
@@ -78,9 +78,11 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["customer", "hotel", "admin"],
+      enum: ["customer", "hotel", "admin", "hotel_staff"],
       default: "customer",
     },
+
+    staffHotel: { type: mongoose.Schema.Types.ObjectId, ref: "Hotel" },
 
     authProvider: {
       type: String,
@@ -209,6 +211,8 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+
+    emailVerificationAttempts: { type: Number, default: 0, select: false },
 
     emailVerificationToken: {
       type: String,

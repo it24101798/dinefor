@@ -1,11 +1,15 @@
+import AdminAuditTrail from "../components/admin/AdminAuditTrail";
+import "../styles/admin-workspace.css";
+import WorkspaceBanner from "../design/WorkspaceBanner";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import api, { getServerBaseUrl } from "../services/api";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import HomeCMSPanel from "../components/admin/HomeCMSPanel";
 import ReviewModerationPanel from "../components/admin/ReviewModerationPanel";
 import AdminAnalyticsPanel from "../components/analytics/AdminAnalyticsPanel";
 import AdminFinancePanel from "../components/payments/AdminFinancePanel";
 import AdminUserManager from "../components/admin/AdminUserManager";
+import CancellationCasesPanel from "../components/booking/CancellationCasesPanel";
 
 const API_SERVER = getServerBaseUrl();
 
@@ -15,6 +19,7 @@ const API_SERVER = getServerBaseUrl();
 const adminSections = [
   { key: "overview", label: "Overview", icon: "dashboard", path: "/admin" },
   { key: "hotels", label: "Hotel Applications", icon: "domain_verification", path: "/admin/hotels" },
+  { key: "hotel-onboarding", label: "Invitations", icon: "mail", path: "/admin/hotel-onboarding" },
   { key: "users", label: "Users", icon: "group", path: "/admin/users" },
   { key: "featured", label: "Featured Buffets", icon: "restaurant", path: "/admin/featured" },
   { key: "bookings", label: "Bookings", icon: "event_available", path: "/admin/bookings" },
@@ -22,6 +27,7 @@ const adminSections = [
   { key: "reviews", label: "Reviews", icon: "rate_review", path: "/admin/reviews" },
   { key: "analytics", label: "Analytics", icon: "monitoring", path: "/admin/analytics" },
   { key: "finance", label: "Finance", icon: "payments", path: "/admin/finance" },
+  { key: "audit", label: "Audit Trail", icon: "history", path: "/admin/audit" },
   { key: "settings", label: "Settings", icon: "settings", path: "/admin/settings" },
 ];
 
@@ -164,6 +170,7 @@ function AdminDashboard() {
   // ============================================
   // FETCH DATA
   // ============================================
+  const [collectedAmount, setCollectedAmount] = useState(null);
   const fetchAll = useCallback(async () => {
     if (!token) {
       setMessage("Admin login token missing. Please login again.");
@@ -199,11 +206,13 @@ function AdminDashboard() {
       if (bookingsRes.status === "fulfilled") setBookings(Array.isArray(bookingsRes.value.data) ? bookingsRes.value.data : []);
       if (buffetsRes.status === "fulfilled") setBuffets(Array.isArray(buffetsRes.value.data) ? buffetsRes.value.data : []);
       if (usersRes.status === "fulfilled") setUsers(Array.isArray(usersRes.value.data) ? usersRes.value.data : []);
-      if (reviewsRes.status === "fulfilled") setReviews(Array.isArray(reviewsRes.value.data) ? reviewsRes.value.data : []);
+      if (reviewsRes.status === "fulfilled") setReviews(reviewsRes.value.data?.reviews || []);
       if (paymentsRes.status === "fulfilled") {
         const paymentPayload = paymentsRes.value.data;
+        setCollectedAmount(paymentPayload?.summary?.collectedRevenue ?? null);
         setPayments(Array.isArray(paymentPayload) ? paymentPayload : Array.isArray(paymentPayload?.payments) ? paymentPayload.payments : []);
       }
+      if (paymentsRes.status === "rejected") setCollectedAmount(null);
       if (analyticsRes.status === "fulfilled") setAnalyticsData(analyticsRes.value.data);
 
       const failed = [hotelsRes, bookingsRes, buffetsRes, usersRes, reviewsRes, paymentsRes].filter(
@@ -238,7 +247,7 @@ function AdminDashboard() {
   // SUMMARY CALCULATIONS
   // ============================================
   const summary = useMemo(() => {
-    const activeBookings = bookings.filter((b) => b.bookingStatus !== "cancelled" && b.bookingStatus !== "no_show");
+    const activeBookings = bookings.filter((b) => b.bookingStatus !== "cancelled" && b.bookingStatus !== "no_show" && b.bookingStatus !== "expired");
     const confirmedBookings = bookings.filter((b) => b.bookingStatus === "confirmed");
     const checkedInBookings = bookings.filter((b) => b.bookingStatus === "checked_in");
     const completedBookings = bookings.filter((b) => b.bookingStatus === "completed");
@@ -246,8 +255,6 @@ function AdminDashboard() {
 
     const totalRevenue = activeBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0);
     const pendingRevenue = confirmedBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0);
-    const collectedRevenue = checkedInBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0) +
-      completedBookings.reduce((sum, b) => sum + Number(b.totalAmount || 0), 0);
 
     const pendingHotels = hotels.filter((h) => hotelStatus(h) === "pending");
     const approvedHotels = hotels.filter((h) => hotelStatus(h) === "approved");
@@ -280,7 +287,6 @@ function AdminDashboard() {
       customers: uniqueCustomers.size,
       revenue: totalRevenue,
       pendingRevenue: pendingRevenue,
-      collectedRevenue: collectedRevenue,
       buffets: buffets.length,
       activeBuffets: activeBuffets.length,
       featuredBuffets: featuredBuffets.length,
@@ -381,6 +387,21 @@ function AdminDashboard() {
       await fetchAll();
     } catch (error) {
       setMessage(error.response?.data?.message || `Hotel ${action} action failed.`);
+      setMessageType("error");
+    }
+  };
+
+  const bookingLifecycleAction = async (bookingId, action) => {
+    const isNoShow = action === "no-show";
+    const reason = window.prompt(isNoShow ? "Add the verified no-show note:" : "Enter the admin cancellation reason:", isNoShow ? "No-show verified by DineFor admin." : "Admin cancellation override.");
+    if (reason === null || !reason.trim()) return;
+    try {
+      const response = await api.post(`/cancellations/bookings/${bookingId}/${action}`, { reason, reasonCode: isNoShow ? "no_show" : "other" }, { headers });
+      setMessage(response.data?.message || "Booking lifecycle updated.");
+      setMessageType("success");
+      await fetchAll();
+    } catch (error) {
+      setMessage(error.response?.data?.message || "Booking lifecycle action failed.");
       setMessageType("error");
     }
   };
@@ -642,12 +663,28 @@ function AdminDashboard() {
   // ============================================
   // SECTION RENDERERS
   // ============================================
+  const reviewHotel = (hotel) => {
+    if (hotel.onboardingApplication) {
+      navigate(`/admin/hotel-onboarding/${hotel.onboardingApplication}`);
+    } else {
+      setSelectedHotel(hotel);
+      setModerationNote("");
+    }
+  };
+
   const renderOverview = () => (
     <>
       <div className="mb-8">
-        <h1 className="font-headline-lg text-headline-lg text-text-deep-green">Dashboard Overview</h1>
+        <h2 className="font-headline-lg text-headline-lg text-text-deep-green">Dashboard Overview</h2>
         <p className="font-body-md text-body-md text-on-surface-variant">High-level metrics and recent moderation tasks.</p>
       </div>
+
+      <nav className="df-admin-shortcuts" aria-label="Admin shortcuts">
+        <Link className="btn-primary" to="/admin/hotels">Review applications</Link>
+        <Link className="btn-outline" to="/admin/hotel-onboarding">Manage invitations</Link>
+        <Link className="btn-outline" to="/admin/reviews?status=pending">Moderation queue</Link>
+        <Link className="btn-outline" to="/admin/finance#settlement-batches">Settlement batches</Link>
+      </nav>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-8">
@@ -662,9 +699,9 @@ function AdminDashboard() {
           <p className="font-label-sm text-label-sm text-secondary">{summary.confirmedBookings} confirmed</p>
         </div>
         <div className="card-ambient p-4 text-center hover:shadow-ambient-lg transition-shadow bg-gradient-to-br from-surface-container-lowest to-surface-container-low">
-          <p className="font-label-sm text-label-sm text-on-surface-variant">Revenue</p>
+          <p className="font-label-sm text-label-sm text-on-surface-variant">Reservation value</p>
           <p className="font-headline-md text-headline-md text-highlight-gold">{money(summary.revenue)}</p>
-          <p className="font-label-sm text-label-sm text-secondary">Collected: {money(summary.collectedRevenue)}</p>
+          <p className="font-label-sm text-label-sm text-secondary">Recorded collection: {collectedAmount == null ? "Unavailable" : money(collectedAmount)}</p>
         </div>
         <div className="card-ambient p-4 text-center hover:shadow-ambient-lg transition-shadow">
           <p className="font-label-sm text-label-sm text-on-surface-variant">Buffets</p>
@@ -698,7 +735,7 @@ function AdminDashboard() {
           {hotels.filter((h) => hotelStatus(h) === "pending").slice(0, 5).map((h) => (
             <button
               key={h._id}
-              onClick={() => setSelectedHotel(h)}
+              onClick={() => reviewHotel(h)}
               className="w-full text-left p-3 rounded-xl border border-border-subtle hover:border-secondary transition-all mb-2 hover:bg-surface-container-low"
             >
               <div className="flex justify-between items-center">
@@ -744,8 +781,9 @@ function AdminDashboard() {
   const renderHotels = () => (
     <>
       <div className="mb-6">
-        <h1 className="font-headline-lg text-headline-lg text-text-deep-green">Hotel Applications</h1>
+        <h2 className="font-headline-lg text-headline-lg text-text-deep-green">Hotel Applications</h2>
         <p className="font-body-md text-body-md text-on-surface-variant">Approve, reject, hold, suspend, or request more information from hotel partners.</p>
+        <Link className="btn-primary mt-3 inline-flex" to="/admin/hotel-onboarding">Hotel leads and invitations</Link>
       </div>
 
       {/* Filters */}
@@ -794,6 +832,7 @@ function AdminDashboard() {
                 <th className="text-left p-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Location</th>
                 <th className="text-left p-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Contact</th>
                 <th className="text-left p-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Status</th>
+                <th className="text-left p-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Lifecycle</th>
                 <th className="text-left p-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -807,8 +846,9 @@ function AdminDashboard() {
                   <td className="p-4 text-on-surface-variant">{h.city || h.location || "-"}</td>
                   <td className="p-4 text-on-surface-variant">{h.contactNumber || "-"}</td>
                   <td className="p-4"><span className={`status-pill ${getStatusColor(hotelStatus(h))}`}>{statusLabels[hotelStatus(h)] || hotelStatus(h)}</span></td>
+                  <td className="p-4"><span className="capitalize">{String(h.partnershipStatus || "—").replaceAll("_", " ")}</span></td>
                   <td className="p-4">
-                    <div className="flex flex-wrap gap-3"><button onClick={() => setSelectedHotel(h)} className="text-secondary hover:underline text-sm">Review</button><button onClick={() => navigate(`/admin/partnership/${h._id}`)} className="text-secondary hover:underline text-sm">Compliance</button></div>
+                    <div className="flex flex-wrap gap-3"><button onClick={() => reviewHotel(h)} className="btn-outline text-sm">Review application</button><button onClick={() => navigate(`/admin/partnership/${h._id}`)} className="text-secondary hover:underline text-sm">Compliance</button></div>
                   </td>
                 </tr>
               ))}
@@ -823,7 +863,7 @@ function AdminDashboard() {
   const renderBookings = () => (
     <>
       <div className="mb-6">
-        <h1 className="font-headline-lg text-headline-lg text-text-deep-green">Booking Center</h1>
+        <h2 className="font-headline-lg text-headline-lg text-text-deep-green">Booking Center</h2>
         <p className="font-body-md text-body-md text-on-surface-variant">Search and monitor reservations across all hotels.</p>
       </div>
 
@@ -910,6 +950,7 @@ function AdminDashboard() {
                   </td>
                   <td className="p-4 font-label-md text-label-md text-highlight-gold">{money(b.totalAmount)}</td>
                   <td className="p-4"><span className={`status-pill ${getStatusColor(b.bookingStatus)}`}>{b.bookingStatus}</span></td>
+                  <td className="p-4"><div className="flex flex-wrap gap-2">{!["cancelled","completed","no_show","expired"].includes(b.bookingStatus) && <button className="bg-error/10 text-error text-xs px-3 py-1 rounded-full" onClick={() => bookingLifecycleAction(b._id, "operator-cancel")}>Cancel</button>}{b.bookingStatus === "confirmed" && <button className="btn-outline text-xs px-3 py-1" onClick={() => bookingLifecycleAction(b._id, "no-show")}>No Show</button>}</div></td>
                 </tr>
               ))}
             </tbody>
@@ -917,13 +958,14 @@ function AdminDashboard() {
         </div>
         {!filteredBookings.length && renderEmpty("No bookings found", "Try another search or status filter.", "search_off")}
       </div>
+      <CancellationCasesPanel role="admin" headers={headers} refreshKey={bookings.map((item) => `${item._id}:${item.bookingStatus}`).join("|")} />
     </>
   );
 
   const renderFeatured = () => (
     <>
       <div className="mb-6">
-        <h1 className="font-headline-lg text-headline-lg text-text-deep-green">Featured Buffets</h1>
+        <h2 className="font-headline-lg text-headline-lg text-text-deep-green">Featured Buffets</h2>
         <p className="font-body-md text-body-md text-on-surface-variant">Promote selected buffets on feed, listings, and homepage sections.</p>
       </div>
 
@@ -986,7 +1028,7 @@ function AdminDashboard() {
   const renderSettings = () => (
     <>
       <div className="mb-6">
-        <h1 className="font-headline-lg text-headline-lg text-text-deep-green">Settings</h1>
+        <h2 className="font-headline-lg text-headline-lg text-text-deep-green">Settings</h2>
         <p className="font-body-md text-body-md text-on-surface-variant">System configuration and controls.</p>
       </div>
 
@@ -1000,7 +1042,7 @@ function AdminDashboard() {
             </div>
             <div>
               <p className="font-label-sm text-label-sm text-on-surface-variant">Mode</p>
-              <p className="font-body-md text-body-md text-text-deep-green">Local Development</p>
+              <p className="font-body-md text-body-md text-text-deep-green">{import.meta.env.PROD ? 'Production' : 'Development'}</p>
             </div>
             <div>
               <p className="font-label-sm text-label-sm text-on-surface-variant">API Base URL</p>
@@ -1014,7 +1056,7 @@ function AdminDashboard() {
           <div className="space-y-4">
             <div>
               <p className="font-label-sm text-label-sm text-on-surface-variant">Payment Method</p>
-              <p className="font-body-md text-body-md text-text-deep-green">Pay at hotel</p>
+              <p className="font-body-md text-body-md text-text-deep-green">Configured at checkout</p>
             </div>
             <div>
               <p className="font-label-sm text-label-sm text-on-surface-variant">Currency</p>
@@ -1022,7 +1064,7 @@ function AdminDashboard() {
             </div>
             <div>
               <p className="font-label-sm text-label-sm text-on-surface-variant">Online Payments</p>
-              <p className="font-body-md text-body-md text-text-deep-green">Coming soon</p>
+              <p className="font-body-md text-body-md text-text-deep-green">Availability depends on gateway configuration</p>
             </div>
           </div>
         </div>
@@ -1064,10 +1106,10 @@ function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20">
+    <div className="df-admin-suite min-h-screen bg-surface-cream text-on-surface font-body-md antialiased pt-20">
       <div className="flex min-h-[calc(100vh-5rem)]">
         {/* Sidebar */}
-        <aside className="hidden md:flex flex-col w-64 fixed left-0 top-20 h-[calc(100vh-5rem)] bg-surface-container-lowest border-r border-border-subtle overflow-y-auto">
+        <aside className="df-admin-sidebar hidden md:flex flex-col w-64 fixed left-0 top-20 h-[calc(100vh-5rem)] bg-surface-container-lowest border-r border-border-subtle overflow-y-auto">
           <div className="p-6 border-b border-border-subtle">
             <h2 className="font-headline-md text-headline-md text-text-deep-green">Admin</h2>
             <p className="font-label-sm text-label-sm text-on-surface-variant">Control Center</p>
@@ -1110,14 +1152,13 @@ function AdminDashboard() {
         </aside>
 
         {/* Main Content */}
-        <div className="flex-1 md:ml-64 p-4 sm:p-6 md:p-8">
-          <nav className="df-mobile-section-tabs md:hidden" aria-label="Admin sections">
-            {adminSections.map((section) => (
-              <NavLink key={section.key} to={section.path} end={section.path === "/admin"} className={({ isActive }) => `df-mobile-section-tab ${isActive ? "is-active" : ""}`}>
-                <span className="material-symbols-outlined">{section.icon}</span><span>{section.label}</span>
-              </NavLink>
-            ))}
-          </nav>
+        <div className="df-admin-main flex-1 md:ml-64 p-4 sm:p-6 md:p-8">
+          <label className="df-admin-mobile-nav">Workspace section
+            <select className="form-select" value={currentSection.path} onChange={(event) => navigate(event.target.value)}>
+              {adminSections.map((section) => <option key={section.key} value={section.path}>{section.label}</option>)}
+            </select>
+          </label>
+          <WorkspaceBanner eyebrow="DINEFOR · ADMINISTRATION" title={currentSection.key === 'overview' ? 'A clear view of DineFor.' : currentSection.label} description={currentSection.key === 'overview' ? 'Your marketplace, partner activity and priorities in one place.' : 'Manage ' + currentSection.label.toLowerCase() + ' across the DineFor marketplace.'} artwork={currentSection.key === 'overview' ? '/images/characters/account-concierge.png' : undefined}/>
           {renderMessage()}
           {renderHotelModal()}
           {renderDeleteConfirmModal()}
@@ -1130,9 +1171,10 @@ function AdminDashboard() {
           {currentSection.key === "settings" && renderSettings()}
 
           {currentSection.key === "homepage" && <HomeCMSPanel />}
-          {currentSection.key === "reviews" && <ReviewModerationPanel />}
+          {currentSection.key === "reviews" && <ReviewModerationPanel initialStatus={new URLSearchParams(location.search).get("status") === "pending" ? "pending" : "all"} />}
           {currentSection.key === "analytics" && <AdminAnalyticsPanel />}
           {currentSection.key === "finance" && <AdminFinancePanel />}
+          {currentSection.key === "audit" && <AdminAuditTrail headers={headers} />}
         </div>
       </div>
     </div>
